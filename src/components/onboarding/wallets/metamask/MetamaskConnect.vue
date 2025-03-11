@@ -1,0 +1,258 @@
+<script setup lang="ts">
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ref, onMounted } from 'vue';
+import step1 from "@/assets/icons/wallets/metamask/step1.webp";
+import step2 from "@/assets/icons/wallets/metamask/step2.webp";
+import { mdiClose } from '@mdi/js';
+import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
+import { useMetamaskStore } from "@/stores/metamask.store";
+import { Combobox, ComboboxAnchor, ComboboxTrigger, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList } from '@/components/ui/combobox';
+import { Check, Search } from 'lucide-vue-next';
+import { Separator } from '@/components/ui/separator';
+import PublicKey from '@/components/hive/PublicKey.vue';
+
+const emit = defineEmits(["setaccount", "close"]);
+
+const close = () => {
+  emit("close");
+};
+
+const metamaskStore = useMetamaskStore();
+
+const isLoading = ref(false);
+const errorMsg = ref<string | null>(null);
+const accountName = ref<string | null>(null);
+const accountsMatchingKeys = ref<string[] | null>(null);
+const metamaskPublicKeys = ref<Array<{ role: string; publicKey: string }> | null>(null);
+const isMetamaskConnected = ref<boolean>(false);
+const isMetamaskSnapInstalled = ref<boolean>(false);
+
+const applyPublicKeys = async () => {
+  isLoading.value = true;
+  errorMsg.value = null;
+  try {
+    const { publicKeys } = await metamaskStore.call("hive_getPublicKeys", {
+      keys: [{
+        role: "owner"
+      },{
+        role: "active"
+      },{
+        role: "posting"
+      },{
+        role: "memo"
+      }]
+    }) as any;
+
+    metamaskPublicKeys.value = publicKeys;
+
+    const response = await (await fetch("https://api.hive.blog", {
+      method: "POST",
+      body: JSON.stringify({
+        method: "account_by_key_api.get_key_references",
+        jsonrpc:"2.0",
+        id: "1",
+        params: {
+          keys: publicKeys.map((node: { publicKey: string }) => node.publicKey)
+        }
+      })
+    })).json();
+
+    if (response.error)
+      throw new Error(response.error.message);
+
+    accountsMatchingKeys.value = [...new Set(response.result.accounts.flatMap((node: string[]) => node))] as string[];
+  } catch (error) {
+    if (typeof error === "object" && error && "message" in error)
+      errorMsg.value = error.message as string;
+    else
+      errorMsg.value = String(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+const connect = async (showError = true) => {
+  isLoading.value = true;
+  errorMsg.value = null;
+  try {
+    await metamaskStore.connect();
+
+    isMetamaskConnected.value = metamaskStore.isConnected;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    if (isMetamaskSnapInstalled.value)
+      void applyPublicKeys();
+  } catch (error) {
+    if (!showError)
+      return;
+
+    if (typeof error === "object" && error && "message" in error)
+      errorMsg.value = error.message as string;
+    else
+      errorMsg.value = String(error);
+  } finally {
+    isLoading.value = false;
+  };
+};
+
+const install = async () => {
+  isLoading.value = true;
+  errorMsg.value = null;
+  try {
+    await metamaskStore.install();
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+
+    if (isMetamaskSnapInstalled.value)
+      void applyPublicKeys();
+  } catch (error) {
+    if (typeof error === "object" && error && "message" in error)
+      errorMsg.value = error.message as string;
+    else
+      errorMsg.value = String(error);
+  } finally {
+    isLoading.value = false;
+  };
+}
+
+onMounted(() => {
+  void connect(false);
+});
+
+const gotoSignTx = () => {
+  window.open(`${window.location.protocol}//${window.location.host}/sign/?tx=`, '_blank')!.focus();
+};
+
+const updateAccountName = (value: string | any) => {
+  if (!value) return;
+  accountName.value = value.startsWith("@") ? value.slice(1) : value;
+};
+</script>
+
+<template>
+  <Card class="w-[350px]">
+    <CardHeader>
+      <CardTitle>
+        <div class="inline-flex justify-between w-full">
+          <div class="inline-flex items-center">
+            <img :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
+            <span class="mt-[2px]">Metamask Connector</span>
+          </div>
+          <Button variant="ghost" size="sm" class="px-2" @click="close">
+            <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="mdiClose"/></svg>
+          </Button>
+        </div>
+      </CardTitle>
+      <CardDescription>Follow these instructions to connect to Metamask</CardDescription>
+    </CardHeader>
+    <CardContent class="text-sm">
+      <div v-if="!isMetamaskConnected" class="space-y-4">
+        <p>Step 1: Connect your metamask wallet:</p>
+        <div class="flex justify-center">
+          <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]" @click="connect">
+            <span class="text-md font-bold">Connect</span>
+          </Button>
+        </div>
+      </div>
+      <div v-if="!isMetamaskSnapInstalled && !isLoading" class="space-y-4">
+        <p>Step 2: Install our Hive Wallet snap:</p>
+        <div class="flex justify-center">
+          <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]" @click="install">
+            <span class="text-md font-bold">Install snap</span>
+          </Button>
+        </div>
+      </div>
+      <div v-if="!isMetamaskSnapInstalled && isLoading" class="space-y-4">
+        <p>Step 3: Connect to our snap server:</p>
+        <div class="flex justify-center">
+          <img :src="step1" class="w-[234px] h-[172px] mt-4 border rounded-md p-2 ml-auto mr-auto" />
+        </div>
+        <p>Step 4: Confirm snap installation:</p>
+        <div class="flex justify-center">
+          <img :src="step2" class="w-[237px] h-[253px] mt-4 border rounded-md p-2 ml-auto mr-auto" />
+        </div>
+      </div>
+      <div v-if="isMetamaskSnapInstalled">
+        <div v-if="accountsMatchingKeys">
+          <div v-if="accountsMatchingKeys.length === 0">
+            <p class="mb-2">Step 5: Import <b>at least one</b> Metamask derived key into your Hive account and re-check for Hive Accounts matching those keys:</p>
+            <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
+              <div class="flex items-center p-1">
+                <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
+                <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
+                <PublicKey :value="key.publicKey"/>
+              </div>
+            </div>
+            <div class="flex justify-center mt-3">
+              <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]" @click="applyPublicKeys">
+                <span class="text-md font-bold">Re-check for Hive Accounts</span>
+              </Button>
+            </div>
+            <Separator label="Or" class="mt-8" />
+            <div class="flex justify-center mt-4">
+              <Button :disabled="isLoading" @click="gotoSignTx" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                <span class="text-md font-bold">Update account authority</span>
+              </Button>
+            </div>
+            <div class="flex justify-center mt-4">
+              <Button :disabled="isLoading" @click="gotoSignTx" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                <span class="text-md font-bold">Request account creation</span>
+              </Button>
+            </div>
+          </div>
+          <div v-else>
+            <p>Step 6: Connect your Hive account:</p>
+            <div class="mt-2 flex justify-center space-y-2">
+              <Combobox by="label" @update:model-value="updateAccountName">
+                <ComboboxAnchor>
+                  <ComboboxTrigger as-child>
+                    <div class="relative w-full max-w-sm items-center">
+                      <ComboboxInput class="pl-9" :display-value="(val) => val ? `@${val}` : ''" placeholder="Select account" />
+                      <span class="absolute start-0 inset-y-0 flex items-center justify-center px-3">
+                        <Search class="size-4 text-muted-foreground" />
+                      </span>
+                    </div>
+                  </ComboboxTrigger>
+                </ComboboxAnchor>
+                <ComboboxList>
+                  <ComboboxEmpty>
+                    No account matching keys found.
+                  </ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem
+                      v-for="account in accountsMatchingKeys"
+                      :key="account"
+                      :value="account"
+                    >
+                      @{{ account }}
+                      <ComboboxItemIndicator>
+                        <Check class="ml-auto h-4 w-4" />
+                      </ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxList>
+              </Combobox>
+            </div>
+            <div class="flex justify-center mt-3" v-if="accountName">
+              <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]" @click="emit('setaccount', accountName)">
+                <span class="text-md font-bold">Import</span>
+              </Button>
+            </div>
+            <Separator label="Or" class="mt-8" />
+            <div class="flex justify-center mt-4">
+              <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]" @click="accountsMatchingKeys = []">
+                <span class="text-md font-bold">Import different account</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div v-else>
+          <p>Step 5: Loading on-chain accounts...</p>
+          <p>Please wait</p>
+        </div>
+      </div>
+    </CardContent>
+    <CardFooter>
+      <span class="text-red-400" v-if="errorMsg"><span class="font-bold">Error: </span>{{ errorMsg }}</span>
+    </CardFooter>
+  </Card>
+</template>

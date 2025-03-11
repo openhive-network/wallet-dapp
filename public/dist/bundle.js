@@ -1,0 +1,1 @@
+../../node_modules/@hiveio/metamask-snap/dist/bundle.js

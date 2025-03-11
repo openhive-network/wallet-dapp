@@ -1,0 +1,55 @@
+{
+  "name": "@hiveio/wallet-dapp",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Metamask Wallet dApp",
+  "homepage": "https://gitlab.syncad.com/hive/wallet-dapp#readme",
+  "bugs": {
+    "url": "https://gitlab.syncad.com/hive/wallet-dapp/-/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.syncad.com/hive/wallet-dapp.git"
+  },
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist/index.html",
+    "dist/assets"
+  ],
+  "scripts": {
+    "start": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@hiveio/metamask-snap": "1.0.0",
+    "@hiveio/wax": "1.27.6-rc7-250304235913",
+    "@mdi/js": "^7.4.47",
+    "@metamask/providers": "^16.0.0",
+    "@tanstack/vue-table": "^8.21.2",
+    "@types/node": "^22.13.9",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/tsconfig": "^0.7.0",
+    "@vueuse/core": "^12.8.2",
+    "autoprefixer": "^10.4.20",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-vue-next": "^0.477.0",
+    "pinia": "^3.0.1",
+    "reka-ui": "^2.0.2",
+    "tailwind-merge": "^3.0.2",
+    "tailwindcss-animate": "^1.0.7",
+    "tailwindcss": "3",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0",
+    "vue-tsc": "^2.2.4",
+    "vue": "^3.5.13",
+    "vue-router": "4"
+  },
+  "packageManager": "pnpm@10.0.0+sha512.b8fef5494bd3fe4cbd4edabd0745df2ee5be3e4b0b8b08fa643aa3e4c6702ccc0f00d68fa8a8c9858a735a0032485a44990ed2810526c875e416f001b17df12b",
+  "engines": {
+    "node": "^20.18.1 || >= 21.2"
+  }
+}
