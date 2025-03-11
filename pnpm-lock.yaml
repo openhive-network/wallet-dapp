@@ -8,9 +8,6 @@ importers:
 
   .:
     devDependencies:
-      '@hiveio/metamask-snap':
-        specifier: 1.0.0
-        version: 1.0.0
       '@hiveio/wax':
         specifier: 1.27.6-rc7-250304235913
         version: 1.27.6-rc7-250304235913
@@ -286,10 +283,6 @@ packages:
   '@hiveio/beekeeper@1.27.9-stable.250219154236':
     resolution: {integrity: sha1-6fL+OgTwp6MSp0Xm3fwj+kFLzD8=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.27.9-stable.250219154236.tgz}
     engines: {node: ^20.11 || >= 21.2}
-
-  '@hiveio/metamask-snap@1.0.0':
-    resolution: {integrity: sha1-J1nqU58VQL1u50HG17e3W+ScKMw=, tarball: https://gitlab.syncad.com/api/v4/projects/514/packages/npm/@hiveio/metamask-snap/-/@hiveio/metamask-snap-1.0.0.tgz}
-    engines: {node: ^20.18.1 || >= 21.2}
 
   '@hiveio/wax@1.27.6-rc7-250304235913':
     resolution: {integrity: sha1-Dk27ws/cbPd8P+aomJlGCzL98rI=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.27.6-rc7-250304235913.tgz}
@@ -1638,8 +1631,6 @@ snapshots:
       - vue
 
   '@hiveio/beekeeper@1.27.9-stable.250219154236': {}
-
-  '@hiveio/metamask-snap@1.0.0': {}
 
   '@hiveio/wax@1.27.6-rc7-250304235913':
     dependencies:

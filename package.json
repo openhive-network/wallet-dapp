@@ -14,8 +14,7 @@
   "license": "MIT",
   "type": "module",
   "files": [
-    "dist/index.html",
-    "dist/assets"
+    "dist"
   ],
   "scripts": {
     "start": "vite",
@@ -24,7 +23,6 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "@hiveio/metamask-snap": "1.0.0",
     "@hiveio/wax": "1.27.6-rc7-250304235913",
     "@mdi/js": "^7.4.47",
     "@metamask/providers": "^16.0.0",

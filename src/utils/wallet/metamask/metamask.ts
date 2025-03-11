@@ -1,5 +1,5 @@
 import type { MetaMaskInpageProvider } from "@metamask/providers";
-import { defaultSnapOrigin, isLocalSnap } from "./snap";
+import { defaultSnapOrigin, defaultSnapVersion, isLocalSnap } from "./snap";
 
 export type MetamaskSnapData = {
   permissionName: string;
@@ -37,9 +37,9 @@ export class MetamaskWallet {
    * Request the snap to be installed or reinstalled.
    * You can check if snap is installed using {@link isInstalled}
    */
-  public async installSnap(version?: string) {
+  public async installSnap(version: string | undefined = defaultSnapVersion) {
     const snaps = await this.request('wallet_requestSnaps', {
-      [defaultSnapOrigin]: version ? { version } : {}
+      [defaultSnapOrigin]: (typeof version === "undefined" || version.length === 0) ? {} : { version }
     }) as MetamaskSnapsResponse;
 
     this.currentSnap = snaps[defaultSnapOrigin]!;
