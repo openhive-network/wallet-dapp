@@ -1,13 +1,53 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { mdiMessageLockOutline } from '@mdi/js';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
+import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
+import { useSettingsStore } from '@/stores/settings.store';
+
+const walletStore = useWalletStore();
+const settingsStore = useSettingsStore();
+
+const hasWallet = computed(() => walletStore.hasWallet);
+const wallet = computed(() => walletStore.wallet);
 
 const isEncrypt = ref(false);
+const encryptForKey = ref('');
+const inputData = ref('');
+const outputData = ref('');
+
+const getMemoKeyForUser = async(user: string) => {
+  const wax = await getWax();
+  const response = await wax.api.database_api.find_accounts({
+    accounts: [user.startsWith('@') ? user.slice(1) : user],
+    delayed_votes_active: true
+  });
+  return response.accounts[0].memo_key;
+}
+
+const useMyMemoKey = async () => {
+  encryptForKey.value = await getMemoKeyForUser(settingsStore.account!);
+}
+
+const encryptOrDecrypt = async () => {
+  if (isEncrypt.value) {
+    let publicKey: string;
+    let accountOrKey = encryptForKey.value;
+    if (accountOrKey.startsWith('STM')) {
+      publicKey = accountOrKey;
+    } else {
+      publicKey = await getMemoKeyForUser(accountOrKey);
+    }
+    outputData.value = await wallet.value!.encrypt(inputData.value, publicKey);
+  } else {
+    outputData.value = await wallet.value!.decrypt(inputData.value);
+  }
+};
 </script>
 
 <template>
@@ -25,13 +65,13 @@ const isEncrypt = ref(false);
         <Switch v-model="isEncrypt" />
         <span>Encrypt</span>
       </div>
-      <Textarea placeholder="Input" class="my-4"/>
-      <Input v-if="isEncrypt" placeholder="Receiver account or public key" class="mt-4"/>
+      <Textarea v-model="inputData" placeholder="Input" class="my-4"/>
+      <Input v-model="encryptForKey" v-if="isEncrypt" placeholder="Receiver account or public key" class="mt-4"/>
       <div class="flex mb-4 underline text-sm" v-if="isEncrypt">
-        <a class="ml-auto mr-1 cursor-pointer" style="color: hsla(var(--foreground) / 70%)" @click="">Use my memo key</a>
+        <a @click="useMyMemoKey" class="ml-auto mr-1 cursor-pointer" style="color: hsla(var(--foreground) / 70%)">Use my memo key</a>
       </div>
-      <Button>{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
-      <Textarea placeholder="Output" copy-enabled class="my-4" disabled/>
+      <Button :disabled="!hasWallet" @click="encryptOrDecrypt">{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
+      <Textarea v-model="outputData" placeholder="Output" copy-enabled class="my-4" disabled/>
     </CardContent>
   </Card>
 </template>

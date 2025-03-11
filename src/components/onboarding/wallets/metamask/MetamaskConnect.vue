@@ -11,6 +11,7 @@ import { Combobox, ComboboxAnchor, ComboboxTrigger, ComboboxEmpty, ComboboxGroup
 import { Check, Search } from 'lucide-vue-next';
 import { Separator } from '@/components/ui/separator';
 import PublicKey from '@/components/hive/PublicKey.vue';
+import { getWax } from '@/stores/wax.store';
 
 const emit = defineEmits(["setaccount", "close"]);
 
@@ -46,22 +47,13 @@ const applyPublicKeys = async () => {
 
     metamaskPublicKeys.value = publicKeys;
 
-    const response = await (await fetch("https://api.hive.blog", {
-      method: "POST",
-      body: JSON.stringify({
-        method: "account_by_key_api.get_key_references",
-        jsonrpc:"2.0",
-        id: "1",
-        params: {
-          keys: publicKeys.map((node: { publicKey: string }) => node.publicKey)
-        }
-      })
-    })).json();
+    const wax = await getWax();
 
-    if (response.error)
-      throw new Error(response.error.message);
+    const response = await wax.api.account_by_key_api.get_key_references({
+      keys: publicKeys.map((node: { publicKey: string }) => node.publicKey)
+    });
 
-    accountsMatchingKeys.value = [...new Set(response.result.accounts.flatMap((node: string[]) => node))] as string[];
+    accountsMatchingKeys.value = [...new Set(response.accounts.flatMap((node: string[]) => node))] as string[];
   } catch (error) {
     if (typeof error === "object" && error && "message" in error)
       errorMsg.value = error.message as string;

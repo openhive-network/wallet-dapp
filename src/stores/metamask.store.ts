@@ -1,7 +1,7 @@
 import { defineStore } from "pinia"
 import { connectMetamask, type MetamaskWallet } from "../utils/wallet/metamask"
 
-export const useMetamaskStore = defineStore('wallet', {
+export const useMetamaskStore = defineStore('metamask', {
   state: () => ({
     metamask: undefined as undefined | MetamaskWallet,
     performingOperation: false

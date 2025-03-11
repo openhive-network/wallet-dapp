@@ -35,6 +35,7 @@ const settings = {
   wallet: undefined as UsedWallet | undefined,
   account: undefined as string | undefined,
 };
+export type Settings = Required<typeof settings>;
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({

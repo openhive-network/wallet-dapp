@@ -1,5 +1,7 @@
 import type { MetaMaskInpageProvider } from "@metamask/providers";
 import { defaultSnapOrigin, defaultSnapVersion, isLocalSnap } from "./snap";
+import type { Wallet } from "../abstraction";
+import type { TPublicKey, TRole, ITransactionBase } from "@hiveio/wax/vite";
 
 export type MetamaskSnapData = {
   permissionName: string;
@@ -9,7 +11,7 @@ export type MetamaskSnapData = {
 };
 export type MetamaskSnapsResponse = Record<string, MetamaskSnapData>;
 
-export class MetamaskWallet {
+export class MetamaskWallet implements Wallet {
   /**
    * Indicates either the snap is installed or not.
    * If you want to install or reinstall the snap, use {@link installSnap}
@@ -31,6 +33,24 @@ export class MetamaskWallet {
 
   private request(method: string, params?: any) {
     return this.provider.request(params ? { method, params } : { method });
+  }
+
+  public async signTransaction(transaction: ITransactionBase, role: TRole) {
+    const response = await this.invokeSnap('hive_signTransaction', { transaction: transaction.toApi(), keys: [{ role }] }) as any;
+
+    return response.signatures[0];
+  }
+
+  public async encrypt(buffer: string, recipient: TPublicKey): Promise<string> {
+    const response = await this.invokeSnap('hive_encrypt', { buffer, firstKey: { role: "memo" as TRole }, secondKey: recipient }) as any;
+
+    return response.buffer;
+  }
+
+  public async decrypt(buffer: string): Promise<string> {
+    const response = await this.invokeSnap('hive_decrypt', { buffer, firstKey: { role: "memo" as TRole } }) as any;
+
+    return response.buffer;
   }
 
   /**

@@ -1,20 +1,33 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import OnboardingButton from "@/components/onboarding/OnboardingWalletButton.vue";
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useMetamaskStore } from "@/stores/metamask.store";
 import { getWalletIcon, UsedWallet } from "@/stores/settings.store";
 
 const hasMetamask = ref(false);
 const hasKeychain = ref(false);
 const hasPeakVault = ref(false);
+let timeoutId: number;
 
 const metamaskStore = useMetamaskStore();
 
+const checkForWallets = () => {
+  if (!hasMetamask.value)
+    metamaskStore.connect().then(() => hasMetamask.value = true).catch(console.error);
+  if (!hasKeychain.value)
+    hasKeychain.value = "hive_keychain" in window;
+  if (!hasPeakVault.value)
+    hasPeakVault.value = "peakvault" in window;
+};
+
 onMounted(() => {
-  metamaskStore.connect().then(() => hasMetamask.value = true).catch(console.error);
-  hasKeychain.value = "hive_keychain" in window;
-  hasPeakVault.value = "peakvault" in window;
+  timeoutId = setTimeout(() => checkForWallets(), 1500) as unknown as number;
+  checkForWallets();
+});
+
+onUnmounted(() => {
+  clearTimeout(timeoutId);
 });
 
 const emit = defineEmits(["walletSelect"]);

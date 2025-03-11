@@ -1,22 +1,28 @@
 <script setup lang="ts">
 import { ref, onMounted, defineAsyncComponent } from 'vue';
 import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import AppHeader from '@/components/AppHeader.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
 const hasUser = ref(true);
 const settingsStore = useSettingsStore();
+const walletStore = useWalletStore();
 onMounted(() => {
   settingsStore.loadSettings();
   hasUser.value = settingsStore.settings.account !== undefined;
+  if (hasUser.value)
+    void walletStore.createWalletFor(settingsStore.settings);
 });
 const complete = (data: { account: string; wallet: UsedWallet }) => {
   hasUser.value = true;
-  settingsStore.setSettings({
+  const settings = {
     account: data.account,
     wallet: data.wallet
-  });
+  };
+  settingsStore.setSettings(settings);
+  void walletStore.createWalletFor(settings);
 };
 </script>
 

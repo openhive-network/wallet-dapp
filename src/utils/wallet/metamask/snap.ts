@@ -6,9 +6,9 @@
  * don't. Instead, rename `.env.production.dist` to `.env.production` and set the production URL
  * there. Running `yarn build` will automatically use the production environment variables.
  */
-export const defaultSnapOrigin = import.meta.env.SNAP_ORIGIN ?? `npm:@hiveio/metamask-snap`;
+export const defaultSnapOrigin = import.meta.env.SNAP_ORIGIN ?? `npm:@hiveio/metamask-snap`; // local:http://localhost:8080
 
-export const defaultSnapVersion: string | undefined = import.meta.env.SNAP_VERSION ?? '1.0.1';
+export const defaultSnapVersion: string | undefined = import.meta.env.SNAP_VERSION ?? '1.2.1';
 
 /**
  * Check if a snap ID is a local snap ID.
