@@ -2,7 +2,9 @@
 import { ref, onMounted, defineAsyncComponent } from 'vue';
 import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import AppHeader from '@/components/AppHeader.vue';
+import AppSidebar from '@/components/sidebar';
+import { SidebarProvider } from '@/components/ui/sidebar';
+import ToggleSidebar from './components/sidebar/ToggleSidebar.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -27,15 +29,19 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
 </script>
 
 <template>
-  <div id="shadcn-root" class="dark">
+  <div id="shadcn-root">
     <div id="app-main">
-      <AppHeader/>
-      <main class="mt-[65px]">
-        <RouterView />
-      </main>
-      <aside v-if="settingsStore.isLoaded && !hasUser" class="fixed inset-0 flex items-center justify-center z-20">
-        <WalletOnboarding @complete="complete" />
-      </aside>
+      <SidebarProvider>
+        <AppSidebar/>
+        <!-- <AppHeader/> -->
+        <main class="w-full">
+          <ToggleSidebar class="m-3" />
+          <RouterView />
+        </main>
+        <aside v-if="settingsStore.isLoaded && !hasUser" class="fixed inset-0 flex items-center justify-center z-20">
+          <WalletOnboarding @complete="complete" />
+        </aside>
+      </SidebarProvider>
     </div>
   </div>
 </template>
@@ -43,8 +49,6 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
 <style scoped>
 #app-main {
   overflow-y: auto;
-  height: 100%;
-  width: 100%;
   background: url('/bg.svg') no-repeat center center fixed;
   background-size: cover;
 }
@@ -52,8 +56,6 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
 #shadcn-root {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  height: 100vh;
-  width: 100%;
   overflow: hidden;
   font-family: Verdana, sans-serif;
 }

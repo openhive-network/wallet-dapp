@@ -17,9 +17,6 @@ const logout = () => {
   <header class="fixed top-0 left-0 z-10 bg-black/60 backdrop-blur-sm w-full">
     <nav class="flex items-center relative sm:justify-center p-4 w-full h-[65px] border-b-[1px] border-white/25">
       <div class="hidden sm:inline absolute top-[14px] left-[30px]" v-if="hasUser">
-        <Button variant="outline" class="cursor-default" v-if="settingsStore.isLoaded && hasUser">
-          <span class="font-bold">@{{ settingsStore.settings.account }}</span>
-        </Button>
       </div>
       <div class="flex items-center space-x-4">
         <img src="/icon.svg" class="h-8 w-8" />

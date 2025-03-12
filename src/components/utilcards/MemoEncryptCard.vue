@@ -51,13 +51,13 @@ const encryptOrDecrypt = async () => {
 </script>
 
 <template>
-  <Card class="bg-black/40 backdrop-blur-sm">
+  <Card class="w-full max-w-[600px] bg-black/40 backdrop-blur-sm">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Memo encryption</span>
         <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiMessageLockOutline"/></svg>
       </CardTitle>
-      <CardDescription class="mr-4">Use this module to encrypt / decrypt given message using your memo key for any purpose</CardDescription>
+      <CardDescription class="mr-8">Use this module to encrypt / decrypt given message using your memo key for any purpose</CardDescription>
     </CardHeader>
     <CardContent>
       <div class="my-4 space-x-4 flex">

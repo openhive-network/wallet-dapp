@@ -40,13 +40,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card class="bg-black/40 backdrop-blur-sm">
+  <Card class="w-full max-w-[600px] bg-black/40 backdrop-blur-sm">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Authority info</span>
         <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountKeyOutline"/></svg>
       </CardTitle>
-      <CardDescription class="mr-4">Use this module to gather information about your Hive on-chain authorities</CardDescription>
+      <CardDescription class="mr-8">Use this module to gather information about your Hive on-chain authorities</CardDescription>
     </CardHeader>
     <CardContent>
       <div class="space-y-4" v-if="hasUser">

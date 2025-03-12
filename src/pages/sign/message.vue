@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import AuthorityCard from '@/components/utilcards/AuthorityCard.vue';
+import MemoEncryptCard from '@/components/utilcards/MemoEncryptCard.vue';
 </script>
 
 <template>
   <div class="flex py-4 px-8">
-    <AuthorityCard />
+    <MemoEncryptCard />
   </div>
 </template>
