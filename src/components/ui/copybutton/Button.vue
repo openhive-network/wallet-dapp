@@ -32,10 +32,12 @@ const copyBtn = (event: MouseEvent) => {
   <Primitive
     :as="as"
     :as-child="asChild"
-    :class="cn(buttonVariants(), props.class, 'px-2')"
+    :class="cn(buttonVariants(), 'px-2', props.class)"
     @click="copyBtn"
     :data-copy="props.value"
   >
-    <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="mdiContentCopy"/></svg>
+    <slot>
+      <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="mdiContentCopy"/></svg>
+    </slot>
   </Primitive>
 </template>

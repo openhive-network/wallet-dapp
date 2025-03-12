@@ -1,10 +1,23 @@
-import { createHiveChain, type IHiveChainInterface } from "@hiveio/wax/vite";
+import { createHiveChain, type TWaxExtended, type asset } from "@hiveio/wax/vite";
 
-let chain: IHiveChainInterface;
+export interface WaxApi {
+  database_api: {
+    get_witness_schedule: {
+      params: {};
+      result: {
+        median_props: {
+          account_creation_fee: asset;
+        };
+      };
+    };
+  };
+};
 
-export const getWax = async(): Promise<IHiveChainInterface> => {
+let chain: TWaxExtended<WaxApi>;
+
+export const getWax = async() => {
   if (!chain)
-    chain = await createHiveChain();
+    chain = (await createHiveChain()).extend<WaxApi>();
 
   return chain;
 };

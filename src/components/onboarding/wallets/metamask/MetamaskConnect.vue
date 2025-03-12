@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { ref, onMounted } from 'vue';
 import step1 from "@/assets/icons/wallets/metamask/step1.webp";
 import step2 from "@/assets/icons/wallets/metamask/step2.webp";
@@ -11,11 +13,25 @@ import { Combobox, ComboboxAnchor, ComboboxTrigger, ComboboxEmpty, ComboboxGroup
 import { Check, Search } from 'lucide-vue-next';
 import { Separator } from '@/components/ui/separator';
 import PublicKey from '@/components/hive/PublicKey.vue';
+import { Checkbox } from '@/components/ui/checkbox'
 import { getWax } from '@/stores/wax.store';
+import { AccountAuthorityUpdateOperation, type TRole } from "@hiveio/wax/vite";
 
 const emit = defineEmits(["setaccount", "close"]);
 
+const showUpdateAccountModal = ref(false);
+const showCreateAccountModal = ref(false);
+
+const updateAuthType: Record<TRole, boolean> = {
+  owner: true,
+  active: true,
+  posting: true,
+  memo: true
+};
+
 const close = () => {
+  showUpdateAccountModal.value = false;
+  showCreateAccountModal.value = false;
   emit("close");
 };
 
@@ -24,6 +40,8 @@ const metamaskStore = useMetamaskStore();
 const isLoading = ref(false);
 const errorMsg = ref<string | null>(null);
 const accountName = ref<string | null>(null);
+const createAccountNameOperation = ref<string | null>(null);
+const updateAccountNameOperation = ref<string | null>(null);
 const accountsMatchingKeys = ref<string[] | null>(null);
 const metamaskPublicKeys = ref<Array<{ role: string; publicKey: string }> | null>(null);
 const isMetamaskConnected = ref<boolean>(false);
@@ -110,8 +128,39 @@ onMounted(() => {
   void connect(false);
 });
 
-const gotoSignTx = () => {
-  window.open(`${window.location.protocol}//${window.location.host}/sign/?tx=`, '_blank')!.focus();
+const copyContent = (content: string) => {
+  navigator.clipboard.writeText(String(content));
+};
+const generateAccountUpdateTransaction = async(): Promise<string> => {
+  const wax = await getWax();
+  const tx = await wax.createTransaction();
+  const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
+  const op = await AccountAuthorityUpdateOperation.createFor(wax, accountName);
+  for(const key in updateAuthType) {
+    if (updateAuthType[key as TRole])
+      if (key === "memo")
+        op.role("memo").set(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+      else
+        op.role(key as Exclude<TRole, "memo">).add(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+    }
+  tx.pushOperation(op);
+  return tx.toApi();
+};
+const getAccountCreateSigningLink = async () => {
+  const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
+  return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&posting=${
+    metamaskPublicKeys.value!.find(node => node.role === "posting")!.publicKey
+  }&active=${
+    metamaskPublicKeys.value!.find(node => node.role === "active")!.publicKey
+  }&owner=${
+    metamaskPublicKeys.value!.find(node => node.role === "owner")!.publicKey
+  }&memo=${
+    metamaskPublicKeys.value!.find(node => node.role === "memo")!.publicKey
+  }`;
+};
+const getSigningLink = async () => {
+  const tx = await generateAccountUpdateTransaction();
+  return `${window.location.protocol}//${window.location.host}/sign/transaction?data=${btoa(tx)}`;
 };
 
 const updateAccountName = (value: string | any) => {
@@ -165,7 +214,54 @@ const updateAccountName = (value: string | any) => {
       </div>
       <div v-if="isMetamaskSnapInstalled">
         <div v-if="accountsMatchingKeys">
-          <div v-if="accountsMatchingKeys.length === 0">
+          <div v-if="showUpdateAccountModal">
+            <p class="mb-4">Step 6: Fill in this form in order to create account update operation, replacing memo public key and adding posting, active and owner keys to your account:</p>
+            <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
+              <Label for="metamask_updateAuth_account">Account name</Label>
+              <Input v-model="updateAccountNameOperation as string" id="metamask_updateAuth_account" />
+            </div>
+            <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
+              <div class="flex items-center p-1">
+                <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="true" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
+                <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
+                  <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
+                  <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
+                  <PublicKey :value="key.publicKey"/>
+                </label>
+              </div>
+            </div>
+            <div class="flex items-center flex-col">
+              <Button :disabled="isLoading" @click="getSigningLink().then(copyContent)" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+                <span class="text-md font-bold">Copy signing link</span>
+              </Button>
+              <Separator label="Or" class="mt-8" />
+              <div class="flex justify-center mt-4">
+                <Button :disabled="isLoading" @click="generateAccountUpdateTransaction().then(copyContent)" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                  <span class="text-md font-bold">Copy entire transaction</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+          <div v-else-if="showCreateAccountModal">
+            <p class="mb-4">Step 6: Fill in this form in order to create account create operation with requested metadata. Copy the signing link and send it to someone who already has an account:</p>
+            <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
+              <Label for="metamask_createAuth_account">New account name</Label>
+              <Input v-model="createAccountNameOperation as string" id="metamask_createAuth_account" />
+            </div>
+            <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
+              <div class="flex items-center p-1">
+                <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
+                <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
+                <PublicKey :value="key.publicKey"/>
+              </div>
+            </div>
+            <div class="flex items-center flex-col">
+              <Button :disabled="isLoading" @click="getAccountCreateSigningLink().then(copyContent)" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+                <span class="text-md font-bold">Copy signing link</span>
+              </Button>
+            </div>
+          </div>
+          <div v-else-if="accountsMatchingKeys.length === 0">
             <p class="mb-2">Step 5: Import <b>at least one</b> Metamask derived key into your Hive account and re-check for Hive Accounts matching those keys:</p>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
               <div class="flex items-center p-1">
@@ -181,12 +277,12 @@ const updateAccountName = (value: string | any) => {
             </div>
             <Separator label="Or" class="mt-8" />
             <div class="flex justify-center mt-4">
-              <Button :disabled="isLoading" @click="gotoSignTx" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading" @click="showUpdateAccountModal = true" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Update account authority</span>
               </Button>
             </div>
             <div class="flex justify-center mt-4">
-              <Button :disabled="isLoading" @click="gotoSignTx" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading" @click="showCreateAccountModal = true" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Request account creation</span>
               </Button>
             </div>
