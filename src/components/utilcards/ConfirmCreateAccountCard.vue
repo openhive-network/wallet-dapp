@@ -12,6 +12,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
+import { toastError } from '@/lib/parse-error';
 
 const settings = useSettingsStore();
 
@@ -39,69 +40,79 @@ onMounted(() => {
   ownerKey.value = router.currentRoute.value.query.owner as string ?? '';
 });
 
-const createAccount = async() => {
-  const wax = await getWax();
-  const tx = await wax.createTransaction();
-  const { median_props: { account_creation_fee } } = await wax.api.database_api.get_witness_schedule({});
-  const commonAccountCreateConfig = {
-      creator: settings.account!,
-      new_account_name: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
-      memo_key: memoKey.value,
-      owner: {
-        weight_threshold: 1,
-        key_auths: {[ownerKey.value]: 1},
-        account_auths: {}
-      },
-      active: {
-        weight_threshold: 1,
-        key_auths: {[activeKey.value]: 1},
-        account_auths: {}
-      },
-      posting: {
-        weight_threshold: 1,
-        key_auths: {[postingKey.value]: 1},
-        account_auths: {}
-      },
-      json_metadata: postingMetadata.value,
-      fee: account_creation_fee
-    };
+const isLoading = ref<boolean>(false);
 
-  if (createAccountType.value === "claimed") {
-    tx.pushOperation({
-      create_claimed_account: {
-        ...commonAccountCreateConfig,
-        extensions: []
-      }
-    });
-    if (enableDelegation.value) {
+const createAccount = async() => {
+  try {
+    isLoading.value = true;
+
+    const wax = await getWax();
+    const tx = await wax.createTransaction();
+    const { median_props: { account_creation_fee } } = await wax.api.database_api.get_witness_schedule({});
+    const commonAccountCreateConfig = {
+        creator: settings.account!,
+        new_account_name: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
+        memo_key: memoKey.value,
+        owner: {
+          weight_threshold: 1,
+          key_auths: {[ownerKey.value]: 1},
+          account_auths: {}
+        },
+        active: {
+          weight_threshold: 1,
+          key_auths: {[activeKey.value]: 1},
+          account_auths: {}
+        },
+        posting: {
+          weight_threshold: 1,
+          key_auths: {[postingKey.value]: 1},
+          account_auths: {}
+        },
+        json_metadata: postingMetadata.value,
+        fee: account_creation_fee
+      };
+
+    if (createAccountType.value === "claimed") {
       tx.pushOperation({
-        delegate_vesting_shares: {
-          delegator: settings.account!,
-          delegatee: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
-          vesting_shares: wax.vestsCoins(delegationAmount.value)
-        }
-      });
-    }
-  } else {
-    if (enableDelegation.value) {
-      tx.pushOperation({
-        account_create_with_delegation: {
+        create_claimed_account: {
           ...commonAccountCreateConfig,
-          extensions: [],
-          delegation: wax.vestsCoins(delegationAmount.value)
+          extensions: []
         }
       });
+      if (enableDelegation.value) {
+        tx.pushOperation({
+          delegate_vesting_shares: {
+            delegator: settings.account!,
+            delegatee: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
+            vesting_shares: wax.vestsCoins(delegationAmount.value)
+          }
+        });
+      }
     } else {
-      tx.pushOperation({
-        account_create: {
-          ...commonAccountCreateConfig
-        }
-      });
+      if (enableDelegation.value) {
+        tx.pushOperation({
+          account_create_with_delegation: {
+            ...commonAccountCreateConfig,
+            extensions: [],
+            delegation: wax.vestsCoins(delegationAmount.value)
+          }
+        });
+      } else {
+        tx.pushOperation({
+          account_create: {
+            ...commonAccountCreateConfig
+          }
+        });
+      }
     }
+    const signature = await wallet.wallet!.signTransaction(tx, "active");
+    tx.sign(signature);
+    await wax.broadcast(tx);
+  } catch (error) {
+    toastError('Error creating account', error);
+  } finally {
+    isLoading.value = false;
   }
-  const signature = await wallet.wallet!.signTransaction(tx, "active");
-  tx.sign(signature);
-  await wax.broadcast(tx);
 }
 </script>
 
@@ -167,7 +178,7 @@ const createAccount = async() => {
             <Label for="createAccount_r3">Create claimed</Label>
           </div>
         </RadioGroup>
-        <Button @click="createAccount">Create account</Button>
+        <Button @click="createAccount" :disabled="isLoading">Create account</Button>
         <p>Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
       </div>
     </CardContent>

@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { AccountAuthorityUpdateOperation } from '@hiveio/wax';
+import { toastError } from '@/lib/parse-error';
 
 const settings = useSettingsStore();
 
@@ -31,27 +32,35 @@ onMounted(() => {
   ownerKey.value = router.currentRoute.value.query.owner as string ?? null;
 });
 
-const updateAuthority = async() => {
-  if (!memoKey.value && !postingKey.value && !activeKey.value && !ownerKey.value) {
-    alert('Nothing to update');
-    return;
-  }
+const isLoading = ref<boolean>(false);
 
-  const wax = await getWax();
-  const tx = await wax.createTransaction();
-  const op = await AccountAuthorityUpdateOperation.createFor(wax, creator.value.startsWith('@') ? creator.value.slice(1) : creator.value);
-  if (memoKey.value)
-    op.role("memo").set(memoKey.value);
-  if (postingKey.value)
-    op.role("posting").add(postingKey.value);
-  if (activeKey.value)
-    op.role("active").add(activeKey.value);
-  if (ownerKey.value)
-    op.role("owner").add(ownerKey.value);
-  tx.pushOperation(op);
-  const signature = await wallet.wallet!.signTransaction(tx, ownerKey.value ? "owner" : "active");
-  tx.sign(signature);
-  await wax.broadcast(tx);
+const updateAuthority = async() => {
+  try {
+    isLoading.value = true;
+
+    if (!memoKey.value && !postingKey.value && !activeKey.value && !ownerKey.value)
+      throw new Error("Nothing to update");
+
+    const wax = await getWax();
+    const tx = await wax.createTransaction();
+    const op = await AccountAuthorityUpdateOperation.createFor(wax, creator.value.startsWith('@') ? creator.value.slice(1) : creator.value);
+    if (memoKey.value)
+      op.role("memo").set(memoKey.value);
+    if (postingKey.value)
+      op.role("posting").add(postingKey.value);
+    if (activeKey.value)
+      op.role("active").add(activeKey.value);
+    if (ownerKey.value)
+      op.role("owner").add(ownerKey.value);
+    tx.pushOperation(op);
+    const signature = await wallet.wallet!.signTransaction(tx, ownerKey.value ? "owner" : "active");
+    tx.sign(signature);
+    await wax.broadcast(tx);
+  } catch (error) {
+    toastError('Error updating authority', error);
+  } finally {
+    isLoading.value = false;
+  }
 }
 </script>
 
@@ -86,7 +95,7 @@ const updateAuthority = async() => {
           <Label for="updateAuthority_ownerKey">Add Owner Key</Label>
           <Input id="updateAuthority_ownerKey" placeholder="Nothing to add" v-model="ownerKey" class="my-2" />
         </div>
-        <Button class="my-2" @click="updateAuthority">Update Authority</Button>
+        <Button class="my-2" @click="updateAuthority" :disabled="isLoading">Update Authority</Button>
         <p>Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
       </div>
     </CardContent>
