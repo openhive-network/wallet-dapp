@@ -14,7 +14,7 @@ export const toastError = (title: string, error: unknown) => {
       } else {
         description = error.message;
       }
-    } else if ("message" in Error) {
+    } else if ("message" in error) {
       description = (error as Error).message;
     } else {
       description = String(error);
