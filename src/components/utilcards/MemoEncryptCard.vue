@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { useSettingsStore } from '@/stores/settings.store';
+import { toastError } from '@/lib/parse-error';
 
 const walletStore = useWalletStore();
 const settingsStore = useSettingsStore();
@@ -21,31 +22,44 @@ const encryptForKey = ref('');
 const inputData = ref('');
 const outputData = ref('');
 
-const getMemoKeyForUser = async(user: string) => {
-  const wax = await getWax();
-  const response = await wax.api.database_api.find_accounts({
-    accounts: [user.startsWith('@') ? user.slice(1) : user],
-    delayed_votes_active: true
-  });
-  return response.accounts[0].memo_key;
+const getMemoKeyForUser = async(user: string): Promise<string | void> => {
+  const accountName = user.startsWith('@') ? user.slice(1) : user;
+  try {
+    const wax = await getWax();
+    const response = await wax.api.database_api.find_accounts({
+      accounts: [accountName],
+      delayed_votes_active: true
+    });
+    return response.accounts[0].memo_key;
+  } catch (error) {
+    toastError(`Error retrieving memo key for account: @${accountName}`, error);
+  }
 }
 
 const useMyMemoKey = async () => {
-  encryptForKey.value = await getMemoKeyForUser(settingsStore.account!);
+  const key = await getMemoKeyForUser(settingsStore.account!);
+  if (key)
+    encryptForKey.value = key;
 }
 
 const encryptOrDecrypt = async () => {
-  if (isEncrypt.value) {
-    let publicKey: string;
-    let accountOrKey = encryptForKey.value;
-    if (accountOrKey.startsWith('STM')) {
-      publicKey = accountOrKey;
+  try {
+    if (isEncrypt.value) {
+      let publicKey: string;
+      let accountOrKey = encryptForKey.value;
+      if (accountOrKey.startsWith('STM')) {
+        publicKey = accountOrKey;
+      } else {
+        const key = await getMemoKeyForUser(accountOrKey);
+        if (!key) return;
+        publicKey = key;
+      }
+      outputData.value = await wallet.value!.encrypt(inputData.value, publicKey);
     } else {
-      publicKey = await getMemoKeyForUser(accountOrKey);
+      outputData.value = await wallet.value!.decrypt(inputData.value);
     }
-    outputData.value = await wallet.value!.encrypt(inputData.value, publicKey);
-  } else {
-    outputData.value = await wallet.value!.decrypt(inputData.value);
+  } catch (error) {
+    toastError(`Error ${isEncrypt.value ? 'encrypting' : 'decrypting'} memo`, error);
   }
 };
 </script>

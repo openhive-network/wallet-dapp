@@ -6,8 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import type { TRole } from '@hiveio/wax/vite';
+import type { ITransactionBase, TRole } from '@hiveio/wax/vite';
 import { useRouter } from 'vue-router';
+import { toastError } from '@/lib/parse-error';
 
 const walletStore = useWalletStore();
 
@@ -19,30 +20,62 @@ const outputData = ref('');
 
 const router = useRouter();
 
+const isLoading = ref(false);
+
 const sign = async () => {
-  const wax = await getWax();
+  try {
+    isLoading.value = true;
 
-  const tx = wax.createTransactionFromJson(inputData.value);
+    try {
+      JSON.parse(inputData.value);
+    } catch (error) {
+      toastError('Could not process the transaction object', error);
+      return;
+    }
 
-  const authorities = tx.requiredAuthorities;
-  let authorityLevel: TRole = 'posting';
-  if (authorities.owner.size)
-    authorityLevel = 'owner';
-  else if (authorities.active.size)
-    authorityLevel = 'active';
+    const wax = await getWax();
 
-  // TODO: Handle "other" authority
+    let tx: ITransactionBase;
 
-  outputData.value = await wallet.value!.signTransaction(tx, authorityLevel);
+    try {
+      tx = wax.createTransactionFromJson(inputData.value);
+    } catch (error) {
+      toastError('Could not process the transaction object', error);
+      return;
+    }
+
+      const authorities = tx.requiredAuthorities;
+      let authorityLevel: TRole = 'posting';
+      if (authorities.owner.size)
+        authorityLevel = 'owner';
+      else if (authorities.active.size)
+        authorityLevel = 'active';
+
+    // TODO: Handle "other" authority
+
+    outputData.value = await wallet.value!.signTransaction(tx, authorityLevel);
+  } catch (error) {
+    toastError('Error signing transaction', error);
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 const broadcast = async () => {
-  const wax = await getWax();
+  try {
+    isLoading.value = true;
 
-  const tx = wax.createTransactionFromJson(inputData.value);
-  tx.sign(outputData.value);
+    const wax = await getWax();
 
-  wax.broadcast(tx);
+    const tx = wax.createTransactionFromJson(inputData.value);
+    tx.sign(outputData.value);
+
+    wax.broadcast(tx);
+  } catch (error) {
+    toastError('Error broadcasting transaction', error);
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 onMounted(() => {
@@ -62,11 +95,11 @@ onMounted(() => {
     <CardContent>
       <Textarea v-model="inputData" placeholder="Transaction in API JSON form" class="my-4"/>
       <div class="my-4 space-x-4">
-        <Button :disabled="!hasWallet" @click="sign">Sign transaction</Button>
+        <Button :disabled="!inputData || !hasWallet || isLoading" @click="sign">Sign transaction</Button>
       </div>
       <Textarea v-model="outputData" placeholder="Signature" copy-enabled class="my-4" disabled/>
       <div class="my-4 space-x-4">
-        <Button :disabled="!outputData" @click="broadcast">Broadcast signed transaction</Button>
+        <Button :disabled="!outputData || isLoading" @click="broadcast">Broadcast signed transaction</Button>
       </div>
     </CardContent>
   </Card>

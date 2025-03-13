@@ -27,6 +27,6 @@ const modelValue = useVModel(props, 'modelValue', emits, {
 <template>
   <div :class="cn(props.class, 'relative')">
     <textarea :disabled="disabled" :placeholder="placeholder" :style="{ height: props.height ?? '100px' }" v-model="modelValue" :class="'flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50'" />
-    <Button class="absolute top-[10px] right-[10px]" :value="modelValue" v-if="copyEnabled" />
+    <Button class="absolute top-[10px] right-[10px]" :value="modelValue" v-if="(modelValue || modelValue === 0) && copyEnabled" />
   </div>
 </template>

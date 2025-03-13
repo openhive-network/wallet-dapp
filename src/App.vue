@@ -5,6 +5,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import AppSidebar from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import ToggleSidebar from './components/sidebar/ToggleSidebar.vue';
+import { Toaster } from 'vue-sonner';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -42,6 +43,7 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
           <WalletOnboarding @complete="complete" />
         </aside>
       </SidebarProvider>
+      <Toaster theme="dark" closeButton richColors />
     </div>
   </div>
 </template>
