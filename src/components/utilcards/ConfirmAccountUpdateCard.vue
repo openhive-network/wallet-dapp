@@ -87,6 +87,7 @@ const updateAuthority = async() => {
           <Input id="updateAuthority_ownerKey" placeholder="Nothing to add" v-model="ownerKey" class="my-2" />
         </div>
         <Button class="my-2" @click="updateAuthority">Update Authority</Button>
+        <p>Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
       </div>
     </CardContent>
   </Card>

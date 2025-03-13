@@ -36,6 +36,15 @@ const sign = async () => {
   outputData.value = await wallet.value!.signTransaction(tx, authorityLevel);
 };
 
+const broadcast = async () => {
+  const wax = await getWax();
+
+  const tx = wax.createTransactionFromJson(inputData.value);
+  tx.sign(outputData.value);
+
+  wax.broadcast(tx);
+};
+
 onMounted(() => {
   inputData.value = decodeURIComponent(atob(router.currentRoute.value.query.data as string ?? ''));
 });
@@ -55,7 +64,10 @@ onMounted(() => {
       <div class="my-4 space-x-4">
         <Button :disabled="!hasWallet" @click="sign">Sign transaction</Button>
       </div>
-      <Textarea v-model="outputData" placeholder="Signed Transaction output" copy-enabled class="my-4" disabled/>
+      <Textarea v-model="outputData" placeholder="Signature" copy-enabled class="my-4" disabled/>
+      <div class="my-4 space-x-4">
+        <Button :disabled="!outputData" @click="broadcast">Broadcast signed transaction</Button>
+      </div>
     </CardContent>
   </Card>
 </template>
