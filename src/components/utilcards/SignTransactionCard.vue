@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { mdiFileSign } from '@mdi/js';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import type { TRole } from '@hiveio/wax/vite';
+import { useRouter } from 'vue-router';
 
 const walletStore = useWalletStore();
 
@@ -15,6 +16,8 @@ const wallet = computed(() => walletStore.wallet);
 
 const inputData = ref('');
 const outputData = ref('');
+
+const router = useRouter();
 
 const sign = async () => {
   const wax = await getWax();
@@ -32,6 +35,10 @@ const sign = async () => {
 
   outputData.value = await wallet.value!.signTransaction(tx, authorityLevel);
 };
+
+onMounted(() => {
+  inputData.value = decodeURIComponent(atob(router.currentRoute.value.query.data as string ?? ''));
+});
 </script>
 
 <template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline } from "@mdi/js"
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline } from "@mdi/js"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { useSidebar } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -37,6 +37,11 @@ const items = [
     title: "Process Account Creation",
     url: "/account/create",
     icon: mdiAccountPlusOutline,
+  },
+  {
+    title: "Process Authority Update",
+    url: "/account/update",
+    icon: mdiAccountArrowUpOutline,
   }
 ];
 </script>

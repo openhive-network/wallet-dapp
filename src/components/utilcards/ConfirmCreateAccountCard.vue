@@ -41,7 +41,7 @@ const createAccount = async() => {
   tx.pushOperation({
     account_create: {
       creator: settings.account!,
-      new_account_name: accountName.value,
+      new_account_name: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
       memo_key: memoKey.value,
       owner: {
         weight_threshold: 1,
@@ -80,11 +80,11 @@ const createAccount = async() => {
     <CardContent>
       <div class="my-4 space-y-2">
         <div class="grid w-full max-w-sm items-center">
-          <Label for="createAccount_creator">Account name</Label>
+          <Label for="createAccount_creator">Creator Account Name</Label>
           <Input id="createAccount_creator" v-model="creator" class="my-2" disabled />
         </div>
         <div class="grid w-full max-w-sm items-center">
-          <Label for="createAccount_accountName">Account Name</Label>
+          <Label for="createAccount_accountName">New Account Name</Label>
           <Input id="createAccount_accountName" v-model="accountName" class="my-2" />
         </div>
         <div class="grid w-full max-w-sm items-center">

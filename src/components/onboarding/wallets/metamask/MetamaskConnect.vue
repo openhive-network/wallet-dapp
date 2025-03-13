@@ -146,7 +146,7 @@ const generateAccountUpdateTransaction = async(): Promise<string> => {
   tx.pushOperation(op);
   return tx.toApi();
 };
-const getAccountCreateSigningLink = async () => {
+const getAccountCreateSigningLink = (): string => {
   const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
   return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&posting=${
     metamaskPublicKeys.value!.find(node => node.role === "posting")!.publicKey
@@ -158,9 +158,14 @@ const getAccountCreateSigningLink = async () => {
     metamaskPublicKeys.value!.find(node => node.role === "memo")!.publicKey
   }`;
 };
-const getSigningLink = async () => {
-  const tx = await generateAccountUpdateTransaction();
-  return `${window.location.protocol}//${window.location.host}/sign/transaction?data=${btoa(tx)}`;
+const getAuthorityUpdateSigningLink = (): string => {
+  const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
+  const url = new URL(`${window.location.protocol}//${window.location.host}/account/update?acc=${accountName}`);
+  for(const key in updateAuthType)
+    if (updateAuthType[key as TRole])
+      url.searchParams.set(key, metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+
+  return url.toString();
 };
 
 const updateAccountName = (value: string | any) => {
@@ -231,12 +236,12 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :disabled="isLoading" @click="getSigningLink().then(copyContent)" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading" @click="copyContent(getAuthorityUpdateSigningLink())" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
               <Separator label="Or" class="mt-8" />
               <div class="flex justify-center mt-4">
-                <Button :disabled="isLoading" @click="generateAccountUpdateTransaction().then(copyContent)" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                <Button :disabled="isLoading" @click="generateAccountUpdateTransaction()" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
                   <span class="text-md font-bold">Copy entire transaction</span>
                 </Button>
               </div>
@@ -256,7 +261,7 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :disabled="isLoading" @click="getAccountCreateSigningLink().then(copyContent)" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading" @click="copyContent(getAccountCreateSigningLink())" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
             </div>
