@@ -70,7 +70,7 @@ const broadcast = async () => {
     const tx = wax.createTransactionFromJson(inputData.value);
     tx.sign(outputData.value);
 
-    wax.broadcast(tx);
+    await wax.broadcast(tx);
   } catch (error) {
     toastError('Error broadcasting transaction', error);
   } finally {

@@ -8,7 +8,7 @@
  */
 export const defaultSnapOrigin = import.meta.env.VITE_SNAP_ORIGIN || `npm:@hiveio/metamask-snap`; // local:http://localhost:8080
 
-export const defaultSnapVersion: string | undefined = import.meta.env.VITE_SNAP_VERSION ?? '1.3.2';
+export const defaultSnapVersion: string | undefined = import.meta.env.VITE_SNAP_VERSION ?? '1.3.3';
 
 /**
  * Check if a snap ID is a local snap ID.

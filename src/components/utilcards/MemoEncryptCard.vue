@@ -84,7 +84,7 @@ const encryptOrDecrypt = async () => {
       <div class="flex mb-4 underline text-sm" v-if="isEncrypt">
         <a @click="useMyMemoKey" class="ml-auto mr-1 cursor-pointer" style="color: hsla(var(--foreground) / 70%)">Use my memo key</a>
       </div>
-      <Button :disabled="!hasWallet" @click="encryptOrDecrypt">{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
+      <Button :disabled="!hasWallet || (!encryptForKey && isEncrypt)" @click="encryptOrDecrypt">{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
       <Textarea v-model="outputData" placeholder="Output" copy-enabled class="my-4" disabled/>
     </CardContent>
   </Card>

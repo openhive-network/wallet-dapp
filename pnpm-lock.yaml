@@ -13,8 +13,8 @@ importers:
         version: 1.3.0
     devDependencies:
       '@hiveio/wax':
-        specifier: 1.27.6-rc7-250304235913
-        version: 1.27.6-rc7-250304235913
+        specifier: 1.27.6-rc7-250314161617
+        version: 1.27.6-rc7-250314161617
       '@mdi/js':
         specifier: ^7.4.47
         version: 7.4.47
@@ -284,12 +284,12 @@ packages:
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
 
-  '@hiveio/beekeeper@1.27.9-stable.250219154236':
-    resolution: {integrity: sha1-6fL+OgTwp6MSp0Xm3fwj+kFLzD8=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.27.9-stable.250219154236.tgz}
+  '@hiveio/beekeeper@1.27.10-stable.250305202831':
+    resolution: {integrity: sha1-mPx0QrDh3NSPSOYGyR1SUyi3lyA=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.27.10-stable.250305202831.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
-  '@hiveio/wax@1.27.6-rc7-250304235913':
-    resolution: {integrity: sha1-Dk27ws/cbPd8P+aomJlGCzL98rI=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.27.6-rc7-250304235913.tgz}
+  '@hiveio/wax@1.27.6-rc7-250314161617':
+    resolution: {integrity: sha1-cFrsq3vl6M18v4dhbfYScUj00p0=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.27.6-rc7-250314161617.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@internationalized/date@3.7.0':
@@ -1637,11 +1637,11 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@hiveio/beekeeper@1.27.9-stable.250219154236': {}
+  '@hiveio/beekeeper@1.27.10-stable.250305202831': {}
 
-  '@hiveio/wax@1.27.6-rc7-250304235913':
+  '@hiveio/wax@1.27.6-rc7-250314161617':
     dependencies:
-      '@hiveio/beekeeper': 1.27.9-stable.250219154236
+      '@hiveio/beekeeper': 1.27.10-stable.250305202831
       events: 3.3.0
       long: 5.3.1
 
