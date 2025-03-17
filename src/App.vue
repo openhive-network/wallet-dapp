@@ -16,15 +16,6 @@ const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 const userStore = useUserStore();
 onMounted(async() => {
-  if (window.matchMedia) {
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    if (media.matches)
-      document.documentElement.classList.add('dark');
-    media.addEventListener('change', event => {
-      document.documentElement.classList[event.matches ? 'add' : 'remove']('dark');
-    });
-  }
-
   settingsStore.loadSettings();
   hasUser.value = settingsStore.settings.account !== undefined;
   if (hasUser.value) {

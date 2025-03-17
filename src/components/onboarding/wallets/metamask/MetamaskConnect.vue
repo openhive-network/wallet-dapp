@@ -260,7 +260,7 @@ const updateAccountName = (value: string | any) => {
             </div>
           </div>
           <div v-else-if="showCreateAccountModal">
-            <p class="mb-4">Step 6: Fill in this form in order to create account create operation with requested metadata. Copy the signing link and send it to someone who already has an account:</p>
+            <p class="mb-4">Step 6: Fill in this form in order to prepare the operation to create an account with requested metadata. Then please copy the signing link, and send it to someone who already has an account to execute this operation in blockchain:</p>
             <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
               <Label for="metamask_createAuth_account">New account name</Label>
               <Input v-model="createAccountNameOperation!" @update:model-value="validateAccountName()" id="metamask_createAuth_account" />

@@ -7,6 +7,7 @@ import { useSettingsStore, getWalletIcon } from '@/stores/settings.store';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useUserStore } from "@/stores/user.store";
+import ThemeSwitch from "../ui/theme-switch";
 
 const settingsStore = useSettingsStore();
 const hasUser = computed(() => settingsStore.settings.account !== undefined);
@@ -57,7 +58,8 @@ const items = [
           <AvatarImage v-if="userStore.profileImage" :src="userStore.profileImage" />
           <AvatarFallback>{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
         </Avatar>
-        <span class="font-bold">@{{ settingsStore.settings.account }}</span>
+        <span class="font-bold max-w-[140px] truncate">@{{ settingsStore.settings.account }}</span>
+        <ThemeSwitch class="ml-auto w-5 h-5 mr-1" />
       </div>
     </SidebarHeader>
     <SidebarContent>
