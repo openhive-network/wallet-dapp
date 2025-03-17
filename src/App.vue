@@ -17,6 +17,15 @@ onMounted(() => {
   hasUser.value = settingsStore.settings.account !== undefined;
   if (hasUser.value)
     void walletStore.createWalletFor(settingsStore.settings);
+
+  if (window.matchMedia) {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    if (media.matches)
+      document.documentElement.classList.add('dark');
+    media.addEventListener('change', event => {
+      document.documentElement.classList[event.matches ? 'add' : 'remove']('dark');
+    });
+  }
 });
 const complete = (data: { account: string; wallet: UsedWallet }) => {
   hasUser.value = true;
@@ -35,7 +44,7 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
       <SidebarProvider>
         <AppSidebar/>
         <!-- <AppHeader/> -->
-        <main class="w-full">
+        <main class="w-full bg-background">
           <ToggleSidebar class="m-3" />
           <RouterView />
         </main>

@@ -49,7 +49,7 @@ const items = [
 <template>
   <Sidebar>
     <SidebarHeader class="pb-0">
-      <div class="flex items-center rounded-lg p-2 mt-1 mx-1 bg-black/40 border" v-if="settingsStore.isLoaded && hasUser">
+      <div class="flex items-center rounded-lg p-2 mt-1 mx-1 bg-background/40 border" v-if="settingsStore.isLoaded && hasUser">
         <Avatar class="w-8 h-8 mr-2">
           <AvatarImage src="https://github.com/unovue.png" alt="@unovue" />
           <AvatarFallback>{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
@@ -59,14 +59,14 @@ const items = [
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup>
-        <SidebarGroupLabel>Hive Bridge</SidebarGroupLabel>
+        <SidebarGroupLabel class="text-foreground/60">Hive Bridge</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.title">
               <SidebarMenuButton asChild>
                 <RouterLink @click="isMobile && toggleSidebar()" :to="item.url">
                   <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="item.icon"/></svg>
-                  <span>{{item.title}}</span>
+                  <span class="text-foreground/80">{{item.title}}</span>
                 </RouterLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -75,7 +75,7 @@ const items = [
       </SidebarGroup>
     </SidebarContent>
     <SidebarFooter>
-      <Button class="bg-black/40" variant="outline" v-if="settingsStore.isLoaded && hasUser" @click="logout">
+      <Button class="bg-background/40" variant="outline" v-if="settingsStore.isLoaded && hasUser" @click="logout">
         <img v-if="hasUser" :src="getWalletIcon(settingsStore.settings.wallet!)" class="h-6 w-6" />
         <span class="font-bold">Disconnect</span>
       </Button>
@@ -86,6 +86,6 @@ const items = [
 <style>
 [data-sidebar="sidebar"] {
   backdrop-filter: blur(20px);
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: hsla(var(--background) / 70%);
 }
 </style>

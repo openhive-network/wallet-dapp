@@ -65,7 +65,7 @@ const encryptOrDecrypt = async () => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[600px] bg-black/40 backdrop-blur-sm">
+  <Card class="w-full max-w-[600px] bg-foreground/10 backdrop-blur-sm">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Memo encryption</span>
