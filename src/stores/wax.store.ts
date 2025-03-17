@@ -1,4 +1,4 @@
-import { createHiveChain, type TWaxExtended, type asset } from "@hiveio/wax/vite";
+import type { TWaxExtended, asset } from "@hiveio/wax/vite";
 
 export interface WaxApi {
   database_api: {
@@ -17,7 +17,7 @@ let chain: TWaxExtended<WaxApi>;
 
 export const getWax = async() => {
   if (!chain)
-    chain = (await createHiveChain()).extend<WaxApi>();
+    chain = (await (await import("@hiveio/wax/vite")).createHiveChain()).extend<WaxApi>();
 
   return chain;
 };

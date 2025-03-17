@@ -12,7 +12,7 @@ import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { toastError } from '@/lib/parse-error';
+import { toastError } from '@/utils/parse-error';
 
 const settings = useSettingsStore();
 
@@ -178,7 +178,7 @@ const createAccount = async() => {
             <Label for="createAccount_r3">Create claimed</Label>
           </div>
         </RadioGroup>
-        <Button @click="createAccount" :disabled="isLoading">Create account</Button>
+        <Button @click="createAccount" :loading="isLoading">Create account</Button>
         <p>Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
       </div>
     </CardContent>

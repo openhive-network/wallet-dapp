@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { useSettingsStore } from '@/stores/settings.store';
-import { toastError } from '@/lib/parse-error';
+import { toastError } from '@/utils/parse-error';
 
 const walletStore = useWalletStore();
 const settingsStore = useSettingsStore();
@@ -18,6 +18,7 @@ const hasWallet = computed(() => walletStore.hasWallet);
 const wallet = computed(() => walletStore.wallet);
 
 const isEncrypt = ref(false);
+const isLoading = ref(false);
 const encryptForKey = ref('');
 const inputData = ref('');
 const outputData = ref('');
@@ -37,13 +38,21 @@ const getMemoKeyForUser = async(user: string): Promise<string | void> => {
 }
 
 const useMyMemoKey = async () => {
-  const key = await getMemoKeyForUser(settingsStore.account!);
-  if (key)
-    encryptForKey.value = key;
+  try {
+    isLoading.value = true;
+
+    const key = await getMemoKeyForUser(settingsStore.account!);
+    if (key)
+      encryptForKey.value = key;
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 const encryptOrDecrypt = async () => {
   try {
+    isLoading.value = true;
+
     if (isEncrypt.value) {
       let publicKey: string;
       let accountOrKey = encryptForKey.value;
@@ -60,6 +69,8 @@ const encryptOrDecrypt = async () => {
     }
   } catch (error) {
     toastError(`Error ${isEncrypt.value ? 'encrypting' : 'decrypting'} memo`, error);
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>
@@ -84,7 +95,7 @@ const encryptOrDecrypt = async () => {
       <div class="flex mb-4 underline text-sm" v-if="isEncrypt">
         <a @click="useMyMemoKey" class="ml-auto mr-1 cursor-pointer" style="color: hsla(var(--foreground) / 70%)">Use my memo key</a>
       </div>
-      <Button :disabled="!hasWallet || (!encryptForKey && isEncrypt)" @click="encryptOrDecrypt">{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
+      <Button :loading="isLoading" :disabled="!hasWallet || (!encryptForKey && isEncrypt)" @click="encryptOrDecrypt">{{ isEncrypt ? "Encrypt" : "Decrypt" }}</Button>
       <Textarea v-model="outputData" placeholder="Output" copy-enabled class="my-4" disabled/>
     </CardContent>
   </Card>

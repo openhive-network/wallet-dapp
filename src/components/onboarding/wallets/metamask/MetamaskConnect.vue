@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import PublicKey from '@/components/hive/PublicKey.vue';
 import { Checkbox } from '@/components/ui/checkbox'
 import { getWax } from '@/stores/wax.store';
-import { AccountAuthorityUpdateOperation, type TRole } from "@hiveio/wax/vite";
+import type { TRole } from "@hiveio/wax/vite";
 
 const emit = defineEmits(["setaccount", "close"]);
 
@@ -135,6 +135,7 @@ const generateAccountUpdateTransaction = async(): Promise<string> => {
   const wax = await getWax();
   const tx = await wax.createTransaction();
   const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
+  const { AccountAuthorityUpdateOperation } = await import("@hiveio/wax/vite");
   const op = await AccountAuthorityUpdateOperation.createFor(wax, accountName);
   for(const key in updateAuthType) {
     if (updateAuthType[key as TRole])

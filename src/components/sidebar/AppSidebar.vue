@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useSettingsStore, getWalletIcon } from '@/stores/settings.store';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
+import { useUserStore } from "@/stores/user.store";
 
 const settingsStore = useSettingsStore();
 const hasUser = computed(() => settingsStore.settings.account !== undefined);
@@ -16,6 +17,8 @@ const logout = () => {
 };
 
 const { toggleSidebar, isMobile } = useSidebar();
+
+const userStore = useUserStore();
 
 const items = [
   {
@@ -51,7 +54,7 @@ const items = [
     <SidebarHeader class="pb-0">
       <div class="flex items-center rounded-lg p-2 mt-1 mx-1 bg-background/40 border" v-if="settingsStore.isLoaded && hasUser">
         <Avatar class="w-8 h-8 mr-2">
-          <AvatarImage src="https://github.com/unovue.png" alt="@unovue" />
+          <AvatarImage v-if="userStore.profileImage" :src="userStore.profileImage" />
           <AvatarFallback>{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
         </Avatar>
         <span class="font-bold">@{{ settingsStore.settings.account }}</span>

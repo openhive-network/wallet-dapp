@@ -4,7 +4,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { mdiAccountKeyOutline } from '@mdi/js';
 import { useSettingsStore } from '@/stores/settings.store';
 import { computed, onMounted, ref, watch } from 'vue';
-import { AccountAuthorityUpdateOperation, type authority } from '@hiveio/wax/vite';
+import type { authority } from '@hiveio/wax/vite';
 import { getWax } from '@/stores/wax.store';
 import PublicKey from '@/components/hive/PublicKey.vue';
 
@@ -20,6 +20,7 @@ const retrieveAuthority = async() => {
   try {
     const wax = await getWax();
 
+    const { AccountAuthorityUpdateOperation } = await import("@hiveio/wax/vite");
     const op = await AccountAuthorityUpdateOperation.createFor(wax, settingsStore.settings.account!);
     memoKey.value = op.role("memo").value;
     postingAuthority.value = op.role("posting").value;

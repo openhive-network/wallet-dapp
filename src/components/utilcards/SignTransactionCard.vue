@@ -8,7 +8,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import type { ITransactionBase, TRole } from '@hiveio/wax/vite';
 import { useRouter } from 'vue-router';
-import { toastError } from '@/lib/parse-error';
+import { toastError } from '@/utils/parse-error';
 
 const walletStore = useWalletStore();
 
@@ -21,6 +21,7 @@ const outputData = ref('');
 const router = useRouter();
 
 const isLoading = ref(false);
+const isBroadcasting = ref(false);
 
 const sign = async () => {
   try {
@@ -63,7 +64,7 @@ const sign = async () => {
 
 const broadcast = async () => {
   try {
-    isLoading.value = true;
+    isBroadcasting.value = true;
 
     const wax = await getWax();
 
@@ -74,7 +75,7 @@ const broadcast = async () => {
   } catch (error) {
     toastError('Error broadcasting transaction', error);
   } finally {
-    isLoading.value = false;
+    isBroadcasting.value = false;
   }
 };
 
@@ -95,11 +96,11 @@ onMounted(() => {
     <CardContent>
       <Textarea v-model="inputData" placeholder="Transaction in API JSON form" class="my-4"/>
       <div class="my-4 space-x-4">
-        <Button :disabled="!inputData || !hasWallet || isLoading" @click="sign">Sign transaction</Button>
+        <Button :disabled="!inputData || !hasWallet || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
       </div>
       <Textarea v-model="outputData" placeholder="Signature" copy-enabled class="my-4" disabled/>
       <div class="my-4 space-x-4">
-        <Button :disabled="!outputData || isLoading" @click="broadcast">Broadcast signed transaction</Button>
+        <Button :disabled="!outputData || isLoading" :loading="isBroadcasting" @click="broadcast">Broadcast signed transaction</Button>
       </div>
     </CardContent>
   </Card>

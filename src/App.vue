@@ -6,18 +6,16 @@ import AppSidebar from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import ToggleSidebar from './components/sidebar/ToggleSidebar.vue';
 import { Toaster } from 'vue-sonner';
+import { useUserStore } from './stores/user.store';
+import { getWax } from './stores/wax.store';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
 const hasUser = ref(true);
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
-onMounted(() => {
-  settingsStore.loadSettings();
-  hasUser.value = settingsStore.settings.account !== undefined;
-  if (hasUser.value)
-    void walletStore.createWalletFor(settingsStore.settings);
-
+const userStore = useUserStore();
+onMounted(async() => {
   if (window.matchMedia) {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     if (media.matches)
@@ -26,8 +24,17 @@ onMounted(() => {
       document.documentElement.classList[event.matches ? 'add' : 'remove']('dark');
     });
   }
+
+  settingsStore.loadSettings();
+  hasUser.value = settingsStore.settings.account !== undefined;
+  if (hasUser.value) {
+    void walletStore.createWalletFor(settingsStore.settings);
+    const wax = await getWax();
+    const { accounts: [ account ] } = await wax.api.database_api.find_accounts({ accounts: [ settingsStore.settings.account! ], delayed_votes_active: false });
+    void userStore.setUserData(account);
+  }
 });
-const complete = (data: { account: string; wallet: UsedWallet }) => {
+const complete = async(data: { account: string; wallet: UsedWallet }) => {
   hasUser.value = true;
   const settings = {
     account: data.account,
@@ -35,6 +42,9 @@ const complete = (data: { account: string; wallet: UsedWallet }) => {
   };
   settingsStore.setSettings(settings);
   void walletStore.createWalletFor(settings);
+  const wax = await getWax();
+  const { accounts: [ account ] } = await wax.api.database_api.find_accounts({ accounts: [ settingsStore.settings.account! ], delayed_votes_active: false });
+  void userStore.setUserData(account);
 };
 </script>
 
