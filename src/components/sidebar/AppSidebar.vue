@@ -53,12 +53,12 @@ const items = [
 <template>
   <Sidebar>
     <SidebarHeader class="pb-0">
-      <div class="flex items-center rounded-lg p-2 mt-1 mx-1 bg-background/40 border" v-if="settingsStore.isLoaded && hasUser">
+      <div class="flex items-center rounded-lg p-2 mt-1 mx-1 bg-background/40 border">
         <Avatar class="w-8 h-8 mr-2">
           <AvatarImage v-if="userStore.profileImage" :src="userStore.profileImage" />
-          <AvatarFallback>{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
+          <AvatarFallback v-if="settingsStore.isLoaded && hasUser">{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
         </Avatar>
-        <span class="font-bold max-w-[140px] truncate">@{{ settingsStore.settings.account }}</span>
+        <span class="font-bold max-w-[140px] truncate" v-if="settingsStore.isLoaded && hasUser">@{{ settingsStore.settings.account }}</span>
         <ThemeSwitch class="ml-auto w-5 h-5 mr-1" />
       </div>
     </SidebarHeader>
@@ -80,7 +80,7 @@ const items = [
       </SidebarGroup>
     </SidebarContent>
     <SidebarFooter>
-      <Button class="bg-background/40" variant="outline" v-if="settingsStore.isLoaded && hasUser" @click="logout">
+      <Button class="bg-background/40" variant="outline" :disabled="!settingsStore.isLoaded || !hasUser" @click="logout">
         <img v-if="hasUser" :src="getWalletIcon(settingsStore.settings.wallet!)" class="h-6 w-6" />
         <span class="font-bold">Disconnect</span>
       </Button>
