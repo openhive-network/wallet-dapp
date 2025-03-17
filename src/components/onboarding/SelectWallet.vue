@@ -44,9 +44,9 @@ const useWallet = (type: UsedWallet) => {
       <CardDescription>We support multiple on-chain wallets</CardDescription>
     </CardHeader>
     <CardContent class="space-y-2">
-      <OnboardingButton :disabled="!hasMetamask" @click="useWallet(UsedWallet.METAMASK)" :logoUrl="getWalletIcon(UsedWallet.METAMASK)" name="Metamask" description="Use your derived keys"/>
-      <OnboardingButton :disabled="!hasKeychain" @click="useWallet(UsedWallet.KEYCHAIN)" :logoUrl="getWalletIcon(UsedWallet.KEYCHAIN)" name="Keychain" description="Use already imported accounts"/>
-      <OnboardingButton :disabled="!hasPeakVault" @click="useWallet(UsedWallet.PEAKVAULT)" :logoUrl="getWalletIcon(UsedWallet.PEAKVAULT)" name="PeakVault" description="Use already imported accounts"/>
+      <OnboardingButton downloadUrl="https://docs.metamask.io/snaps/get-started/install-flask/" :disabled="!hasMetamask" @click="useWallet(UsedWallet.METAMASK)" :logoUrl="getWalletIcon(UsedWallet.METAMASK)" name="Metamask" description="Use your derived keys"/>
+      <OnboardingButton downloadUrl="https://hive-keychain.com/" :disabled="!hasKeychain" @click="useWallet(UsedWallet.KEYCHAIN)" :logoUrl="getWalletIcon(UsedWallet.KEYCHAIN)" name="Keychain" description="Use already imported accounts"/>
+      <OnboardingButton downloadUrl="https://vault.peakd.com/peakvault/guide.html#installation" :disabled="!hasPeakVault" @click="useWallet(UsedWallet.PEAKVAULT)" :logoUrl="getWalletIcon(UsedWallet.PEAKVAULT)" name="PeakVault" description="Use already imported accounts"/>
     </CardContent>
     <CardFooter></CardFooter>
   </Card>

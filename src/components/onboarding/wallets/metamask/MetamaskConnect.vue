@@ -189,7 +189,7 @@ const updateAccountName = (value: string | any) => {
           </Button>
         </div>
       </CardTitle>
-      <CardDescription>Follow these instructions to connect to Metamask</CardDescription>
+      <CardDescription>Follow these instructions to connect Metamask wallet to your Hive account</CardDescription>
     </CardHeader>
     <CardContent class="text-sm">
       <div v-if="!isMetamaskConnected" class="space-y-4">
