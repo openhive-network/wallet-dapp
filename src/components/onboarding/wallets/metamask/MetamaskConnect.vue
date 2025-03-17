@@ -82,6 +82,20 @@ const applyPublicKeys = async () => {
   }
 }
 
+const accountNameValid = ref(false);
+
+const validateAccountName = async() => {
+  if(!createAccountNameOperation.value)
+    return accountNameValid.value = false;
+
+  const accountName = createAccountNameOperation.value.startsWith("@") ? createAccountNameOperation.value.slice(1) : createAccountNameOperation.value;
+  if (!accountName)
+    return accountNameValid.value = false;
+
+  const wax = await getWax();
+  return accountNameValid.value = wax.isValidAccountName(accountName);
+}
+
 const connect = async (showError = true) => {
   isLoading.value = true;
   errorMsg.value = null;
@@ -224,7 +238,7 @@ const updateAccountName = (value: string | any) => {
             <p class="mb-4">Step 6: Fill in this form in order to create account update operation, replacing memo public key and adding posting, active and owner keys to your account:</p>
             <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
               <Label for="metamask_updateAuth_account">Account name</Label>
-              <Input v-model="updateAccountNameOperation as string" id="metamask_updateAuth_account" />
+              <Input v-model="updateAccountNameOperation!" id="metamask_updateAuth_account" />
             </div>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
               <div class="flex items-center p-1">
@@ -252,7 +266,8 @@ const updateAccountName = (value: string | any) => {
             <p class="mb-4">Step 6: Fill in this form in order to create account create operation with requested metadata. Copy the signing link and send it to someone who already has an account:</p>
             <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
               <Label for="metamask_createAuth_account">New account name</Label>
-              <Input v-model="createAccountNameOperation as string" id="metamask_createAuth_account" />
+              <Input v-model="createAccountNameOperation!" @update:model-value="validateAccountName()" id="metamask_createAuth_account" />
+              <span class="text-red-400" v-if="createAccountNameOperation && !accountNameValid">Invalid account name</span>
             </div>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
               <div class="flex items-center p-1">
@@ -277,19 +292,19 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex justify-center mt-3">
-              <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]" @click="applyPublicKeys">
-                <span class="text-md font-bold">Re-check for Hive Accounts</span>
+              <Button :disabled="isLoading" @click="showCreateAccountModal = true" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]">
+                <span class="text-md font-bold">Request account creation</span>
               </Button>
             </div>
             <Separator label="Or" class="mt-8" />
             <div class="flex justify-center mt-4">
-              <Button :disabled="isLoading" @click="showUpdateAccountModal = true" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
-                <span class="text-md font-bold">Update account authority</span>
+              <Button :disabled="isLoading" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]" @click="applyPublicKeys">
+                <span class="text-md font-bold">Re-check for Hive Accounts</span>
               </Button>
             </div>
             <div class="flex justify-center mt-4">
-              <Button :disabled="isLoading" @click="showCreateAccountModal = true" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
-                <span class="text-md font-bold">Request account creation</span>
+              <Button :disabled="isLoading" @click="showUpdateAccountModal = true" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                <span class="text-md font-bold">Update account authority</span>
               </Button>
             </div>
           </div>
