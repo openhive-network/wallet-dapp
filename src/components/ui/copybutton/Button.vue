@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Primitive, type PrimitiveProps } from 'reka-ui'
 import { buttonVariants } from '.'
 import { mdiCheck, mdiContentCopy } from '@mdi/js'
+import { copyText } from '@/utils/copy'
 
 interface Props extends PrimitiveProps {
   class?: HTMLAttributes['class'];
@@ -18,7 +19,7 @@ const copyBtn = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
   const value = target.getAttribute("data-copy");
   if (!value) return;
-  navigator.clipboard.writeText(String(value));
+  copyText(value);
 
   const oldAttribute = target.children[0].children[0].getAttribute('d');
   target.children[0].children[0].setAttribute('d', mdiCheck);

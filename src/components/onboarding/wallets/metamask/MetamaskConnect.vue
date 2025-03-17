@@ -142,9 +142,6 @@ onMounted(() => {
   void connect(false);
 });
 
-const copyContent = (content: string) => {
-  navigator.clipboard.writeText(String(content));
-};
 const generateAccountUpdateTransaction = async(): Promise<string> => {
   const wax = await getWax();
   const tx = await wax.createTransaction();
@@ -251,12 +248,12 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :disabled="isLoading" @click="copyContent(getAuthorityUpdateSigningLink())" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
               <Separator label="Or" class="mt-8" />
               <div class="flex justify-center mt-4">
-                <Button :disabled="isLoading" @click="generateAccountUpdateTransaction()" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
+                <Button :disabled="isLoading" :copy="generateAccountUpdateTransaction" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
                   <span class="text-md font-bold">Copy entire transaction</span>
                 </Button>
               </div>
@@ -277,7 +274,7 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :disabled="isLoading" @click="copyContent(getAccountCreateSigningLink())" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :copy="getAccountCreateSigningLink" :disabled="isLoading" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
             </div>
