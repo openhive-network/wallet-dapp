@@ -35,7 +35,7 @@ const userStore = useUserStore();
       </div>
       <div class="ml-auto inline-flex items-center space-x-4 md:space-x-6">
         <ThemeSwitch class="w-6 h-6" />
-        <Button variant="outline" class="[&_svg]:size-6" @click="settingsStore.isLoaded && hasUser ? logout() : walletStore.openWalletSelectModal()">
+        <Button variant="outline" class="[&_svg]:size-6 px-2 md:px-4" @click="settingsStore.isLoaded && hasUser ? logout() : walletStore.openWalletSelectModal()">
           <img v-if="hasUser" :src="getWalletIcon(settingsStore.settings.wallet!)" class="h-6 w-6" />
           <span v-if="settingsStore.isLoaded && hasUser">
             <span class="font-bold hidden md:inline">Disconnect</span>

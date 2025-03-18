@@ -116,7 +116,7 @@ const createAccount = async() => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[600px] bg-foreground/10 backdrop-blur-sm">
+  <Card class="w-full max-w-[600px] backdrop-blur-sm">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Process Account Creation</span>
