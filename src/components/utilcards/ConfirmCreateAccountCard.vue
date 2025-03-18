@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useSettingsStore } from '@/stores/settings.store';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
@@ -29,6 +29,7 @@ const createAccountType = ref<"default" | "claimed">("default");
 
 const router = useRouter();
 const wallet = useWalletStore();
+const hasWallet = computed(() => wallet.hasWallet);
 
 onMounted(() => {
   creator.value = settings.account ? `@${settings.account}` : '';
@@ -45,6 +46,9 @@ const isLoading = ref<boolean>(false);
 const createAccount = async() => {
   try {
     isLoading.value = true;
+
+    if (!hasWallet.value)
+      await wallet.openWalletSelectModal();
 
     const wax = await getWax();
     const tx = await wax.createTransaction();
@@ -128,7 +132,7 @@ const createAccount = async() => {
       <div class="my-4 space-y-4">
         <div class="grid w-full max-w-sm items-center">
           <Label for="createAccount_creator">Creator Account Name</Label>
-          <Input id="createAccount_creator" v-model="creator" class="my-2" disabled />
+          <Input id="createAccount_creator" v-model="creator" class="my-2" />
         </div>
         <div class="grid w-full max-w-sm items-center">
           <Label for="createAccount_accountName">New Account Name</Label>

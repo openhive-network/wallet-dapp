@@ -27,6 +27,9 @@ const sign = async () => {
   try {
     isLoading.value = true;
 
+    if (!hasWallet.value)
+      await walletStore.openWalletSelectModal();
+
     try {
       JSON.parse(inputData.value);
     } catch (error) {
@@ -98,7 +101,7 @@ onMounted(() => {
     <CardContent>
       <Textarea v-model="inputData" placeholder="Transaction in API JSON form" class="my-4"/>
       <div class="my-4 space-x-4">
-        <Button :disabled="!inputData || !hasWallet || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
+        <Button :disabled="!inputData || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
       </div>
       <Textarea v-model="outputData" placeholder="Signed transaction" copy-enabled class="my-4" disabled/>
       <div class="my-4 space-x-4">

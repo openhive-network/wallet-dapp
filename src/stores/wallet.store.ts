@@ -5,7 +5,9 @@ import { useMetamaskStore } from "./metamask.store";
 import { createKeychainWalletFor } from "@/utils/wallet/keychain";
 import { createPeakVaultWalletFor } from "@/utils/wallet/peakvault";
 
-let intervalId: NodeJS.Timeout | undefined;
+let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
+
+const intervalIds = new Set<NodeJS.Timeout>();
 
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
@@ -20,7 +22,7 @@ export const useWalletStore = defineStore('wallet', {
   getters: {
     hasWallet: state => !!state.wallet,
     walletsStatus: state => {
-      if (!intervalId) {
+      if (!walletRetrievalIntervalId) {
         const metamaskStore = useMetamaskStore();
 
         const checkForWallets = () => {
@@ -29,7 +31,7 @@ export const useWalletStore = defineStore('wallet', {
           state._walletsStatus.peakvault = "peakvault" in window;
         };
 
-        intervalId = setInterval(checkForWallets, 1000);
+        walletRetrievalIntervalId = setInterval(checkForWallets, 1000);
         checkForWallets();
       }
 
@@ -39,6 +41,18 @@ export const useWalletStore = defineStore('wallet', {
   actions: {
     openWalletSelectModal() {
       this.isWalletSelectModalOpen = true;
+
+      // Allow functionality of waiting for wallet to be added / selected
+      return new Promise<void>(resolve => {
+        let intervalId: NodeJS.Timeout;
+        intervalIds.add(intervalId = setInterval(() => {
+          if (this.wallet && !this.isWalletSelectModalOpen) {
+            clearInterval(intervalId);
+            intervalIds.delete(intervalId);
+            resolve();
+          }
+        }, 1000));
+      });
     },
     closeWalletSelectModal() {
       this.isWalletSelectModalOpen = false;

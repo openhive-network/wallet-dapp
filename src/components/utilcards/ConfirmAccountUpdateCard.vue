@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useSettingsStore } from '@/stores/settings.store';
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
@@ -21,6 +21,7 @@ const ownerKey = ref<string>('');
 
 const router = useRouter();
 const wallet = useWalletStore();
+const hasWallet = computed(() => wallet.hasWallet);
 
 onMounted(() => {
   creator.value = router.currentRoute.value.query.acc as string ?? (settings.account ? `@${settings.account}` : '');
@@ -36,6 +37,9 @@ const isLoading = ref<boolean>(false);
 const updateAuthority = async() => {
   try {
     isLoading.value = true;
+
+    if (!hasWallet.value)
+      await wallet.openWalletSelectModal();
 
     if (!memoKey.value && !postingKey.value && !activeKey.value && !ownerKey.value)
       throw new Error("Nothing to update");
