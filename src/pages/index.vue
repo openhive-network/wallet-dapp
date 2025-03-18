@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import AuthorityCard from '@/components/utilcards/AuthorityCard.vue';
+import AccountDetails from '@/components/utilcards/AccountDetails.vue';
 </script>
 
 <template>
-  <div class="flex p-8">
-    <AuthorityCard />
+  <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 p-8">
+    <AccountDetails />
   </div>
 </template>

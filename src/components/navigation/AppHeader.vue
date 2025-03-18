@@ -27,7 +27,7 @@ const userStore = useUserStore();
     <div class="fixed top-0 z-10 bg-background/60 backdrop-blur-sm px-4 h-[60px] border-b w-full md:w-[calc(100%-var(--sidebar-width))] flex items-center justify-between">
       <ToggleSidebar />
       <div v-if="settingsStore.isLoaded && hasUser" class="ml-2 inline-flex items-center">
-        <Avatar class="w-8 h-8 mr-2">
+        <Avatar class="w-8 h-8 mr-2 border">
           <AvatarImage v-if="userStore.profileImage" :src="userStore.profileImage" />
           <AvatarFallback v-if="settingsStore.isLoaded && hasUser">{{ settingsStore.settings.account?.slice(0, 2) }}</AvatarFallback>
         </Avatar>

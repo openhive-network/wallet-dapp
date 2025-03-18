@@ -9,7 +9,7 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     profileImage: (ctx): undefined | string => ctx.isReady ? ctx.parsedJsonMetadata?.profile?.profile_image : undefined,
-    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedJsonMetadata?.profile?.name : undefined,
+    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedJsonMetadata?.profile?.name || ctx.userData?.name : undefined,
     about: (ctx): undefined | string => ctx.isReady ? ctx.parsedJsonMetadata?.profile?.about : undefined,
     website: (ctx): undefined | string => ctx.isReady ? ctx.parsedJsonMetadata?.profile?.website : undefined
   },
@@ -22,7 +22,9 @@ export const useUserStore = defineStore('user', {
     },
     setUserData(data: ApiAccount) {
       this.userData = data;
-      this.parsedJsonMetadata = JSON.parse(data.posting_json_metadata);
+      try {
+        this.parsedJsonMetadata = JSON.parse(data.posting_json_metadata);
+      } catch {}
       this.isReady = true;
     }
   }

@@ -87,7 +87,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[600px] backdrop-blur-sm">
+  <Card class="w-full max-w-[600px]">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Transaction signing</span>
