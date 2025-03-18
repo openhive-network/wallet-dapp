@@ -182,7 +182,7 @@ const createAccount = async() => {
           </div>
         </RadioGroup>
         <Button @click="createAccount" :loading="isLoading">Create account</Button>
-        <p>Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
+        <p class="text-sm">Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
       </div>
     </CardContent>
   </Card>
