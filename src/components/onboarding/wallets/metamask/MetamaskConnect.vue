@@ -23,7 +23,7 @@ const showUpdateAccountModal = ref(false);
 const showCreateAccountModal = ref(false);
 
 const updateAuthType: Record<TRole, boolean> = {
-  owner: true,
+  owner: false,
   active: true,
   posting: true,
   memo: true
@@ -239,7 +239,7 @@ const updateAccountName = (value: string | any) => {
             </div>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
               <div class="flex items-center p-1">
-                <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="true" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
+                <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="updateAuthType[key.role as TRole]" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
                 <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
                   <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
                   <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
@@ -248,7 +248,7 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :disabled="isLoading" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :disabled="isLoading || !updateAccountNameOperation" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
               <Separator label="Or" class="mt-8" />
@@ -274,7 +274,7 @@ const updateAccountName = (value: string | any) => {
               </div>
             </div>
             <div class="flex items-center flex-col">
-              <Button :copy="getAccountCreateSigningLink" :disabled="isLoading" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
+              <Button :copy="getAccountCreateSigningLink" :disabled="isLoading || !createAccountNameOperation || !accountNameValid" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
             </div>

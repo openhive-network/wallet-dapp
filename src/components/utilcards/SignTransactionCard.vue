@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import type { ITransactionBase, TRole } from '@hiveio/wax/vite';
+import type { ITransaction, TRole } from '@hiveio/wax/vite';
 import { useRouter } from 'vue-router';
 import { toastError } from '@/utils/parse-error';
 
@@ -36,7 +36,7 @@ const sign = async () => {
 
     const wax = await getWax();
 
-    let tx: ITransactionBase;
+    let tx: ITransaction;
 
     try {
       tx = wax.createTransactionFromJson(inputData.value);
@@ -54,7 +54,9 @@ const sign = async () => {
 
     // TODO: Handle "other" authority
 
-    outputData.value = await wallet.value!.signTransaction(tx, authorityLevel);
+    await wallet.value!.signTransaction(tx, authorityLevel);
+
+    outputData.value = tx.toApi();
   } catch (error) {
     toastError('Error signing transaction', error);
   } finally {
@@ -98,7 +100,7 @@ onMounted(() => {
       <div class="my-4 space-x-4">
         <Button :disabled="!inputData || !hasWallet || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
       </div>
-      <Textarea v-model="outputData" placeholder="Signature" copy-enabled class="my-4" disabled/>
+      <Textarea v-model="outputData" placeholder="Signed transaction" copy-enabled class="my-4" disabled/>
       <div class="my-4 space-x-4">
         <Button :disabled="!outputData || isLoading" :loading="isBroadcasting" @click="broadcast">Broadcast signed transaction</Button>
       </div>

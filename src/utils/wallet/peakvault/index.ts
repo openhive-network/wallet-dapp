@@ -1,5 +1,5 @@
 
-import type { TRole, TPublicKey, TAccountName, ITransactionBase } from "@hiveio/wax/vite";
+import type { TRole, TPublicKey, TAccountName, ITransaction } from "@hiveio/wax/vite";
 import type { Wallet } from "../abstraction";
 
 export const createPeakVaultWalletFor = (account: TAccountName) => {
@@ -11,10 +11,11 @@ export class PeakVaultWallet implements Wallet {
     private readonly account: TAccountName
   ) {}
 
-  public async signTransaction(transaction: ITransactionBase, role: TRole): Promise<string> {
+  public async signTransaction(transaction: ITransaction, role: TRole): Promise<void> {
     const response = await (window as any).peakvault.requestSignTx(this.account, JSON.parse(transaction.toLegacyApi()), role);
 
-    return response.result.signatures[0];
+    for(const signature of response.result.signatures)
+      transaction.sign(signature);
   }
 
   public async encrypt(buffer: string, recipient: TPublicKey): Promise<string> {

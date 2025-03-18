@@ -1,4 +1,4 @@
-import type { TRole, TPublicKey, TAccountName, ITransactionBase } from "@hiveio/wax/vite";
+import type { TRole, TPublicKey, TAccountName, ITransaction } from "@hiveio/wax/vite";
 import type { Wallet } from "../abstraction";
 
 export const createKeychainWalletFor = (account: TAccountName) => {
@@ -10,7 +10,7 @@ export class KeychainWallet implements Wallet {
     private readonly account: TAccountName
   ) {}
 
-  public async signTransaction(transaction: ITransactionBase, role: TRole): Promise<string> {
+  public async signTransaction(transaction: ITransaction, role: TRole): Promise<void> {
     const response = await new Promise((resolve, reject) => (window as any).hive_keychain.requestSignTx(
       this.account,
       JSON.parse(transaction.toLegacyApi()),
@@ -23,7 +23,8 @@ export class KeychainWallet implements Wallet {
       }
     )) as any;
 
-    return response.result.signatures;
+    for(const signature of response.result.signatures)
+      transaction.sign(signature);
   }
 
   public async encrypt(buffer: string, recipient: TPublicKey): Promise<string> {

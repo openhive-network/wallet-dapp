@@ -1,7 +1,7 @@
 import type { MetaMaskInpageProvider } from "@metamask/providers";
 import { defaultSnapOrigin, defaultSnapVersion, isLocalSnap } from "./snap";
 import type { Wallet } from "../abstraction";
-import type { TPublicKey, TRole, ITransactionBase } from "@hiveio/wax/vite";
+import type { TPublicKey, TRole, ITransaction } from "@hiveio/wax/vite";
 
 export type MetamaskSnapData = {
   permissionName: string;
@@ -35,10 +35,11 @@ export class MetamaskWallet implements Wallet {
     return this.provider.request(params ? { method, params } : { method });
   }
 
-  public async signTransaction(transaction: ITransactionBase, role: TRole) {
+  public async signTransaction(transaction: ITransaction, role: TRole): Promise<void> {
     const response = await this.invokeSnap('hive_signTransaction', { transaction: transaction.toApi(), keys: [{ role }] }) as any;
 
-    return response.signatures[0];
+    for(const signature of response.signatures)
+      transaction.sign(signature);
   }
 
   public async encrypt(buffer: string, recipient: TPublicKey): Promise<string> {

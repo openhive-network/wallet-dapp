@@ -1,7 +1,7 @@
-import type { TPublicKey, TRole, ITransactionBase } from "@hiveio/wax/vite";
+import type { TPublicKey, TRole, ITransaction } from "@hiveio/wax/vite";
 
 export interface Wallet {
-  signTransaction(transaction: ITransactionBase, role: TRole): Promise<string>;
+  signTransaction(transaction: ITransaction, role: TRole): Promise<void>;
   encrypt(buffer: string, recipient: TPublicKey): Promise<string>;
   decrypt(buffer: string): Promise<string>;
 }
