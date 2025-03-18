@@ -12,6 +12,7 @@ import { useMetamaskStore } from "@/stores/metamask.store";
 import { Combobox, ComboboxAnchor, ComboboxTrigger, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList } from '@/components/ui/combobox';
 import { Check, Search } from 'lucide-vue-next';
 import { Separator } from '@/components/ui/separator';
+import { toastError } from "@/utils/parse-error";
 import PublicKey from '@/components/hive/PublicKey.vue';
 import { Checkbox } from '@/components/ui/checkbox'
 import { getWax } from '@/stores/wax.store';
@@ -38,7 +39,6 @@ const close = () => {
 const metamaskStore = useMetamaskStore();
 
 const isLoading = ref(false);
-const errorMsg = ref<string | null>(null);
 const accountName = ref<string | null>(null);
 const createAccountNameOperation = ref<string | null>(null);
 const updateAccountNameOperation = ref<string | null>(null);
@@ -49,7 +49,6 @@ const isMetamaskSnapInstalled = ref<boolean>(false);
 
 const applyPublicKeys = async () => {
   isLoading.value = true;
-  errorMsg.value = null;
   try {
     const { publicKeys } = await metamaskStore.call("hive_getPublicKeys", {
       keys: [{
@@ -73,10 +72,7 @@ const applyPublicKeys = async () => {
 
     accountsMatchingKeys.value = [...new Set(response.accounts.flatMap((node: string[]) => node))] as string[];
   } catch (error) {
-    if (typeof error === "object" && error && "message" in error)
-      errorMsg.value = error.message as string;
-    else
-      errorMsg.value = String(error);
+    toastError("Failed to match Metamask public keys", error);
   } finally {
     isLoading.value = false;
   }
@@ -85,20 +81,23 @@ const applyPublicKeys = async () => {
 const accountNameValid = ref(false);
 
 const validateAccountName = async() => {
-  if(!createAccountNameOperation.value)
-    return accountNameValid.value = false;
+  try {
+    if(!createAccountNameOperation.value)
+      return accountNameValid.value = false;
 
-  const accountName = createAccountNameOperation.value.startsWith("@") ? createAccountNameOperation.value.slice(1) : createAccountNameOperation.value;
-  if (!accountName)
-    return accountNameValid.value = false;
+    const accountName = createAccountNameOperation.value.startsWith("@") ? createAccountNameOperation.value.slice(1) : createAccountNameOperation.value;
+    if (!accountName)
+      return accountNameValid.value = false;
 
-  const wax = await getWax();
-  return accountNameValid.value = wax.isValidAccountName(accountName);
+    const wax = await getWax();
+    return accountNameValid.value = wax.isValidAccountName(accountName);
+  } catch (error) {
+    toastError("Failed to validate account name", error);
+  }
 }
 
 const connect = async (showError = true) => {
   isLoading.value = true;
-  errorMsg.value = null;
   try {
     await metamaskStore.connect();
 
@@ -110,10 +109,7 @@ const connect = async (showError = true) => {
     if (!showError)
       return;
 
-    if (typeof error === "object" && error && "message" in error)
-      errorMsg.value = error.message as string;
-    else
-      errorMsg.value = String(error);
+    toastError("Failed to connect to Metamask", error);
   } finally {
     isLoading.value = false;
   };
@@ -121,7 +117,6 @@ const connect = async (showError = true) => {
 
 const install = async () => {
   isLoading.value = true;
-  errorMsg.value = null;
   try {
     await metamaskStore.install();
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
@@ -129,10 +124,7 @@ const install = async () => {
     if (isMetamaskSnapInstalled.value)
       void applyPublicKeys();
   } catch (error) {
-    if (typeof error === "object" && error && "message" in error)
-      errorMsg.value = error.message as string;
-    else
-      errorMsg.value = String(error);
+    toastError("Failed to install Metamask Snap", error);
   } finally {
     isLoading.value = false;
   };
@@ -142,21 +134,25 @@ onMounted(() => {
   void connect(false);
 });
 
-const generateAccountUpdateTransaction = async(): Promise<string> => {
-  const wax = await getWax();
-  const tx = await wax.createTransaction();
-  const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
-  const { AccountAuthorityUpdateOperation } = await import("@hiveio/wax/vite");
-  const op = await AccountAuthorityUpdateOperation.createFor(wax, accountName);
-  for(const key in updateAuthType) {
-    if (updateAuthType[key as TRole])
-      if (key === "memo")
-        op.role("memo").set(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
-      else
-        op.role(key as Exclude<TRole, "memo">).add(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
-    }
-  tx.pushOperation(op);
-  return tx.toApi();
+const generateAccountUpdateTransaction = async(): Promise<string | void> => {
+  try {
+    const wax = await getWax();
+    const tx = await wax.createTransaction();
+    const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
+    const { AccountAuthorityUpdateOperation } = await import("@hiveio/wax/vite");
+    const op = await AccountAuthorityUpdateOperation.createFor(wax, accountName);
+    for(const key in updateAuthType) {
+      if (updateAuthType[key as TRole])
+        if (key === "memo")
+          op.role("memo").set(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+        else
+          op.role(key as Exclude<TRole, "memo">).add(metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+      }
+    tx.pushOperation(op);
+    return tx.toApi();
+  } catch (error) {
+    toastError("Failed to generate account update transaction", error);
+  }
 };
 const getAccountCreateSigningLink = (): string => {
   const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
@@ -358,7 +354,6 @@ const updateAccountName = (value: string | any) => {
       </div>
     </CardContent>
     <CardFooter>
-      <span class="text-red-400" v-if="errorMsg"><span class="font-bold">Error: </span>{{ errorMsg }}</span>
     </CardFooter>
   </Card>
 </template>

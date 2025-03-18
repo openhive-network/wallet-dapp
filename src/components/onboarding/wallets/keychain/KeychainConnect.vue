@@ -6,6 +6,7 @@ import { ref } from 'vue';
 import { mdiClose } from '@mdi/js';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
+import { toastError } from "@/utils/parse-error";
 
 const emit = defineEmits(["setaccount", "close"]);
 
@@ -14,13 +15,11 @@ const close = () => {
 };
 
 const isLoading = ref(false);
-const errorMsg = ref<string | null>(null);
 const selectedLevel = ref<string | null>('posting');
 
 const connect = async() => {
   try {
     isLoading.value = true;
-    errorMsg.value = null;
 
     const response = await new Promise((resolve, reject) => {
       (window as any).hive_keychain.requestSignBuffer(
@@ -40,10 +39,7 @@ const connect = async() => {
 
     emit("setaccount", response.data.username);
   } catch (error) {
-    if (typeof error === "object" && error && "message" in error)
-      errorMsg.value = error.message as string;
-    else
-      errorMsg.value = String(error);
+    toastError('Failed to connect to Keychain', error);
   } finally {
     isLoading.value = false;
   }
@@ -97,7 +93,6 @@ const connect = async() => {
       </div>
     </CardContent>
     <CardFooter>
-      <span class="text-red-400" v-if="errorMsg"><span class="font-bold">Error: </span>{{ errorMsg }}</span>
     </CardFooter>
   </Card>
 </template>

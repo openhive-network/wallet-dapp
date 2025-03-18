@@ -12,7 +12,7 @@ interface Props extends PrimitiveProps {
   class?: HTMLAttributes['class']
   loading?: boolean
   disabled?: boolean
-  copy?: string | (() => (string | Promise<string>))
+  copy?: string | (() => (string | void | Promise<string | void>))
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -25,12 +25,18 @@ const copyLoading = ref(false);
 const copyBtn = () => {
   if (!props.copy) return;
   const text = typeof props.copy === 'function' ? props.copy() : props.copy;
+  let copied = false;
+
   if(text instanceof Promise)
     text.then((text) => {
-      copyText(text);
+      if (copied = !!text)
+        copyText(text);
     });
-  else
+  else if (copied = !!text)
     copyText(text);
+
+  if (!copied)
+    return;
 
   copyLoading.value = true;
   setTimeout(() => {
