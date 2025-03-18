@@ -11,6 +11,7 @@ const props = defineProps<{
   description: string;
   disabled?: boolean;
   downloadUrl: string;
+  downloadUrlTriggersClick?: boolean;
 }>();
 
 const emit = defineEmits(['click']);
@@ -28,7 +29,7 @@ const emit = defineEmits(['click']);
     <TooltipProvider :delayDuration="200" disableHoverableContent>
       <Tooltip>
         <TooltipTrigger class="absolute right-4 top-1/2 transform -translate-y-1/2 w-8 h-8">
-          <a :href="props.downloadUrl" v-if="props.disabled" target="_blank">
+          <a :href="props.downloadUrl" @click="props.downloadUrlTriggersClick && emit('click')" v-if="props.disabled" target="_blank">
             <Button variant="ghost" class="w-8 h-8 p-0">
               <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="mdiDownload"/></svg>
             </Button>

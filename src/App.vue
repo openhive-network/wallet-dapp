@@ -6,8 +6,9 @@ import AppSidebar from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import ToggleSidebar from './components/sidebar/ToggleSidebar.vue';
 import { Toaster } from 'vue-sonner';
-import { useUserStore } from './stores/user.store';
-import { getWax } from './stores/wax.store';
+import { useUserStore } from '@/stores/user.store';
+import { getWax } from '@/stores/wax.store';
+import AppHeader from '@/components/AppHeader.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -49,8 +50,8 @@ const complete = async(data: { account: string; wallet: UsedWallet }) => {
           <ToggleSidebar class="m-3" />
           <RouterView />
         </main>
-        <aside v-if="settingsStore.isLoaded && !hasUser" class="fixed inset-0 flex items-center justify-center z-20">
-          <WalletOnboarding @complete="complete" />
+        <aside v-if="walletStore.isWalletSelectModalOpen" class="fixed inset-0 flex items-center justify-center z-20">
+          <WalletOnboarding @close="walletStore.closeWalletSelectModal()" @complete="complete" />
         </aside>
       </SidebarProvider>
       <Toaster theme="dark" closeButton richColors />

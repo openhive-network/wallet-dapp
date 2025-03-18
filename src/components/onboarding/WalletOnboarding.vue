@@ -7,7 +7,7 @@ import KeychainConnect from '@/components/onboarding/wallets/keychain/KeychainCo
 import MetamaskConnect from '@/components/onboarding/wallets/metamask/MetamaskConnect.vue';
 import ThankYou from '@/components/onboarding/ThankYou.vue';
 
-const emit = defineEmits(["complete"]);
+const emit = defineEmits(["complete", "close"]);
 
 const selectedWallet = ref<UsedWallet | null>(null);
 const selectedAccount = ref<string | null>(null);
@@ -49,7 +49,7 @@ const backToStage1 = () => {
 <template>
   <div class="bg-black/30 backdrop-blur-sm h-full w-full z-50 flex items-center justify-center">
     <div class="onboarding-container">
-      <SelectWallet v-if="stage_1_SelectWallet" @walletSelect="walletSelect" />
+      <SelectWallet v-if="stage_1_SelectWallet" @close="emit('close')" @walletSelect="walletSelect" />
       <div v-if="stage_2_ConnectWallet">
         <KeychainConnect v-if="selectedWallet === UsedWallet.KEYCHAIN" @close="backToStage1" @setaccount="setAccount" />
         <PeakVaultConnect v-if="selectedWallet === UsedWallet.PEAKVAULT" @close="backToStage1" @setaccount="setAccount" />
