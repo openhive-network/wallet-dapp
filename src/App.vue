@@ -2,12 +2,12 @@
 import { ref, onMounted, defineAsyncComponent } from 'vue';
 import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import AppSidebar from '@/components/sidebar';
+import AppSidebar from '@/components/navigation';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from 'vue-sonner';
 import { useUserStore } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
-import AppHeader from '@/components/sidebar/AppHeader.vue';
+import AppHeader from '@/components/navigation/AppHeader.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
