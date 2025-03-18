@@ -3,7 +3,7 @@ import AuthorityCard from '@/components/utilcards/AuthorityCard.vue';
 </script>
 
 <template>
-  <div class="flex py-4 px-8">
+  <div class="flex p-8">
     <AuthorityCard />
   </div>
 </template>

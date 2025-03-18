@@ -4,11 +4,10 @@ import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import AppSidebar from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import ToggleSidebar from './components/sidebar/ToggleSidebar.vue';
 import { Toaster } from 'vue-sonner';
 import { useUserStore } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
-import AppHeader from '@/components/AppHeader.vue';
+import AppHeader from '@/components/sidebar/AppHeader.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -45,11 +44,12 @@ const complete = async(data: { account: string; wallet: UsedWallet }) => {
     <div id="app-main">
       <SidebarProvider>
         <AppSidebar/>
-        <!-- <AppHeader/> -->
-        <main class="w-full bg-background">
-          <ToggleSidebar class="m-3" />
-          <RouterView />
-        </main>
+        <div class="w-full">
+          <AppHeader/>
+          <main class="w-full h-[calc(100%-60px)] bg-background">
+            <RouterView />
+          </main>
+        </div>
         <aside v-if="walletStore.isWalletSelectModalOpen" class="fixed inset-0 flex items-center justify-center z-20">
           <WalletOnboarding @close="walletStore.closeWalletSelectModal()" @complete="complete" />
         </aside>
@@ -60,12 +60,6 @@ const complete = async(data: { account: string; wallet: UsedWallet }) => {
 </template>
 
 <style scoped>
-#app-main {
-  overflow-y: auto;
-  background: url('/bg.svg') no-repeat center center fixed;
-  background-size: cover;
-}
-
 #shadcn-root {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));

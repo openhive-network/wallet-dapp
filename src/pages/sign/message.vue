@@ -3,7 +3,7 @@ import MemoEncryptCard from '@/components/utilcards/MemoEncryptCard.vue';
 </script>
 
 <template>
-  <div class="flex py-4 px-8">
+  <div class="flex p-8">
     <MemoEncryptCard />
   </div>
 </template>
