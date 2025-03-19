@@ -26,7 +26,7 @@ export const useWalletStore = defineStore('wallet', {
         const metamaskStore = useMetamaskStore();
 
         const checkForWallets = () => {
-          metamaskStore.connect().then(() => state._walletsStatus.metamask = true).catch(console.error);
+          metamaskStore.connect().then(() => state._walletsStatus.metamask = true).catch(() => {});
           state._walletsStatus.keychain = "hive_keychain" in window;
           state._walletsStatus.peakvault = "peakvault" in window;
         };

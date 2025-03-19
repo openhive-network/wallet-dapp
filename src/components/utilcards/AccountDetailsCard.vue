@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { mdiAccountBadgeOutline, mdiOpenInNew } from '@mdi/js';
 import { useSettingsStore } from '@/stores/settings.store';
-import { computed } from 'vue';
 import { useUserStore } from '@/stores/user.store';
-import { useWalletStore } from '@/stores/wallet.store';
 
 const settingsStore = useSettingsStore();
-const hasUser = computed(() => settingsStore.settings.account !== undefined);
-
-const walletStore = useWalletStore();
 
 const userStore = useUserStore();
 </script>
@@ -27,7 +21,7 @@ const userStore = useUserStore();
       <CardDescription class="mr-8">Account description parsed from the metadata</CardDescription>
     </CardHeader>
     <CardContent>
-      <div class="space-y-4" v-if="hasUser">
+      <div class="space-y-4">
         <div class="flex space-x-1">
           <div>
             <Avatar v-if="userStore.isReady" shape="square" class="border rounded-xl w-20 h-20 mr-2">
@@ -54,11 +48,6 @@ const userStore = useUserStore();
             </span>
           </div>
         </div>
-      </div>
-      <div v-else>
-        <Button @click="walletStore.openWalletSelectModal()" class="w-full font-bold">
-          Connect your wallet now
-        </Button>
       </div>
     </CardContent>
   </Card>
