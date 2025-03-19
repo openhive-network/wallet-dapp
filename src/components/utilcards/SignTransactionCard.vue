@@ -99,11 +99,11 @@ onMounted(() => {
       <CardDescription class="mr-8">Use this module to sign the provided transaction</CardDescription>
     </CardHeader>
     <CardContent>
-      <Textarea v-model="inputData" placeholder="Transaction in API JSON form" class="my-4"/>
+      <Textarea v-model="inputData" placeholder="Transaction in API JSON form" class="my-4" height="200px"/>
       <div class="my-4 space-x-4">
         <Button :disabled="!inputData || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
       </div>
-      <Textarea v-model="outputData" placeholder="Signed transaction" copy-enabled class="my-4" disabled/>
+      <Textarea v-model="outputData" placeholder="Signed transaction" copy-enabled class="my-4" height="200px" disabled/>
       <div class="my-4 space-x-4">
         <Button :disabled="!outputData || isLoading" :loading="isBroadcasting" @click="broadcast">Broadcast signed transaction</Button>
       </div>

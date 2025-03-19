@@ -11,15 +11,14 @@ import { mdiLogout } from '@mdi/js';
 
 const settingsStore = useSettingsStore();
 const hasUser = computed(() => settingsStore.settings.account !== undefined);
+const walletStore = useWalletStore();
+const userStore = useUserStore();
 
 const logout = () => {
   settingsStore.resetSettings();
-  window.location.reload();
+  walletStore.resetWallet();
+  userStore.resetSettings();
 };
-
-const walletStore = useWalletStore();
-
-const userStore = useUserStore();
 </script>
 
 <template>

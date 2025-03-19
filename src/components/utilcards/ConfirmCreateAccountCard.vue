@@ -130,31 +130,31 @@ const createAccount = async() => {
     </CardHeader>
     <CardContent>
       <div class="my-4 space-y-4">
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_creator">Creator Account Name</Label>
           <Input id="createAccount_creator" v-model="creator" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_accountName">New Account Name</Label>
           <Input id="createAccount_accountName" v-model="accountName" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_memoKey">Memo Key</Label>
           <Input id="createAccount_memoKey" v-model="memoKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_postingKey">Posting Key</Label>
           <Input id="createAccount_postingKey" v-model="postingKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_activeKey">Active Key</Label>
           <Input id="createAccount_activeKey" v-model="activeKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_ownerKey">Owner Key</Label>
           <Input id="createAccount_ownerKey" v-model="ownerKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="createAccount_postingMetadata">Posting Metadata</Label>
           <Textarea id="createAccount_postingMetadata" v-model="postingMetadata" class="my-2" />
         </div>
@@ -164,7 +164,7 @@ const createAccount = async() => {
             <span class="text-sm">Enable Delegation</span>
           </label>
         </div>
-        <div class="grid w-full max-w-sm items-center" v-if="enableDelegation">
+        <div class="grid w-full items-center" v-if="enableDelegation">
           <Label for="createAccount_delegationAmount">Delegation amount</Label>
           <div class="flex items-center space-x-2">
             <Input id="createAccount_delegationAmount" type="number" v-model="delegationAmount" min="0" class="my-2" />

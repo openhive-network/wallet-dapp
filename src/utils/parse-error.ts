@@ -1,4 +1,5 @@
 import { toast } from "vue-sonner";
+import { useErrorDialogStore } from '@/stores/error-dialog.store';
 
 export const toastError = (title: string, error: unknown) => {
   let description: string;
@@ -20,5 +21,16 @@ export const toastError = (title: string, error: unknown) => {
   } else
     description = String(error);
 
-  toast.error(title, { description });
+  toast.error(title, {
+    description: description.length > 100 ? description.slice(0, 100) + "..." : description,
+    duration: 8_000,
+    action: {
+      label: "Details",
+      onClick: () => {
+        const errorStore = useErrorDialogStore();
+
+        errorStore.setError(title, error, description);
+      }
+    }
+  });
 };

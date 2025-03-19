@@ -8,6 +8,7 @@ import { Toaster } from 'vue-sonner';
 import { useUserStore } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
 import AppHeader from '@/components/navigation/AppHeader.vue';
+import ErrorDialog from './components/ErrorDialog.vue';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -56,6 +57,7 @@ const complete = async(data: { account: string; wallet: UsedWallet }) => {
         </aside>
       </SidebarProvider>
       <Toaster theme="dark" closeButton richColors />
+      <ErrorDialog />
     </div>
   </div>
 </template>

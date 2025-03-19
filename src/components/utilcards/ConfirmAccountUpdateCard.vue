@@ -78,23 +78,23 @@ const updateAuthority = async() => {
     </CardHeader>
     <CardContent>
       <div class="my-4 space-y-2">
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="updateAuthority_creator">Account To Update</Label>
           <Input id="updateAuthority_creator" v-model="creator" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="updateAuthority_memoKey">New Memo Key</Label>
           <Input id="updateAuthority_memoKey" placeholder="Nothing to update" v-model="memoKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="updateAuthority_postingKey">Add Posting Key</Label>
           <Input id="updateAuthority_postingKey" placeholder="Nothing to add" v-model="postingKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="updateAuthority_activeKey">Add Active Key</Label>
           <Input id="updateAuthority_activeKey" placeholder="Nothing to add" v-model="activeKey" class="my-2" />
         </div>
-        <div class="grid w-full max-w-sm items-center">
+        <div class="grid w-full items-center">
           <Label for="updateAuthority_ownerKey">Add Owner Key</Label>
           <Input id="updateAuthority_ownerKey" placeholder="Nothing to add" v-model="ownerKey" class="my-2" />
         </div>
