@@ -32,12 +32,12 @@ const complete = async(data: { account: string; wallet: UsedWallet }) => {
     account: data.account,
     wallet: data.wallet
   };
+  walletStore.closeWalletSelectModal();
   settingsStore.setSettings(settings);
   void walletStore.createWalletFor(settings);
   const wax = await getWax();
   const { accounts: [ account ] } = await wax.api.database_api.find_accounts({ accounts: [ settingsStore.settings.account! ], delayed_votes_active: false });
   void userStore.setUserData(account);
-  walletStore.closeWalletSelectModal();
 };
 </script>
 
