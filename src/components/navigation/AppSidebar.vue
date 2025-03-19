@@ -1,12 +1,19 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline } from "@mdi/js"
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline } from "@mdi/js"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { useSidebar } from "@/components/ui/sidebar";
 import { useRouter } from "vue-router";
+import { Button } from "@/components/ui/button";
+import { useWalletStore } from "@/stores/wallet.store";
+import { computed } from "vue";
 
 const router = useRouter();
 
 const { toggleSidebar, isMobile } = useSidebar();
+
+const walletStore = useWalletStore();
+
+const isDisabledMenuButton = computed(() => !walletStore.hasWallet);
 
 const groups = [{
   title: "Account management",
@@ -17,14 +24,21 @@ const groups = [{
       icon: mdiHomeOutline,
     },
     {
+      title: "Request Account Creation",
+      url: "/account/request",
+      icon: mdiAccountPlusOutline,
+    },
+    {
       title: "Process Account Creation",
       url: "/account/create",
-      icon: mdiAccountPlusOutline,
+      icon: mdiAccountReactivateOutline,
+      disabled: isDisabledMenuButton,
     },
     {
       title: "Process Authority Update",
       url: "/account/update",
       icon: mdiAccountArrowUpOutline,
+      disabled: isDisabledMenuButton,
     },
   ]
 }, {
@@ -42,6 +56,13 @@ const groups = [{
     },
   ]
 }];
+
+const navigateTo = (url: string) => {
+  router.push(url);
+
+  if (isMobile.value)
+    toggleSidebar();
+};
 </script>
 
 <template>
@@ -59,10 +80,10 @@ const groups = [{
           <SidebarMenu>
             <SidebarMenuItem v-for="item in group.items" :key="item.title">
               <SidebarMenuButton asChild :class="{ 'bg-primary/5': router.currentRoute.value.path === item.url }">
-                <RouterLink @click="isMobile && toggleSidebar()" :to="item.url">
+                <Button variant="ghost" :disabled="item.disabled?.value" @click="navigateTo(item.url)" class="flex justify-start">
                   <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsl(var(--foreground))" :d="item.icon"/></svg>
                   <span class="text-foreground/80">{{item.title}}</span>
-                </RouterLink>
+                </Button>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>

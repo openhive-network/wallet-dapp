@@ -154,8 +154,12 @@ const generateAccountUpdateTransaction = async(): Promise<string | void> => {
     toastError("Failed to generate account update transaction", error);
   }
 };
+
+const hasCopiedCreateSignLink = ref(false);
+
 const getAccountCreateSigningLink = (): string => {
   const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
+  hasCopiedCreateSignLink.value = true;
   return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&posting=${
     metamaskPublicKeys.value!.find(node => node.role === "posting")!.publicKey
   }&active=${
@@ -166,12 +170,17 @@ const getAccountCreateSigningLink = (): string => {
     metamaskPublicKeys.value!.find(node => node.role === "memo")!.publicKey
   }`;
 };
+
+const hasCopiedUpdateSignLink = ref(false);
+
 const getAuthorityUpdateSigningLink = (): string => {
   const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
   const url = new URL(`${window.location.protocol}//${window.location.host}/account/update?acc=${accountName}`);
   for(const key in updateAuthType)
     if (updateAuthType[key as TRole])
       url.searchParams.set(key, metamaskPublicKeys.value!.find(node => node.role === key)!.publicKey);
+
+  hasCopiedUpdateSignLink.value = true;
 
   return url.toString();
 };
@@ -247,6 +256,9 @@ const updateAccountName = (value: string | any) => {
               <Button :disabled="isLoading || !updateAccountNameOperation" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
+              <p v-if="hasCopiedUpdateSignLink" class="mt-4">
+                Now send this link to someone who has an account to execute this operation in blockchain
+              </p>
               <Separator label="Or" class="mt-8" />
               <div class="flex justify-center mt-4">
                 <Button :disabled="isLoading" :copy="generateAccountUpdateTransaction" variant="outline" size="lg" class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]">
@@ -256,7 +268,7 @@ const updateAccountName = (value: string | any) => {
             </div>
           </div>
           <div v-else-if="showCreateAccountModal">
-            <p class="mb-4">Step 6: Fill in this form in order to prepare the operation to create an account with requested metadata. Then please copy the signing link, and send it to someone who already has an account to execute this operation in blockchain:</p>
+            <p class="mb-4">Step 6: Fill in this form in order to prepare the operation to request account creation</p>
             <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
               <Label for="metamask_createAuth_account">New account name</Label>
               <Input v-model="createAccountNameOperation!" @update:model-value="validateAccountName()" id="metamask_createAuth_account" />
@@ -273,6 +285,9 @@ const updateAccountName = (value: string | any) => {
               <Button :copy="getAccountCreateSigningLink" :disabled="isLoading || !createAccountNameOperation || !accountNameValid" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
                 <span class="text-md font-bold">Copy signing link</span>
               </Button>
+              <p v-if="hasCopiedCreateSignLink" class="mt-4">
+                Now send this link to someone who has an account to execute this operation in blockchain
+              </p>
             </div>
           </div>
           <div v-else-if="accountsMatchingKeys.length === 0">

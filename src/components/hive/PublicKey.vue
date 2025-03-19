@@ -6,6 +6,7 @@ const props = defineProps<{
   afterValue?: string;
   context?: number;
   disableCopy?: boolean;
+  class?: string;
 }>();
 
 const context = props.context ?? 6;
@@ -16,8 +17,8 @@ const value = String(props.value);
 <template>
   <div class="flex items-center">
     <span class="font-mono pt-[2px] mr-1">
-      <span v-if="context > 0">{{ value.slice(0, context) }}...{{ value.slice(-context) }}</span>
-      <span v-else>{{ value }}</span>
+      <span v-if="context > 0" :class="props.class">{{ value.slice(0, context) }}...{{ value.slice(-context) }}</span>
+      <span v-else :class="props.class">{{ value }}</span>
       <span class="ml-2" v-if="props.afterValue">{{ props.afterValue }}</span>
     </span>
     <Button v-if="!props.disableCopy" :value="value"/>

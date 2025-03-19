@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { mdiAccountPlusOutline } from '@mdi/js';
+import { mdiAccountReactivateOutline } from '@mdi/js';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input'
@@ -124,7 +124,7 @@ const createAccount = async() => {
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Process Account Creation</span>
-        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountPlusOutline"/></svg>
+        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountReactivateOutline"/></svg>
       </CardTitle>
       <CardDescription class="mr-8">Use this module to process account creation request sent by other users</CardDescription>
     </CardHeader>
