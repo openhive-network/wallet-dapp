@@ -92,7 +92,7 @@ if(hasMetamaskWithSnap)
 const getAccountCreateSigningLink = (): string => {
   const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
   hasCopiedCreateSignLink.value = true;
-  return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&${Object.values(publicKeys.value).map((key, index) => `key${index + 1}=${key}`).join('&')}`;
+  return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&${Object.entries(publicKeys.value).map(([role, key]) => `${role}=${key}`).join('&')}`;
 };
 </script>
 
