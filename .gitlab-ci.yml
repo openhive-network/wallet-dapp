@@ -4,6 +4,14 @@ stages:
   - build
   - deploy
 
+include:
+  - template: Workflows/Branch-Pipelines.gitlab-ci.yml
+  - project: 'hive/common-ci-configuration'
+    ref: 19b15e2e0ea83de72ce3552a44ca59ab2201de73
+    file:
+      - '/templates/docker_image_jobs.gitlab-ci.yml'
+      - '/templates/npm_projects.gitlab-ci.yml'
+
 variables:
   GIT_DEPTH: 0
   GIT_STRATEGY: clone
