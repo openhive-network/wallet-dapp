@@ -1,5 +1,3 @@
-image: node:20.18.3
-
 stages:
   - build
   - deploy
@@ -17,27 +15,12 @@ variables:
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
 
-cache:
-  key:
-    files:
-      - pnpm-lock.yaml
-  paths:
-    - node_modules/
-    - .pnpm-store/
-
 default:
   tags:
     - public-runner-docker
 
-.npm_based_job:
-  before_script:
-    - corepack enable
-    - corepack prepare pnpm@10.0.0 --activate
-    - pnpm config set store-dir .pnpm-store
-    - pnpm install --frozen-lockfile
-
 build:
-  extends: .npm_based_job
+  extends: .npm_based_job_base
   stage: build
   script:
     - pnpm build
