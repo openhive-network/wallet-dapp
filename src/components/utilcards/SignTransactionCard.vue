@@ -9,6 +9,7 @@ import { getWax } from '@/stores/wax.store';
 import type { ITransaction, TRole } from '@hiveio/wax/vite';
 import { useRouter } from 'vue-router';
 import { toastError } from '@/utils/parse-error';
+import { toast } from 'vue-sonner';
 
 const walletStore = useWalletStore();
 
@@ -76,6 +77,8 @@ const broadcast = async () => {
     const tx = wax.createTransactionFromJson(inputData.value);
 
     await wax.broadcast(tx);
+
+    toast.success('Transaction broadcasted successfully');
   } catch (error) {
     toastError('Error broadcasting transaction', error);
   } finally {

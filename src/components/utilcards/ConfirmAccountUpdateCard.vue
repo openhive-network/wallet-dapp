@@ -10,6 +10,7 @@ import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
+import { toast } from 'vue-sonner';
 
 const settings = useSettingsStore();
 
@@ -59,6 +60,8 @@ const updateAuthority = async() => {
     tx.pushOperation(op);
     await wallet.wallet!.signTransaction(tx, ownerKey.value ? "owner" : "active");
     await wax.broadcast(tx);
+
+    toast.success('Authority updated successfully!');
   } catch (error) {
     toastError('Error updating authority', error);
   } finally {

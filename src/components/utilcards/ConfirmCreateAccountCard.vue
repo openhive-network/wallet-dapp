@@ -13,6 +13,7 @@ import { useRouter } from 'vue-router';
 import { getWax } from '@/stores/wax.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
+import { toast } from 'vue-sonner';
 
 const settings = useSettingsStore();
 
@@ -111,6 +112,8 @@ const createAccount = async() => {
     }
     await wallet.wallet!.signTransaction(tx, "active");
     await wax.broadcast(tx);
+
+    toast.success('Account created successfully!');
   } catch (error) {
     toastError('Error creating account', error);
   } finally {
