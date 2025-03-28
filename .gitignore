@@ -4,6 +4,7 @@ dist/
 build/
 coverage/
 .cache/
+.vscode
 
 # Logs
 snap/snapper.log.json

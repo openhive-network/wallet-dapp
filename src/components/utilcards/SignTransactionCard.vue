@@ -74,7 +74,7 @@ const broadcast = async () => {
 
     const wax = await getWax();
 
-    const tx = wax.createTransactionFromJson(inputData.value);
+    const tx = wax.createTransactionFromJson(outputData.value);
 
     await wax.broadcast(tx);
 
