@@ -69,9 +69,9 @@ const encryptOrDecrypt = async () => {
         if (!key) return;
         publicKey = key;
       }
-      outputData.value = await wallet.value!.encrypt(inputData.value, publicKey);
+      outputData.value = await wallet.value!.encryptData(inputData.value, publicKey);
     } else {
-      outputData.value = await wallet.value!.decrypt(inputData.value);
+      outputData.value = await wallet.value!.decryptData(inputData.value);
     }
   } catch (error) {
     toastError(`Error ${isEncrypt.value ? 'encrypting' : 'decrypting'} memo`, error);

@@ -110,7 +110,7 @@ const createAccount = async() => {
         });
       }
     }
-    await wallet.wallet!.signTransaction(tx, "active");
+    await wallet.wallet!.signTransaction(tx);
     await wax.broadcast(tx);
 
     toast.success('Account created successfully!');

@@ -2,8 +2,9 @@ import { defineStore } from "pinia";
 import type { Wallet } from "@/utils/wallet/abstraction";
 import { type Settings, UsedWallet } from "./settings.store";
 import { useMetamaskStore } from "./metamask.store";
-import { createKeychainWalletFor } from "@/utils/wallet/keychain";
-import { createPeakVaultWalletFor } from "@/utils/wallet/peakvault";
+import KeychainProvider from "@hiveio/wax-signers-keychain";
+import PeakVaultProvider from "@hiveio/wax-signers-peakvault";
+import type { TRole } from "@hiveio/wax/vite";
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -57,7 +58,7 @@ export const useWalletStore = defineStore('wallet', {
     closeWalletSelectModal() {
       this.isWalletSelectModalOpen = false;
     },
-    async createWalletFor(settings: Settings) {
+    async createWalletFor(settings: Settings, role: TRole = "posting") {
       switch(settings.wallet) {
         case UsedWallet.METAMASK: {
           const metamaskStore = useMetamaskStore();
@@ -69,12 +70,12 @@ export const useWalletStore = defineStore('wallet', {
           break;
         }
         case UsedWallet.KEYCHAIN: {
-          this.wallet = createKeychainWalletFor(settings.account!);
+          this.wallet = KeychainProvider.for(settings.account!, role);
 
           break;
         }
         case UsedWallet.PEAKVAULT: {
-          this.wallet = createPeakVaultWalletFor(settings.account!);
+          this.wallet = PeakVaultProvider.for(settings.account!, role);
 
           break;
         }

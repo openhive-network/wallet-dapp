@@ -58,7 +58,7 @@ const updateAuthority = async() => {
     if (ownerKey.value)
       op.role("owner").add(ownerKey.value);
     tx.pushOperation(op);
-    await wallet.wallet!.signTransaction(tx, ownerKey.value ? "owner" : "active");
+    await wallet.wallet!.signTransaction(tx);
     await wax.broadcast(tx);
 
     toast.success('Authority updated successfully!');

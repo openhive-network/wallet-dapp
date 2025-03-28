@@ -1,15 +1,15 @@
 import { defineStore } from "pinia"
-import { connectMetamask, type MetamaskWallet } from "../utils/wallet/metamask"
+import MetamaskProvider from "@hiveio/wax-signers-metamask";
 
 export const useMetamaskStore = defineStore('metamask', {
   state: () => ({
-    metamask: undefined as undefined | MetamaskWallet,
+    metamask: undefined as undefined | MetamaskProvider,
     performingOperation: false
   }),
   getters: {
     isConnected: state => !!state.metamask,
     isFlask: state => state.metamask?.isFlaskDetected,
-    isInstalled: state => state.metamask?.isInstalled
+    isInstalled: state => state.metamask?.isSnapInstalled
   },
   actions: {
     async call(method: string, params: any) {
@@ -29,7 +29,7 @@ export const useMetamaskStore = defineStore('metamask', {
         this.performingOperation = true;
 
         if (!this.metamask)
-          this.metamask = await connectMetamask();
+          this.metamask = await MetamaskProvider.for(0);
       } finally {
         this.performingOperation = false;
       }

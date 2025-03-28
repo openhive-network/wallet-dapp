@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import type { ITransaction, TRole } from '@hiveio/wax/vite';
+import type { ITransaction } from '@hiveio/wax/vite';
 import { useRouter } from 'vue-router';
 import { toastError } from '@/utils/parse-error';
 import { toast } from 'vue-sonner';
@@ -49,16 +49,7 @@ const sign = async () => {
       return;
     }
 
-      const authorities = tx.requiredAuthorities;
-      let authorityLevel: TRole = 'posting';
-      if (authorities.owner.size)
-        authorityLevel = 'owner';
-      else if (authorities.active.size)
-        authorityLevel = 'active';
-
-    // TODO: Handle "other" authority
-
-    await wallet.value!.signTransaction(tx, authorityLevel);
+    await wallet.value!.signTransaction(tx);
 
     outputData.value = tx.toApi();
   } catch (error) {
