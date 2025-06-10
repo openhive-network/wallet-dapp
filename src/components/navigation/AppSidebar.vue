@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline } from "@mdi/js"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/stores/wallet.store";
-import { computed } from "vue";
+import { computed, onMounted, ref } from 'vue';
+import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
+import { getWax } from '@/stores/wax.store';
 
 const router = useRouter();
 
@@ -63,6 +66,19 @@ const navigateTo = (url: string) => {
   if (isMobile.value)
     toggleSidebar();
 };
+
+const waxVersion = ref("");
+const metamaskVersion = `${defaultSnapOrigin}@${defaultSnapVersion}`;
+
+onMounted(async() => {
+  try {
+    const wax = await getWax();
+
+    waxVersion.value = wax.getVersion();
+  } catch(error) {
+    console.error("Failed to get WAX instance:", error);
+  }
+})
 </script>
 
 <template>
@@ -91,6 +107,11 @@ const navigateTo = (url: string) => {
       </SidebarGroup>
     </SidebarContent>
     <SidebarFooter>
+      <Separator />
+      <sub class="text-xs text-foreground/60 flex flex-col items-center">
+        <pre>@hiveio/wax@{{ waxVersion }}</pre>
+        <pre>{{ metamaskVersion }}</pre>
+      </sub>
     </SidebarFooter>
   </Sidebar>
 </template>
