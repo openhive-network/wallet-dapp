@@ -1,5 +1,7 @@
 import { defineStore } from "pinia"
 import MetamaskProvider from "@hiveio/wax-signers-metamask";
+import type { TRole } from "@hiveio/wax";
+import { defaultSnapOrigin, defaultSnapVersion } from "@/utils/wallet/metamask/snap";
 
 export const useMetamaskStore = defineStore('metamask', {
   state: () => ({
@@ -24,12 +26,12 @@ export const useMetamaskStore = defineStore('metamask', {
           this.performingOperation = false;
         }
       },
-    async connect() {
+    async connect(accountIndex: number, role?: TRole) {
       try {
         this.performingOperation = true;
 
-        if (!this.metamask)
-          this.metamask = await MetamaskProvider.for(0);
+        console.log('Connecting to Metamask with account index:', accountIndex, 'and role:', role);
+        this.metamask = await MetamaskProvider.for(accountIndex, role, defaultSnapOrigin);
       } finally {
         this.performingOperation = false;
       }
@@ -41,7 +43,7 @@ export const useMetamaskStore = defineStore('metamask', {
         if (!this.metamask)
           throw new Error('Install: Metamask not connected');
 
-        await this.metamask.installSnap();
+        await this.metamask.installSnap(defaultSnapVersion);
       } finally {
         this.performingOperation = false;
       }

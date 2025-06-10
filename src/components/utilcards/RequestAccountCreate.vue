@@ -50,27 +50,14 @@ const parseMetamaskPublicKeys = async() => {
     isLoading.value = true;
 
     try {
-      await metamaskStore.connect();
+      await metamaskStore.connect(0);
     } catch {
       toast.error("Metamask is not installed or not connected");
 
       return;
     }
 
-    const { publicKeys: metamaskPublicKeys } = await metamaskStore.call("hive_getPublicKeys", {
-      keys: [{
-        role: "owner"
-      },{
-        role: "active"
-      },{
-        role: "posting"
-      },{
-        role: "memo"
-      }]
-    }) as any;
-
-    for(const publicKey of metamaskPublicKeys)
-      publicKeys.value[publicKey.role as TRole] = publicKey.publicKey;
+    publicKeys.value = await metamaskStore.metamask!.getPublicKeys("owner", "active", "posting", "memo");
 
     toast.success("Successfully parsed Metamask public keys");
   } catch (error) {

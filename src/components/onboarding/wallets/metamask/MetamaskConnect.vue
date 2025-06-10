@@ -50,24 +50,18 @@ const isMetamaskSnapInstalled = ref<boolean>(false);
 const applyPublicKeys = async () => {
   isLoading.value = true;
   try {
-    const { publicKeys } = await metamaskStore.call("hive_getPublicKeys", {
-      keys: [{
-        role: "owner"
-      },{
-        role: "active"
-      },{
-        role: "posting"
-      },{
-        role: "memo"
-      }]
-    }) as any;
+    const publicKeys = await metamaskStore.metamask!.getPublicKeys("owner", "active", "posting", "memo");
 
-    metamaskPublicKeys.value = publicKeys;
+    metamaskPublicKeys.value = [];
+    for(const key in publicKeys) {
+      if (publicKeys[key as TRole])
+        metamaskPublicKeys.value.push({ role: key, publicKey: publicKeys[key as TRole] });
+    }
 
     const wax = await getWax();
 
     const response = await wax.api.account_by_key_api.get_key_references({
-      keys: publicKeys.map((node: { publicKey: string }) => node.publicKey)
+      keys: metamaskPublicKeys.value.map((node: { publicKey: string }) => node.publicKey)
     });
 
     accountsMatchingKeys.value = [...new Set(response.accounts.flatMap((node: string[]) => node))] as string[];
@@ -99,7 +93,7 @@ const validateAccountName = async() => {
 const connect = async (showError = true) => {
   isLoading.value = true;
   try {
-    await metamaskStore.connect();
+    await metamaskStore.connect(0);
 
     isMetamaskConnected.value = metamaskStore.isConnected;
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;

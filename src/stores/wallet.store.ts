@@ -5,6 +5,7 @@ import { useMetamaskStore } from "./metamask.store";
 import KeychainProvider from "@hiveio/wax-signers-keychain";
 import PeakVaultProvider from "@hiveio/wax-signers-peakvault";
 import type { TRole } from "@hiveio/wax/vite";
+import MetaMaskProvider from "@hiveio/wax-signers-metamask";
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -24,12 +25,13 @@ export const useWalletStore = defineStore('wallet', {
     hasWallet: state => !!state.wallet,
     walletsStatus: state => {
       if (!walletRetrievalIntervalId) {
-        const metamaskStore = useMetamaskStore();
-
         const checkForWallets = () => {
-          metamaskStore.connect().then(() => state._walletsStatus.metamask = true).catch(() => {});
+          MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
+
           state._walletsStatus.keychain = "hive_keychain" in window;
           state._walletsStatus.peakvault = "peakvault" in window;
+          // KeychainProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.keychain = isInstalled);
+          // PeakVaultProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.peakvault = isInstalled);
         };
 
         walletRetrievalIntervalId = setInterval(checkForWallets, 1000);
@@ -63,7 +65,7 @@ export const useWalletStore = defineStore('wallet', {
         case UsedWallet.METAMASK: {
           const metamaskStore = useMetamaskStore();
 
-          await metamaskStore.connect();
+          await metamaskStore.connect(0, role);
 
           this.wallet = metamaskStore.metamask;
 
