@@ -113,3 +113,39 @@ stop_dev_environment:
   environment:
     name: auth-dev-mainnet
     action: stop
+
+deploy_prod_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_prod_deployment"
+    PORT: 9133 # auth.openhive.network (mainnet)(port 9133)
+    DEPLOYMENT_ENV_FILE: "MAINNET_PROD_DEPLOYMENT_ENV"
+  environment:
+    name: auth-prod-mainnet
+    url: https://auth.openhive.network
+    on_stop: stop_prod_environment
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: on_success
+    - when: never
+
+stop_prod_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_prod_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_prod_deployment
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+      allow_failure: true
+  environment:
+    name: auth-prod-mainnet
+    action: stop
