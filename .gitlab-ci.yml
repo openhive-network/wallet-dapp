@@ -1,11 +1,12 @@
 stages:
   - build
   - deploy
+  - cleanup
 
 include:
   - template: Workflows/Branch-Pipelines.gitlab-ci.yml
   - project: 'hive/common-ci-configuration'
-    ref: 19b15e2e0ea83de72ce3552a44ca59ab2201de73
+    ref: 5748d218bce6541d4c7f932fbe65f8ef46a3df45
     file:
       - '/templates/docker_image_jobs.gitlab-ci.yml'
       - '/templates/npm_projects.gitlab-ci.yml'
@@ -76,3 +77,39 @@ pages:
       - dist
   only:
     - main
+
+deploy_dev_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_dev_deployment"
+    PORT: 8133 # auth.dev.openhive.network (mainnet)(port 8133)
+    DEPLOYMENT_ENV_FILE: "MAINNET_DEV_DEPLOYMENT_ENV"
+  environment:
+    name: auth-dev-mainnet
+    url: https://auth.dev.openhive.network
+    on_stop: stop_dev_environment
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: on_success
+    - when: never
+
+stop_dev_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_dev_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_dev_deployment
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  environment:
+    name: auth-dev-mainnet
+    action: stop
