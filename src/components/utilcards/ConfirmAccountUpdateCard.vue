@@ -23,6 +23,7 @@ const ownerKey = ref<string>('');
 const router = useRouter();
 const wallet = useWalletStore();
 const hasWallet = computed(() => wallet.hasWallet);
+const settingsStore = useSettingsStore();
 
 onMounted(() => {
   creator.value = router.currentRoute.value.query.acc as string ?? (settings.account ? `@${settings.account}` : '');
@@ -58,6 +59,10 @@ const updateAuthority = async() => {
     if (ownerKey.value)
       op.role("owner").add(ownerKey.value);
     tx.pushOperation(op);
+    if (ownerKey.value)
+      await wallet.createWalletFor(settingsStore.settings, "owner");
+    else
+      await wallet.createWalletFor(settingsStore.settings, "active");
     await wallet.wallet!.signTransaction(tx);
     await wax.broadcast(tx);
 
