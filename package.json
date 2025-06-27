@@ -1,6 +1,6 @@
 {
   "name": "@hiveio/wallet-dapp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": false,
   "description": "Metamask Wallet dApp",
   "homepage": "https://gitlab.syncad.com/hive/wallet-dapp#readme",
