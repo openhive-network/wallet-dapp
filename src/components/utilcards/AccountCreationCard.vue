@@ -17,17 +17,17 @@ const hasAnyWallet = computed(() =>
 );
 
 const handleClick = async () => {
-  if (props.type === 'wallet') {
+  if (props.type === 'metamask') {
     if (!hasAnyWallet.value) {
       // Open wallet selection modal or show message about installing wallets
       walletStore.openWalletSelectModal();
       return;
     }
     // Navigate to wallet selection for account creation
-    router.push('/account/request?method=wallet');
+    router.push('/account/request?method=metamask');
   } else {
     // Navigate to account creation without wallet
-    router.push('/account/request?method=manual');
+    router.push('/account/request?method=regular');
   }
 };
 </script>
@@ -57,14 +57,13 @@ const handleClick = async () => {
                 <Button
                   @click="handleClick"
                   class="w-full"
-                  :disabled="isDisabled"
                 >
                   <slot name="buttonText" />
                 </Button>
               </div>
             </TooltipTrigger>
             <TooltipContent
-              v-if="type === 'wallet' && !hasAnyWallet"
+              v-if="type === 'metamask' && !hasAnyWallet"
               side="top"
               class="bg-amber-50 text-amber-800 border-amber-200 max-w-xs p-3"
             >
