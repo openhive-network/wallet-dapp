@@ -84,7 +84,7 @@ onMounted(async() => {
 <template>
   <Sidebar>
     <SidebarHeader class="p-0">
-      <div class="flex items-center px-4 h-[60px] border-b">
+      <div class="flex items-center px-4 h-[60px] border-b cursor-pointer" @click="navigateTo('/')">
         <img src="/icon.svg" class="h-[32px] w-[32px]" />
         <span class="text-foreground/80 font-bold text-xl ml-2">Hive Bridge</span>
       </div>
