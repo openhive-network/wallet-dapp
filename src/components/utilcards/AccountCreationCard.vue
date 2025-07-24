@@ -1,0 +1,86 @@
+<script lang="ts" setup>
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useWalletStore } from '@/stores/wallet.store';
+import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+
+const props = defineProps<{ type: 'metamask' | 'regular' }>();
+
+const walletStore = useWalletStore();
+const router = useRouter();
+
+const walletsStatus = computed(() => walletStore.walletsStatus);
+const hasAnyWallet = computed(() =>
+  walletsStatus.value.metamask || walletsStatus.value.keychain || walletsStatus.value.peakvault
+);
+
+const handleClick = async () => {
+  if (props.type === 'wallet') {
+    if (!hasAnyWallet.value) {
+      // Open wallet selection modal or show message about installing wallets
+      walletStore.openWalletSelectModal();
+      return;
+    }
+    // Navigate to wallet selection for account creation
+    router.push('/account/request?method=wallet');
+  } else {
+    // Navigate to account creation without wallet
+    router.push('/account/request?method=manual');
+  }
+};
+</script>
+
+<template>
+  <Card class="h-full flex flex-col">
+    <CardHeader class="text-center">
+      <div class="mx-auto mb-4 w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+        <slot name="icon" />
+      </div>
+      <CardTitle class="text-xl">
+        <slot name="title" />
+      </CardTitle>
+      <CardDescription class="text-base">
+        <slot name="description" />
+      </CardDescription>
+    </CardHeader>
+    <CardContent class="flex-1 flex flex-col justify-between">
+      <div class="space-y-4 mb-6 mx-2">
+        <slot name="features" />
+      </div>
+      <div class="space-y-3">
+        <TooltipProvider :delayDuration="200">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <div class="w-full">
+                <Button
+                  @click="handleClick"
+                  class="w-full"
+                  :disabled="isDisabled"
+                >
+                  <slot name="buttonText" />
+                </Button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent
+              v-if="type === 'wallet' && !hasAnyWallet"
+              side="top"
+              class="bg-amber-50 text-amber-800 border-amber-200 max-w-xs p-3"
+            >
+              <div class="flex items-start space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <div class="flex-1">
+                  <p class="text-sm font-bold text-amber-800">Wallet Required</p>
+                  <p class="text-sm text-amber-700 mt-1">Please install and connect one of the supported wallets to continue.</p>
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </CardContent>
+  </Card>
+</template>
