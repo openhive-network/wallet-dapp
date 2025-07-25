@@ -3,6 +3,8 @@
 import type { MetaMaskInpageProvider, EIP6963AnnounceProviderEvent } from "@metamask/providers";
 
 declare global {
+  const __COMMIT_HASH__: string;
+
   interface Window {
     ethereum?: MetaMaskInpageProvider & {
       detected?: MetaMaskInpageProvider[];

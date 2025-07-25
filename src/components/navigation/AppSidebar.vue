@@ -69,6 +69,7 @@ const navigateTo = (url: string) => {
 
 const waxVersion = ref("");
 const metamaskVersion = `${defaultSnapOrigin}@${defaultSnapVersion}`;
+const commitHash = __COMMIT_HASH__;
 
 onMounted(async() => {
   try {
@@ -111,6 +112,7 @@ onMounted(async() => {
       <sub class="text-xs text-foreground/60 flex flex-col items-center">
         <pre>@hiveio/wax@{{ waxVersion }}</pre>
         <pre>{{ metamaskVersion }}</pre>
+        <pre>Commit Hash: {{ commitHash.substring(0, 7) }}</pre>
       </sub>
     </SidebarFooter>
   </Sidebar>
