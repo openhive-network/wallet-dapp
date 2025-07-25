@@ -2,21 +2,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import AccountNameInput from '@/components/functional/AccountNameInput.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
-import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import {
   mdiAccountPlusOutline,
-  mdiChevronDown,
-  mdiChevronUp,
   mdiCheckCircle,
-  mdiAlertCircle,
   mdiRefresh,
   mdiKeyOutline,
-  mdiFileDocumentOutline,
   mdiLinkVariant,
   mdiNumeric1Circle,
   mdiNumeric2Circle,
@@ -40,8 +34,11 @@ const authorityDataGenerated = ref(false);
 const hasConfirmedDownload = ref(false);
 const hasCopiedCreateSignLink = ref(false);
 const showDetailsPanel = ref(false);
-const accountNameError = ref('');
-const isValidatingName = ref(false);
+
+// Handle account name validation from the component
+const onAccountNameValidationChange = (isValid: boolean) => {
+  accountNameValid.value = isValid;
+};
 
 // Step tracking for improved UX
 const currentStep = computed(() => {
@@ -101,62 +98,6 @@ const authorityData = reactive<{
     memo: ''
   }
 });
-
-const validateAccountName = async () => {
-  try {
-    isValidatingName.value = true;
-    accountNameError.value = '';
-
-    if (!accountName.value) {
-      accountNameValid.value = false;
-      return;
-    }
-
-    const cleanAccountName = accountName.value.startsWith("@") ? accountName.value.slice(1) : accountName.value;
-    if (!cleanAccountName) {
-      accountNameValid.value = false;
-      accountNameError.value = 'Account name cannot be empty';
-      return;
-    }
-
-    if (cleanAccountName.length < 3) {
-      accountNameValid.value = false;
-      accountNameError.value = 'Account name must be at least 3 characters long';
-      return;
-    }
-
-    if (cleanAccountName.length > 16) {
-      accountNameValid.value = false;
-      accountNameError.value = 'Account name cannot be longer than 16 characters';
-      return;
-    }
-
-    if (!/^[a-z][a-z0-9.-]*[a-z0-9]$/.test(cleanAccountName)) {
-      accountNameValid.value = false;
-      accountNameError.value = 'Account name can only contain lowercase letters, numbers, dots and dashes. Must start with a letter and end with letter or number.';
-      return;
-    }
-
-    const wax = await getWax();
-    const isValid = wax.isValidAccountName(cleanAccountName);
-
-    if (isValid) {
-      accountNameValid.value = true;
-      accountNameError.value = '';
-    } else {
-      accountNameValid.value = false;
-      accountNameError.value = 'Invalid account name format';
-    }
-
-    return accountNameValid.value;
-  } catch (error) {
-    accountNameError.value = 'Failed to validate account name';
-    toastError("Failed to validate account name", error);
-    return accountNameValid.value = false;
-  } finally {
-    isValidatingName.value = false;
-  }
-};
 
 const resetProcess = () => {
   authorityDataGenerated.value = false;
@@ -397,49 +338,13 @@ const shareButtons = [
         </div>
       </div>
       <Separator />
-      <div class="space-y-3">
-        <div class="flex items-center space-x-2">
-          <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path style="fill: hsl(var(--primary))" :d="mdiNumeric1Circle"/>
-          </svg>
-          <Label for="manual_account_name" class="text-base font-semibold">Account Name</Label>
-        </div>
-        <div class="relative">
-          <Input
-            id="manual_account_name"
-            v-model="accountName"
-            @input="validateAccountName()"
-            placeholder="Enter your desired account name"
-            :class="{
-              'border-red-500': accountName && !accountNameValid && accountNameError,
-              'border-green-500': accountNameValid,
-              'pr-10': isValidatingName || accountNameValid
-            }"
-            class="w-full"
-          />
-          <div v-if="isValidatingName || accountNameValid" class="absolute inset-y-0 right-0 flex items-center pr-3">
-            <svg v-if="isValidatingName" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <svg v-else-if="accountNameValid" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path style="fill: rgb(34 197 94)" :d="mdiCheckCircle"/>
-            </svg>
-          </div>
-        </div>
-        <div v-if="accountNameError" class="flex items-start space-x-2 text-sm text-red-600">
-          <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mt-0.5 flex-shrink-0">
-            <path style="fill: currentColor" :d="mdiAlertCircle"/>
-          </svg>
-          <span>{{ accountNameError }}</span>
-        </div>
-        <div v-else-if="accountNameValid" class="flex items-center justify-center space-x-2 text-sm text-green-600">
-          <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path style="fill: currentColor" :d="mdiCheckCircle"/>
-          </svg>
-          <span>Valid account name</span>
-        </div>
-      </div>
+      <AccountNameInput
+        v-model="accountName"
+        @validation-change="onAccountNameValidationChange"
+        :show-step-icon="true"
+        id="manual_account_name"
+        placeholder="Enter your desired account name"
+      />
       <div class="space-y-4" :class="{ 'opacity-50': !accountNameValid }">
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
