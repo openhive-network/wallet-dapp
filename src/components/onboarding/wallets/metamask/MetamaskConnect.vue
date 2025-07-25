@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import AccountNameInput from "@/components/ui/AccountNameInput.vue";
 import { ref, onMounted } from 'vue';
 import step1 from "@/assets/icons/wallets/metamask/step1.webp";
 import step2 from "@/assets/icons/wallets/metamask/step2.webp";
@@ -74,21 +74,9 @@ const applyPublicKeys = async () => {
 
 const accountNameValid = ref(false);
 
-const validateAccountName = async() => {
-  try {
-    if(!createAccountNameOperation.value)
-      return accountNameValid.value = false;
-
-    const accountName = createAccountNameOperation.value.startsWith("@") ? createAccountNameOperation.value.slice(1) : createAccountNameOperation.value;
-    if (!accountName)
-      return accountNameValid.value = false;
-
-    const wax = await getWax();
-    return accountNameValid.value = wax.isValidAccountName(accountName);
-  } catch (error) {
-    toastError("Failed to validate account name", error);
-  }
-}
+const onAccountNameValidationChange = (isValid: boolean) => {
+  accountNameValid.value = isValid;
+};
 
 const connect = async (showError = true) => {
   isLoading.value = true;
@@ -232,10 +220,13 @@ const updateAccountName = (value: string | any) => {
         <div v-if="accountsMatchingKeys">
           <div v-if="showUpdateAccountModal">
             <p class="mb-4">Step 6: Fill in this form in order to create account update operation, replacing memo public key and adding posting, active and owner keys to your account:</p>
-            <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
-              <Label for="metamask_updateAuth_account">Account name</Label>
-              <Input v-model="updateAccountNameOperation!" id="metamask_updateAuth_account" />
-            </div>
+            <AccountNameInput
+              v-model="createAccountNameOperation!"
+              @validation-change="onAccountNameValidationChange"
+              id="wallet_account_name"
+              label="New account name"
+              placeholder="Enter desired account name"
+            />
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey" class="flex items-center p-1">
               <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="updateAuthType[key.role as TRole]" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
               <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
@@ -259,11 +250,13 @@ const updateAccountName = (value: string | any) => {
           </div>
           <div v-else-if="showCreateAccountModal">
             <p class="mb-4">Step 6: Fill in this form in order to prepare the operation to request account creation</p>
-            <div class="grid mb-2 w-full max-w-sm items-center gap-1.5">
-              <Label for="metamask_createAuth_account">New account name</Label>
-              <Input v-model="createAccountNameOperation!" @update:model-value="validateAccountName()" id="metamask_createAuth_account" />
-              <span class="text-red-400" v-if="createAccountNameOperation && !accountNameValid">Invalid account name</span>
-            </div>
+            <AccountNameInput
+              v-model="createAccountNameOperation!"
+              @validation-change="onAccountNameValidationChange"
+              id="wallet_account_name"
+              label="New account name"
+              placeholder="Enter desired account name"
+            />
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
               <PublicKey :value="key.publicKey" :role="key.role"/>
             </div>

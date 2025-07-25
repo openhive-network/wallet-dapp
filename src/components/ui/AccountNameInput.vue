@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   mdiCheckCircle,
   mdiAlertCircle,
-  mdiNumeric1Circle
+  mdiNumeric1Circle,
+  mdiHelpCircleOutline
 } from '@mdi/js';
 import { computed, ref, watch } from 'vue';
 import { toastError } from '@/utils/parse-error';
 import { getWax } from '@/stores/wax.store';
+
+let debounceTimer: NodeJS.Timeout;
 
 interface Props {
   modelValue: string;
@@ -65,16 +69,48 @@ const validateAccountName = async () => {
     }
 
     const wax = await getWax();
-    const isValid = wax.isValidAccountName(cleanAccountName);
 
-    if (isValid) {
-      accountNameValid.value = true;
-      accountNameError.value = '';
-      emit('validation-change', true);
-    } else {
+    const isValidFormat = wax.isValidAccountName(cleanAccountName);
+
+    if (!isValidFormat) {
       accountNameValid.value = false;
       accountNameError.value = 'Invalid account name format';
       emit('validation-change', false);
+      return;
+    }
+
+    let doesAccountExist = false;
+
+    try {
+      const response = await wax.api.database_api.find_accounts({
+        accounts: [cleanAccountName]
+      });
+
+      if (response && response.accounts && Array.isArray(response.accounts)) {
+        doesAccountExist = response.accounts.some((account: any) =>
+          account && account.name === cleanAccountName
+        );
+      }
+    } catch (error) {
+      console.warn('Failed to check account existence:', error);
+      doesAccountExist = false;
+
+      if (error instanceof Error && error.message.includes('network')) {
+        accountNameValid.value = false;
+        accountNameError.value = 'Unable to verify account availability (network error)';
+        emit('validation-change', false);
+        return;
+      }
+    }
+
+    if (doesAccountExist) {
+      accountNameValid.value = false;
+      accountNameError.value = 'Account name already exists';
+      emit('validation-change', false);
+    } else {
+      accountNameValid.value = true;
+      accountNameError.value = '';
+      emit('validation-change', true);
     }
 
   } catch (error) {
@@ -88,7 +124,13 @@ const validateAccountName = async () => {
 };
 
 watch(accountName, () => {
-  validateAccountName();
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+
+  debounceTimer = setTimeout(() => {
+    validateAccountName();
+  }, 500);
 });
 
 defineExpose({
@@ -101,12 +143,32 @@ defineExpose({
 
 <template>
   <div class="space-y-3">
-    <div class="flex items-center space-x-2">
-      <svg v-if="showStepIcon" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path style="fill: hsl(var(--primary))" :d="mdiNumeric1Circle"/>
-      </svg>
-      <Label :for="id" class="text-base font-semibold">{{ label }}</Label>
-    </div>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger class="flex items-center space-x-2">
+          <svg v-if="props.showStepIcon" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path style="fill: hsl(var(--primary))" :d="mdiNumeric1Circle"/>
+          </svg>
+          <Label :for="props.id" class="text-base font-semibold">{{ props.label }}</Label>
+            <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path style="fill: hsl(var(--primary))" :d="mdiHelpCircleOutline"/>
+            </svg>
+        </TooltipTrigger>
+        <TooltipContent>
+          <div class="text-sm">
+            <p class="font-semibold mb-2">Account name requirements:</p>
+            <ul class="space-y-1">
+              <li>• 3 to 16 characters</li>
+              <li>• Lowercase letters, numbers, and hyphens only</li>
+              <li>• Dots (.) can separate segments, but:</li>
+              <li class="ml-6">• Each segment must be at least 3 characters</li>
+              <li class="ml-6">• Must start with a letter</li>
+              <li class="ml-6">• Must end with a letter or number</li>
+            </ul>
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
     <div class="relative">
       <Input
         :id="id"

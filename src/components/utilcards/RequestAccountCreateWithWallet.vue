@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import AccountNameInput from '@/components/functional/AccountNameInput.vue';
+import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
 import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';

@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import AccountNameInput from '@/components/functional/AccountNameInput.vue';
+import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
