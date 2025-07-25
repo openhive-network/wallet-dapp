@@ -236,15 +236,11 @@ const updateAccountName = (value: string | any) => {
               <Label for="metamask_updateAuth_account">Account name</Label>
               <Input v-model="updateAccountNameOperation!" id="metamask_updateAuth_account" />
             </div>
-            <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
-              <div class="flex items-center p-1">
-                <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="updateAuthType[key.role as TRole]" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
-                <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
-                  <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
-                  <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
-                  <PublicKey :value="key.publicKey"/>
-                </label>
-              </div>
+            <div v-for="key in metamaskPublicKeys" :key="key.publicKey" class="flex items-center p-1">
+              <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="updateAuthType[key.role as TRole]" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
+              <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
+                <PublicKey :value="key.publicKey" :role="key.role"/>
+              </label>
             </div>
             <div class="flex items-center flex-col">
               <Button :disabled="isLoading || !updateAccountNameOperation" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
@@ -269,11 +265,7 @@ const updateAccountName = (value: string | any) => {
               <span class="text-red-400" v-if="createAccountNameOperation && !accountNameValid">Invalid account name</span>
             </div>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
-              <div class="flex items-center p-1">
-                <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
-                <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
-                <PublicKey :value="key.publicKey"/>
-              </div>
+              <PublicKey :value="key.publicKey" :role="key.role"/>
             </div>
             <div class="flex items-center flex-col">
               <Button :copy="getAccountCreateSigningLink" :disabled="isLoading || !createAccountNameOperation || !accountNameValid" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">
@@ -287,11 +279,7 @@ const updateAccountName = (value: string | any) => {
           <div v-else-if="accountsMatchingKeys.length === 0">
             <p class="mb-2">Step 5: Import <b>at least one</b> Metamask derived key into your Hive account and re-check for Hive Accounts matching those keys:</p>
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey">
-              <div class="flex items-center p-1">
-                <span class="font-bold">{{ key.role[0].toUpperCase() }}{{ key.role.slice(1) }}</span>
-                <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
-                <PublicKey :value="key.publicKey"/>
-              </div>
+              <PublicKey :value="key.publicKey" :role="key.role"/>
             </div>
             <div class="flex justify-center mt-3">
               <Button :disabled="isLoading" @click="showCreateAccountModal = true" variant="outline" size="lg" class="px-8 py-4 border-[#FF5C16] border-[2px]">

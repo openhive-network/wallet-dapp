@@ -26,10 +26,14 @@ export const useWalletStore = defineStore('wallet', {
     walletsStatus: state => {
       if (!walletRetrievalIntervalId) {
         const checkForWallets = () => {
-          MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
+          if (!state._walletsStatus.metamask)
+            MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
 
-          state._walletsStatus.keychain = "hive_keychain" in window;
-          state._walletsStatus.peakvault = "peakvault" in window;
+          if (!state._walletsStatus.keychain)
+            state._walletsStatus.keychain = "hive_keychain" in window;
+
+          if (!state._walletsStatus.peakvault)
+            state._walletsStatus.peakvault = "peakvault" in window;
           // KeychainProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.keychain = isInstalled);
           // PeakVaultProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.peakvault = isInstalled);
         };
