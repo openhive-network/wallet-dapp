@@ -7,6 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
 import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
+import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
+import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
 import {
   mdiAccountPlusOutline,
   mdiCheckCircle,
@@ -17,7 +19,8 @@ import {
   mdiNumeric2Circle,
   mdiNumeric3Circle,
   mdiNumeric4Circle,
-  mdiDownload
+  mdiDownload,
+  mdiHelpCircleOutline
 } from '@mdi/js';
 import { computed, ref, reactive } from 'vue';
 import { toastError } from '@/utils/parse-error';
@@ -237,7 +240,16 @@ const canCopyLink = computed(() => authorityDataGenerated.value && hasConfirmedD
         </svg>
       </CardTitle>
       <CardDescription class="mr-8">
-        Generate your account authority data to download it, store them in safe place and next create a link shared to your Hive friend
+        <HiveFriendHelpTooltip>
+          <template #default>
+            <span class="text-left">
+              Generate your account authority data to download it, store them in safe place and next create a link shared to your Hive friend.
+              <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="inline-block align-text-bottom">
+                <path style="fill: currentColor" :d="mdiHelpCircleOutline"/>
+              </svg>
+            </span>
+          </template>
+        </HiveFriendHelpTooltip>
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-6">
@@ -410,9 +422,7 @@ const canCopyLink = computed(() => authorityDataGenerated.value && hasConfirmedD
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <p class="text-sm text-gray-400">
-          The generated link has all the info a Hive friend needs to create your account directly on the Hive blockchain
-        </p>
+        <HiveFriendHelpText />
         <p v-if="hasCopiedCreateSignLink" class="flex items-center justify-center text-sm space-x-2 text-green-600">
           <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
             <path style="fill: currentColor" :d="mdiCheckCircle"/>

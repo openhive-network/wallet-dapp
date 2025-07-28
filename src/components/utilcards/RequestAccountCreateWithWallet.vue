@@ -143,17 +143,24 @@ const getAccountCreateSigningLink = (): string => {
 <template>
   <Card class="w-full max-w-[600px]">
     <CardHeader>
-      <CardTitle class="inline-flex items-center justify-between">
-        <div class="inline-flex items-center">
-          <img v-if="hasMetamaskWithSnap" :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
-          <svg v-else width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountPlusOutline"/>
-          </svg>
-          <span class="ml-1">MetaMask integrated onboarding</span>
-        </div>
+      <CardTitle class="inline-flex items-center" :class="{ 'justify-between': !hasMetamaskWithSnap }">
+        <img v-if="hasMetamaskWithSnap" :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
+        <span class="ml-1">MetaMask integrated onboarding</span>
+        <svg v-if="!hasMetamaskWithSnap" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountPlusOutline"/>
+        </svg>
       </CardTitle>
-      <CardDescription class="mr-8">
-        Connect your wallet and fill in the form below to prepare an account creation request
+      <CardDescription class="mr-8 ml-1">
+        <HiveFriendHelpTooltip>
+          <template #default>
+            <span class="text-left">
+              Connect your wallet and fill in the form below to prepare an account creation link shared with your Hive friend.
+              <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="inline-block align-text-bottom">
+                <path style="fill: currentColor" :d="mdiHelpCircleOutline"/>
+              </svg>
+            </span>
+          </template>
+        </HiveFriendHelpTooltip>
       </CardDescription>
     </CardHeader>
     <CardContent class="text-sm">
