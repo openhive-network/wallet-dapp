@@ -55,7 +55,7 @@ const parseMetamaskPublicKeys = async() => {
     }
 
     publicKeys.value = await metamaskStore.metamask!.getPublicKeys("owner", "active", "posting", "memo");
-    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
     toast.success("Successfully parsed Metamask public keys");
   } catch (error) {
@@ -72,7 +72,7 @@ const connectMetamask = async() => {
   try {
     await metamaskStore.connect(0);
     isMetamaskConnected.value = metamaskStore.isConnected;
-    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
     if (isMetamaskSnapInstalled.value) {
       await parseMetamaskPublicKeys();
@@ -88,7 +88,7 @@ const installMetamaskSnap = async() => {
   isLoading.value = true;
   try {
     await metamaskStore.install();
-    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
     if (isMetamaskSnapInstalled.value) {
       await parseMetamaskPublicKeys();
@@ -112,7 +112,7 @@ onMounted(async () => {
 
     isVerifyingWallet.value = false;
 
-    if (isMetamaskInstalled && metamaskStore.isInstalled) {
+    if (isMetamaskInstalled && metamaskStore.isInstalled()) {
       void parseMetamaskPublicKeys();
     }
   } catch (error) {
@@ -122,7 +122,7 @@ onMounted(async () => {
   const stopWatcher = watch(
     () => walletStore.walletsStatus.metamask,
     (isMetamaskDetected) => {
-      if (isMetamaskDetected && metamaskStore.isInstalled) {
+      if (isMetamaskDetected && metamaskStore.isInstalled()) {
         void parseMetamaskPublicKeys();
       }
     }
@@ -143,10 +143,12 @@ const getAccountCreateSigningLink = (): string => {
 <template>
   <Card class="w-full max-w-[600px]">
     <CardHeader>
-      <CardTitle class="inline-flex items-center" :class="{ 'justify-between': !hasMetamaskWithSnap }">
-        <img v-if="hasMetamaskWithSnap" :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
-        <span class="ml-1">MetaMask integrated onboarding</span>
-        <svg v-if="!hasMetamaskWithSnap" width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+      <CardTitle class="inline-flex items-center justify-between">
+        <div class="flex items-center">
+          <img v-if="hasMetamaskWithSnap" :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
+          <span class="ml-1">MetaMask integrated onboarding</span>
+        </div>
+        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
           <path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountPlusOutline"/>
         </svg>
       </CardTitle>

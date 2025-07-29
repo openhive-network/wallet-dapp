@@ -84,7 +84,7 @@ const connect = async (showError = true) => {
     await metamaskStore.connect(0);
 
     isMetamaskConnected.value = metamaskStore.isConnected;
-    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
     if (isMetamaskSnapInstalled.value)
       void applyPublicKeys();
   } catch (error) {
@@ -101,7 +101,7 @@ const install = async () => {
   isLoading.value = true;
   try {
     await metamaskStore.install();
-    isMetamaskSnapInstalled.value = metamaskStore.isInstalled!;
+    isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
     if (isMetamaskSnapInstalled.value)
       void applyPublicKeys();
@@ -229,9 +229,9 @@ const updateAccountName = (value: string | any) => {
             />
             <div v-for="key in metamaskPublicKeys" :key="key.publicKey" class="flex items-center p-1">
               <Checkbox :id="`metamask_updateAuth_key-${key.role}`" :defaultValue="updateAuthType[key.role as TRole]" @update:modelValue="value => { updateAuthType[key.role as TRole] = value as boolean }" />
-              <label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
+              <Label :for="`metamask_updateAuth_key-${key.role}`" class="pl-2 w-full flex items-center">
                 <PublicKey :value="key.publicKey" :role="key.role"/>
-              </label>
+              </Label>
             </div>
             <div class="flex items-center flex-col">
               <Button :disabled="isLoading || !updateAccountNameOperation" :copy="getAuthorityUpdateSigningLink" variant="outline" size="lg" class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]">

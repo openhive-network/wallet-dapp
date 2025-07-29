@@ -10,8 +10,7 @@ export const useMetamaskStore = defineStore('metamask', {
   }),
   getters: {
     isConnected: state => !!state.metamask,
-    isFlask: state => state.metamask?.isFlaskDetected,
-    isInstalled: state => state.metamask?.isSnapInstalled
+    isFlask: state => state.metamask?.isFlaskDetected
   },
   actions: {
     async call(method: string, params: any) {
@@ -47,6 +46,9 @@ export const useMetamaskStore = defineStore('metamask', {
       } finally {
         this.performingOperation = false;
       }
+    },
+    isInstalled() {
+      return this.metamask?.isSnapInstalled!;
     }
   }
 })
