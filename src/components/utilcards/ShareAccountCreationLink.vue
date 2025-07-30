@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { copyText } from '@/utils/copy';
 import { mdiContentCopy, mdiEmail } from '@mdi/js';
 import { toast } from 'vue-sonner';
+
+import { Button } from '@/components/ui/button';
+import { copyText } from '@/utils/copy';
 
 interface Props {
   accountName: string;
@@ -40,8 +41,8 @@ const shareViaCopy = () => {
   const link = props.getLinkFunction();
   const message = `Hi! I need help creating my Hive account: ${props.accountName}. Please use this link to create it for me: ${link}`;
   copyText(message)!.then(() => {
-    toast.info("Message copied! You can paste it anywhere.", {
-      description: "Copying the link is the easiest way to share."
+    toast.info('Message copied! You can paste it anywhere.', {
+      description: 'Copying the link is the easiest way to share.'
     });
   });
 };
@@ -75,19 +76,29 @@ const shareButtons = [
 </script>
 
 <template>
-  <div v-if="visible" class="space-y-3">
-    <p class="text-sm text-gray-400 text-center">Share with:</p>
+  <div
+    v-if="visible"
+    class="space-y-3"
+  >
+    <p class="text-sm text-gray-400 text-center">
+      Share with:
+    </p>
     <div class="flex flex-wrap gap-2 justify-center">
       <Button
         v-for="button in shareButtons"
         :key="button.platform"
-        @click="button.action"
         variant="outline"
         size="sm"
         :class="`flex items-center space-x-2 text-${button.color}-600 border-${button.color}-200`"
+        @click="button.action"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-          <path :d="button.icon"/>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path :d="button.icon" />
         </svg>
         <span>{{ button.platform }}</span>
       </Button>

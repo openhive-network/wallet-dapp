@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { mdiAccountArrowUpOutline } from '@mdi/js';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { useSettingsStore } from '@/stores/settings.store';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { getWax } from '@/stores/wax.store';
-import { useWalletStore } from '@/stores/wallet.store';
-import { toastError } from '@/utils/parse-error';
 import { toast } from 'vue-sonner';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
 
 const settings = useSettingsStore();
 
@@ -36,7 +37,7 @@ onMounted(() => {
 
 const isLoading = ref<boolean>(false);
 
-const updateAuthority = async() => {
+const updateAuthority = async () => {
   try {
     isLoading.value = true;
 
@@ -44,25 +45,25 @@ const updateAuthority = async() => {
       await wallet.openWalletSelectModal();
 
     if (!memoKey.value && !postingKey.value && !activeKey.value && !ownerKey.value)
-      throw new Error("Nothing to update");
+      throw new Error('Nothing to update');
 
     const wax = await getWax();
     const tx = await wax.createTransaction();
-    const { AccountAuthorityUpdateOperation } = await import("@hiveio/wax/vite");
+    const { AccountAuthorityUpdateOperation } = await import('@hiveio/wax/vite');
     const op = await AccountAuthorityUpdateOperation.createFor(wax, creator.value.startsWith('@') ? creator.value.slice(1) : creator.value);
     if (memoKey.value)
-      op.role("memo").set(memoKey.value);
+      op.role('memo').set(memoKey.value);
     if (postingKey.value)
-      op.role("posting").add(postingKey.value);
+      op.role('posting').add(postingKey.value);
     if (activeKey.value)
-      op.role("active").add(activeKey.value);
+      op.role('active').add(activeKey.value);
     if (ownerKey.value)
-      op.role("owner").add(ownerKey.value);
+      op.role('owner').add(ownerKey.value);
     tx.pushOperation(op);
     if (ownerKey.value)
-      await wallet.createWalletFor(settingsStore.settings, "owner");
+      await wallet.createWalletFor(settingsStore.settings, 'owner');
     else
-      await wallet.createWalletFor(settingsStore.settings, "active");
+      await wallet.createWalletFor(settingsStore.settings, 'active');
     await wallet.wallet!.signTransaction(tx);
     await wax.broadcast(tx);
 
@@ -72,7 +73,7 @@ const updateAuthority = async() => {
   } finally {
     isLoading.value = false;
   }
-}
+};
 </script>
 
 <template>
@@ -80,34 +81,76 @@ const updateAuthority = async() => {
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Process Authority Update</span>
-        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountArrowUpOutline"/></svg>
+        <svg
+          width="20"
+          height="20"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        ><path
+          style="fill: hsla(var(--foreground) / 80%)"
+          :d="mdiAccountArrowUpOutline"
+        /></svg>
       </CardTitle>
-      <CardDescription class="mr-8">Use this module to process account authority update request sent by Metamask Snap</CardDescription>
+      <CardDescription class="mr-8">
+        Use this module to process account authority update request sent by Metamask Snap
+      </CardDescription>
     </CardHeader>
     <CardContent>
       <div class="my-4 space-y-2">
         <div class="grid w-full items-center">
           <Label for="updateAuthority_creator">Account To Update</Label>
-          <Input id="updateAuthority_creator" v-model="creator" class="my-2" />
+          <Input
+            id="updateAuthority_creator"
+            v-model="creator"
+            class="my-2"
+          />
         </div>
         <div class="grid w-full items-center">
           <Label for="updateAuthority_memoKey">New Memo Key</Label>
-          <Input id="updateAuthority_memoKey" placeholder="Nothing to update" v-model="memoKey" class="my-2" />
+          <Input
+            id="updateAuthority_memoKey"
+            v-model="memoKey"
+            placeholder="Nothing to update"
+            class="my-2"
+          />
         </div>
         <div class="grid w-full items-center">
           <Label for="updateAuthority_postingKey">Add Posting Key</Label>
-          <Input id="updateAuthority_postingKey" placeholder="Nothing to add" v-model="postingKey" class="my-2" />
+          <Input
+            id="updateAuthority_postingKey"
+            v-model="postingKey"
+            placeholder="Nothing to add"
+            class="my-2"
+          />
         </div>
         <div class="grid w-full items-center">
           <Label for="updateAuthority_activeKey">Add Active Key</Label>
-          <Input id="updateAuthority_activeKey" placeholder="Nothing to add" v-model="activeKey" class="my-2" />
+          <Input
+            id="updateAuthority_activeKey"
+            v-model="activeKey"
+            placeholder="Nothing to add"
+            class="my-2"
+          />
         </div>
         <div class="grid w-full items-center">
           <Label for="updateAuthority_ownerKey">Add Owner Key</Label>
-          <Input id="updateAuthority_ownerKey" placeholder="Nothing to add" v-model="ownerKey" class="my-2" />
+          <Input
+            id="updateAuthority_ownerKey"
+            v-model="ownerKey"
+            placeholder="Nothing to add"
+            class="my-2"
+          />
         </div>
-        <Button class="my-2" @click="updateAuthority" :loading="isLoading">Update Authority</Button>
-        <p class="text-sm">Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain</p>
+        <Button
+          class="my-2"
+          :loading="isLoading"
+          @click="updateAuthority"
+        >
+          Update Authority
+        </Button>
+        <p class="text-sm">
+          Note: By clicking the above button, the transaction will be created, signed, and broadcasted immediately to the mainnet chain
+        </p>
       </div>
     </CardContent>
   </Card>

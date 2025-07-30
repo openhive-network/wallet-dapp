@@ -1,7 +1,8 @@
-import { defineStore } from "pinia"
-import MetamaskProvider from "@hiveio/wax-signers-metamask";
-import type { TRole } from "@hiveio/wax";
-import { defaultSnapOrigin, defaultSnapVersion } from "@/utils/wallet/metamask/snap";
+import type { TRole } from '@hiveio/wax';
+import MetamaskProvider from '@hiveio/wax-signers-metamask';
+import { defineStore } from 'pinia';
+
+import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
 
 export const useMetamaskStore = defineStore('metamask', {
   state: () => ({
@@ -13,7 +14,7 @@ export const useMetamaskStore = defineStore('metamask', {
     isFlask: state => state.metamask?.isFlaskDetected
   },
   actions: {
-    async call(method: string, params: any) {
+    async call (method: string, params: unknown[] | Record<string, unknown> | undefined) {
       try {
         this.performingOperation = true;
 
@@ -21,11 +22,11 @@ export const useMetamaskStore = defineStore('metamask', {
           throw new Error('Call: Metamask not connected');
 
         return await this.metamask.invokeSnap(method, params);
-        } finally {
-          this.performingOperation = false;
-        }
-      },
-    async connect(accountIndex: number, role?: TRole) {
+      } finally {
+        this.performingOperation = false;
+      }
+    },
+    async connect (accountIndex: number, role?: TRole) {
       try {
         this.performingOperation = true;
 
@@ -35,7 +36,7 @@ export const useMetamaskStore = defineStore('metamask', {
         this.performingOperation = false;
       }
     },
-    async install() {
+    async install () {
       try {
         this.performingOperation = true;
 
@@ -47,8 +48,8 @@ export const useMetamaskStore = defineStore('metamask', {
         this.performingOperation = false;
       }
     },
-    isInstalled() {
-      return this.metamask?.isSnapInstalled!;
+    isInstalled () {
+      return this.metamask?.isSnapInstalled ?? false;
     }
   }
-})
+});

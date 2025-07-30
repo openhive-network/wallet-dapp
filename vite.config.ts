@@ -1,6 +1,7 @@
 import path from 'node:path'
 import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
+import eslint from '@nabla/vite-plugin-eslint'
 import autoprefixer from 'autoprefixer'
 import tailwind from 'tailwindcss'
 import { defineConfig } from 'vite'
@@ -21,7 +22,12 @@ export default defineConfig({
       plugins: [tailwind(), autoprefixer()],
     },
   },
-  plugins: [vue()],
+  plugins: [
+    vue(),
+    eslint({
+      shouldLint: (path) => path.includes('src/') && (path.endsWith('.vue') || path.endsWith('.ts') || path.endsWith('.js'))
+    })
+  ],
   resolve: {
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),

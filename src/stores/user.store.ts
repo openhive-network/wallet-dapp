@@ -1,10 +1,19 @@
-import { defineStore } from "pinia"
-import type { ApiAccount } from "@hiveio/wax/vite";
+import type { ApiAccount } from '@hiveio/wax/vite';
+import { defineStore } from 'pinia';
+
+interface JsonMetadata {
+  profile?: {
+    profile_image?: string;
+    name?: string;
+    about?: string;
+    website?: string;
+  };
+}
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     isReady: false,
-    parsedJsonMetadata: undefined as undefined | Record<string, any>,
+    parsedJsonMetadata: undefined as undefined | JsonMetadata,
     userData: undefined as undefined | ApiAccount
   }),
   getters: {
@@ -15,12 +24,12 @@ export const useUserStore = defineStore('user', {
   },
   actions: {
     // Used for logout
-    resetSettings() {
+    resetSettings () {
       this.isReady = false;
       this.parsedJsonMetadata = undefined;
       this.userData = undefined;
     },
-    setUserData(data: ApiAccount) {
+    setUserData (data: ApiAccount) {
       this.userData = data;
       try {
         this.parsedJsonMetadata = JSON.parse(data.posting_json_metadata);
@@ -28,4 +37,4 @@ export const useUserStore = defineStore('user', {
       this.isReady = true;
     }
   }
-})
+});

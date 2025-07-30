@@ -1,4 +1,4 @@
-import type { ITransaction, TPublicKey } from "@hiveio/wax";
+import type { ITransaction, TPublicKey } from '@hiveio/wax';
 
 export type Wallet = {
   signTransaction(tranasction: ITransaction): Promise<void>;

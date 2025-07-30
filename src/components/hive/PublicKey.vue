@@ -21,12 +21,29 @@ const value = String(props.value);
     <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
     <div class="flex items-center">
       <span class="font-mono pt-[2px] mr-1">
-        <span class="sm:hidden" :class="props.class">{{ value.slice(0, 6) }}...{{ value.slice(-6) }}</span>
-        <span class="hidden sm:inline" v-if="context > 0" :class="props.class">{{ value.slice(0, context) }}...{{ value.slice(-context) }}</span>
-        <span class="hidden sm:inline" v-else :class="props.class">{{ value }}</span>
-        <span class="ml-2" v-if="props.afterValue">{{ props.afterValue }}</span>
+        <span
+          class="sm:hidden"
+          :class="props.class"
+        >{{ value.slice(0, 6) }}...{{ value.slice(-6) }}</span>
+        <span
+          v-if="context > 0"
+          class="hidden sm:inline"
+          :class="props.class"
+        >{{ value.slice(0, context) }}...{{ value.slice(-context) }}</span>
+        <span
+          v-else
+          class="hidden sm:inline"
+          :class="props.class"
+        >{{ value }}</span>
+        <span
+          v-if="props.afterValue"
+          class="ml-2"
+        >{{ props.afterValue }}</span>
       </span>
-      <Button v-if="!props.disableCopy" :value="value"/>
+      <Button
+        v-if="!props.disableCopy"
+        :value="value"
+      />
     </div>
   </div>
 </template>

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from "@/components/ui/button";
-import { useErrorDialogStore } from '@/stores/error-dialog.store';
 import { toRaw } from 'vue';
+
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useErrorDialogStore } from '@/stores/error-dialog.store';
 
 const errorStore = useErrorDialogStore();
 
@@ -19,7 +20,11 @@ const createErrorText = () => `${errorStore.title} - ${errorStore.description}`;
 </script>
 
 <template>
-  <Dialog :open="errorStore.hasError" class="max-w-[90vw]" @update:open="updateOpen">
+  <Dialog
+    :open="errorStore.hasError"
+    class="max-w-[90vw]"
+    @update:open="updateOpen"
+  >
     <DialogContent class="max-w-[95vw] sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh]">
       <DialogHeader class="p-6 pb-0">
         <DialogTitle>{{ errorStore.title }}</DialogTitle>
@@ -33,7 +38,10 @@ const createErrorText = () => `${errorStore.title} - ${errorStore.description}`;
         </code>
       </div>
       <DialogFooter class="p-6 pt-0">
-        <Button variant="secondary" @click="logOriginator">
+        <Button
+          variant="secondary"
+          @click="logOriginator"
+        >
           Log error to console
         </Button>
         <Button :copy="createErrorText">

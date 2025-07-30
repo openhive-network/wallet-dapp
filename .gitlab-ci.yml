@@ -1,4 +1,5 @@
 stages:
+  - .pre
   - build
   - deploy
   - cleanup
@@ -19,6 +20,12 @@ variables:
 default:
   tags:
     - public-runner-docker
+
+lint:
+  stage: .pre
+  extends: .npm_based_job_base
+  script:
+    - npm run lint-ci
 
 build:
   extends: .npm_based_job_base

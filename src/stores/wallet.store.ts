@@ -1,11 +1,13 @@
-import { defineStore } from "pinia";
-import type { Wallet } from "@/utils/wallet/abstraction";
-import { type Settings, UsedWallet } from "./settings.store";
-import { useMetamaskStore } from "./metamask.store";
-import KeychainProvider from "@hiveio/wax-signers-keychain";
-import PeakVaultProvider from "@hiveio/wax-signers-peakvault";
-import type { TRole } from "@hiveio/wax/vite";
-import MetaMaskProvider from "@hiveio/wax-signers-metamask";
+import type { TRole } from '@hiveio/wax/vite';
+import KeychainProvider from '@hiveio/wax-signers-keychain';
+import MetaMaskProvider from '@hiveio/wax-signers-metamask';
+import PeakVaultProvider from '@hiveio/wax-signers-peakvault';
+import { defineStore } from 'pinia';
+
+import type { Wallet } from '@/utils/wallet/abstraction';
+
+import { useMetamaskStore } from './metamask.store';
+import { type Settings, UsedWallet } from './settings.store';
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -30,10 +32,10 @@ export const useWalletStore = defineStore('wallet', {
             MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
 
           if (!state._walletsStatus.keychain)
-            state._walletsStatus.keychain = "hive_keychain" in window;
+            state._walletsStatus.keychain = 'hive_keychain' in window;
 
           if (!state._walletsStatus.peakvault)
-            state._walletsStatus.peakvault = "peakvault" in window;
+            state._walletsStatus.peakvault = 'peakvault' in window;
           // KeychainProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.keychain = isInstalled);
           // PeakVaultProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.peakvault = isInstalled);
         };
@@ -46,7 +48,7 @@ export const useWalletStore = defineStore('wallet', {
     }
   },
   actions: {
-    openWalletSelectModal() {
+    openWalletSelectModal () {
       this.isWalletSelectModalOpen = true;
 
       // Allow functionality of waiting for wallet to be added / selected
@@ -61,36 +63,36 @@ export const useWalletStore = defineStore('wallet', {
         }, 1000));
       });
     },
-    closeWalletSelectModal() {
+    closeWalletSelectModal () {
       this.isWalletSelectModalOpen = false;
     },
-    async createWalletFor(settings: Settings, role: TRole = "posting") {
+    async createWalletFor (settings: Settings, role: TRole = 'posting') {
       switch(settings.wallet) {
-        case UsedWallet.METAMASK: {
-          const metamaskStore = useMetamaskStore();
+      case UsedWallet.METAMASK: {
+        const metamaskStore = useMetamaskStore();
 
-          await metamaskStore.connect(0, role);
+        await metamaskStore.connect(0, role);
 
-          this.wallet = metamaskStore.metamask;
+        this.wallet = metamaskStore.metamask;
 
-          break;
-        }
-        case UsedWallet.KEYCHAIN: {
-          this.wallet = KeychainProvider.for(settings.account!, role);
+        break;
+      }
+      case UsedWallet.KEYCHAIN: {
+        this.wallet = KeychainProvider.for(settings.account!, role);
 
-          break;
-        }
-        case UsedWallet.PEAKVAULT: {
-          this.wallet = PeakVaultProvider.for(settings.account!, role);
+        break;
+      }
+      case UsedWallet.PEAKVAULT: {
+        this.wallet = PeakVaultProvider.for(settings.account!, role);
 
-          break;
-        }
-        default:
-          throw new Error("Unsupported wallet");
+        break;
+      }
+      default:
+        throw new Error('Unsupported wallet');
       }
     },
-    resetWallet() {
+    resetWallet () {
       this.wallet = undefined;
     }
   }
-})
+});

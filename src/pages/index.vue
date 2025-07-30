@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 import AccountDetails from '@/components/utilcards/AccountDetailsCard.vue';
 import ConnectWalletCard from '@/components/utilcards/ConnectWalletCard.vue';
 import { useSettingsStore } from '@/stores/settings.store';
-import { computed } from 'vue';
 
 const settingsStore = useSettingsStore();
 const hasUser = computed(() => settingsStore.settings.account !== undefined);

@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { ApiAccount } from '@hiveio/wax';
 import {
   mdiCheckCircle,
   mdiAlertCircle,
@@ -9,8 +7,12 @@ import {
   mdiHelpCircleOutline
 } from '@mdi/js';
 import { computed, ref, watch } from 'vue';
-import { toastError } from '@/utils/parse-error';
+
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
 
 let debounceTimer: NodeJS.Timeout;
 
@@ -60,7 +62,7 @@ const validateAccountName = async () => {
       return;
     }
 
-    const cleanAccountName = accountName.value.startsWith("@") ? accountName.value.slice(1) : accountName.value;
+    const cleanAccountName = accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value;
     if (!cleanAccountName) {
       accountNameValid.value = false;
       accountNameError.value = 'Account name cannot be empty';
@@ -87,10 +89,11 @@ const validateAccountName = async () => {
       });
 
       if (response && response.accounts && Array.isArray(response.accounts)) {
-        doesAccountExist = response.accounts.some((account: any) =>
+        doesAccountExist = response.accounts.some((account: ApiAccount) =>
           account && account.name === cleanAccountName
         );
       }
+
     } catch (error) {
       console.warn('Failed to check account existence:', error);
       doesAccountExist = false;
@@ -115,7 +118,7 @@ const validateAccountName = async () => {
 
   } catch (error) {
     accountNameError.value = 'Failed to validate account name';
-    toastError("Failed to validate account name", error);
+    toastError('Failed to validate account name', error);
     accountNameValid.value = false;
     emit('validation-change', false);
   } finally {
@@ -124,9 +127,9 @@ const validateAccountName = async () => {
 };
 
 watch(accountName, () => {
-  if (debounceTimer) {
+  if (debounceTimer)
     clearTimeout(debounceTimer);
-  }
+
 
   debounceTimer = setTimeout(() => {
     validateAccountName();
@@ -146,24 +149,52 @@ defineExpose({
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger class="flex items-center space-x-2">
-          <svg v-if="props.showStepIcon" width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path style="fill: hsl(var(--primary))" :d="mdiNumeric1Circle"/>
+          <svg
+            v-if="props.showStepIcon"
+            width="18"
+            height="18"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: hsl(var(--primary))"
+              :d="mdiNumeric1Circle"
+            />
           </svg>
-          <Label :for="props.id" class="text-base font-semibold">{{ props.label }}</Label>
-            <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path style="fill: hsl(var(--primary))" :d="mdiHelpCircleOutline"/>
-            </svg>
+          <Label
+            :for="props.id"
+            class="text-base font-semibold"
+          >{{ props.label }}</Label>
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: hsl(var(--primary))"
+              :d="mdiHelpCircleOutline"
+            />
+          </svg>
         </TooltipTrigger>
         <TooltipContent>
           <div class="text-sm">
-            <p class="font-semibold mb-2">Account name requirements:</p>
+            <p class="font-semibold mb-2">
+              Account name requirements:
+            </p>
             <ul class="space-y-1">
               <li>• 3 to 16 characters</li>
               <li>• Lowercase letters, numbers, and hyphens only</li>
               <li>• Dots (.) can separate segments, but:</li>
-              <li class="ml-6">• Each segment must be at least 3 characters</li>
-              <li class="ml-6">• Must start with a letter</li>
-              <li class="ml-6">• Must end with a letter or number</li>
+              <li class="ml-6">
+                • Each segment must be at least 3 characters
+              </li>
+              <li class="ml-6">
+                • Must start with a letter
+              </li>
+              <li class="ml-6">
+                • Must end with a letter or number
+              </li>
             </ul>
           </div>
         </TooltipContent>
@@ -185,25 +216,77 @@ defineExpose({
           props.class
         ]"
       />
-      <div v-if="isValidatingName || accountNameValid" class="absolute inset-y-0 right-0 flex items-center pr-3">
-        <svg v-if="isValidatingName" class="animate-spin h-4 w-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      <div
+        v-if="isValidatingName || accountNameValid"
+        class="absolute inset-y-0 right-0 flex items-center pr-3"
+      >
+        <svg
+          v-if="isValidatingName"
+          class="animate-spin h-4 w-4 text-gray-400"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <circle
+            class="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            stroke-width="4"
+          />
+          <path
+            class="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+          />
         </svg>
-        <svg v-else-if="accountNameValid" width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path style="fill: rgb(34 197 94)" :d="mdiCheckCircle"/>
+        <svg
+          v-else-if="accountNameValid"
+          width="16"
+          height="16"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <path
+            style="fill: rgb(34 197 94)"
+            :d="mdiCheckCircle"
+          />
         </svg>
       </div>
     </div>
-    <div v-if="accountNameError" class="flex items-start space-x-2 text-sm text-red-600">
-      <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mt-0.5 flex-shrink-0">
-        <path style="fill: currentColor" :d="mdiAlertCircle"/>
+    <div
+      v-if="accountNameError"
+      class="flex items-start space-x-2 text-sm text-red-600"
+    >
+      <svg
+        width="14"
+        height="14"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        class="mt-0.5 flex-shrink-0"
+      >
+        <path
+          style="fill: currentColor"
+          :d="mdiAlertCircle"
+        />
       </svg>
       <span>{{ accountNameError }}</span>
     </div>
-    <div v-else-if="accountNameValid" class="flex items-center justify-center space-x-2 text-sm text-green-600">
-      <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path style="fill: currentColor" :d="mdiCheckCircle"/>
+    <div
+      v-else-if="accountNameValid"
+      class="flex items-center justify-center space-x-2 text-sm text-green-600"
+    >
+      <svg
+        width="14"
+        height="14"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+      >
+        <path
+          style="fill: currentColor"
+          :d="mdiCheckCircle"
+        />
       </svg>
       <span>Valid account name</span>
     </div>

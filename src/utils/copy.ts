@@ -10,25 +10,25 @@ export const copyText = (text: string) => {
   try {
     if (navigator.clipboard) { // is secure context
       return navigator.clipboard.writeText(text).catch(() => {
-        prompt("Copy to clipboard: Ctrl+C, Enter", text);
+        prompt('Copy to clipboard: Ctrl+C, Enter', text);
       });
-    } else if (document.queryCommandSupported && document.queryCommandSupported("copy")) { // check if we can use deprecated copy command
-      const textarea = document.createElement("textarea");
+    } else if (document.queryCommandSupported && document.queryCommandSupported('copy')) { // check if we can use deprecated copy command
+      const textarea = document.createElement('textarea');
       textarea.textContent = text;
-      textarea.style.width = "0";
-      textarea.style.height = "0";
-      textarea.style.position = "fixed"; // Prevent scrolling to bottom of page in MS Edge.
+      textarea.style.width = '0';
+      textarea.style.height = '0';
+      textarea.style.position = 'fixed'; // Prevent scrolling to bottom of page in MS Edge.
       document.body.appendChild(textarea);
       textarea.select();
       try {
-        if(!document.execCommand("copy")) // Security exception may be thrown by some browsers.
-          throw new Error("Copy command was unsuccessful");
+        if(!document.execCommand('copy')) // Security exception may be thrown by some browsers.
+          throw new Error('Copy command was unsuccessful');
       } finally {
         document.body.removeChild(textarea);
       }
     }
-    throw new Error("No clipboard support");
+    throw new Error('No clipboard support');
   } catch {
-    prompt("Copy to clipboard: Ctrl+C, Enter", text);
+    prompt('Copy to clipboard: Ctrl+C, Enter', text);
   }
-}
+};

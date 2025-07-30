@@ -1,17 +1,18 @@
 <script setup lang="ts">
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { ITransaction, TRole, TTransactionRequiredAuthorities } from '@hiveio/wax/vite';
 import { mdiFileSign } from '@mdi/js';
 import { computed, onMounted, ref } from 'vue';
-import { Textarea } from '@/components/ui/textarea';
+import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { stringifyWalletName, useSettingsStore } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import type { ITransaction, TRole } from '@hiveio/wax/vite';
-import { useRouter } from 'vue-router';
 import { toastError } from '@/utils/parse-error';
-import { toast } from 'vue-sonner';
-import { stringifyWalletName, useSettingsStore } from '@/stores/settings.store';
 
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
@@ -77,12 +78,12 @@ const focusOutInputData = async () => {
 
     const tx = wax.createTransactionFromJson(inputData.value);
     const auths = tx.requiredAuthorities;
-    for(const auth in auths)
-      if (auth === "other")
+    for(const auth in auths) {
+      if (auth === 'other')
         continue;
-      else
-        if (((auths as any)[auth] as Set<string>).size > 0)
-          selectedLevel.value = auth as TRole;
+      else if ((auths[auth as keyof TTransactionRequiredAuthorities] as Set<string>).size > 0)
+        selectedLevel.value = auth as TRole;
+    }
   } catch {
     return;
   }
@@ -116,32 +117,78 @@ onMounted(() => {
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Transaction signing</span>
-        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path style="fill: hsla(var(--foreground) / 80%)" :d="mdiFileSign"/></svg>
+        <svg
+          width="20"
+          height="20"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        ><path
+          style="fill: hsla(var(--foreground) / 80%)"
+          :d="mdiFileSign"
+        /></svg>
       </CardTitle>
-      <CardDescription class="mr-8">Use this module to sign the provided transaction</CardDescription>
+      <CardDescription class="mr-8">
+        Use this module to sign the provided transaction
+      </CardDescription>
     </CardHeader>
     <CardContent>
-      <Textarea @focusout="focusOutInputData" v-model="inputData" placeholder="Transaction in API JSON form" class="my-4" height="200px"/>
+      <Textarea
+        v-model="inputData"
+        placeholder="Transaction in API JSON form"
+        class="my-4"
+        height="200px"
+        @focusout="focusOutInputData"
+      />
       <span class="text-foreground/70 my-4 text-sm">Sign using authority level:</span>
-      <Select class="my-4" v-model="selectedLevel">
+      <Select
+        v-model="selectedLevel"
+        class="my-4"
+      >
         <SelectTrigger>
           <SelectValue placeholder="Select authority level" />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value="memo">Memo</SelectItem>
-            <SelectItem value="posting">Posting</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="owner">Owner</SelectItem>
+            <SelectItem value="memo">
+              Memo
+            </SelectItem>
+            <SelectItem value="posting">
+              Posting
+            </SelectItem>
+            <SelectItem value="active">
+              Active
+            </SelectItem>
+            <SelectItem value="owner">
+              Owner
+            </SelectItem>
           </SelectGroup>
         </SelectContent>
       </Select>
       <div class="my-4 space-x-4">
-        <Button :disabled="!inputData || isBroadcasting" :loading="isLoading" @click="sign">Sign transaction</Button>
+        <Button
+          :disabled="!inputData || isBroadcasting"
+          :loading="isLoading"
+          @click="sign"
+        >
+          Sign transaction
+        </Button>
       </div>
-      <Textarea v-model="outputData" placeholder="Signed transaction" copy-enabled class="my-4" height="200px" disabled/>
+      <Textarea
+        v-model="outputData"
+        placeholder="Signed transaction"
+        copy-enabled
+        class="my-4"
+        height="200px"
+        disabled
+      />
       <div class="my-4 space-x-4">
-        <Button :disabled="!outputData || isLoading" :loading="isBroadcasting" @click="broadcast">Broadcast signed transaction</Button>
+        <Button
+          :disabled="!outputData || isLoading"
+          :loading="isBroadcasting"
+          @click="broadcast"
+        >
+          Broadcast signed transaction
+        </Button>
       </div>
     </CardContent>
   </Card>

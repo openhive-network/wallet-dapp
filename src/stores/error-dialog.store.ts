@@ -1,4 +1,4 @@
-import { defineStore } from "pinia"
+import { defineStore } from 'pinia';
 
 export const useErrorDialogStore = defineStore('errorDialog', {
   state: () => ({
@@ -10,15 +10,15 @@ export const useErrorDialogStore = defineStore('errorDialog', {
     hasError: ctx => ctx.title !== undefined
   },
   actions: {
-    closeError() {
+    closeError () {
       this.title = undefined;
       this.originator = undefined;
       this.description = undefined;
     },
-    setError(title: string, originator: unknown, description?: string) {
+    setError (title: string, originator: unknown, description?: string) {
       this.title = title;
       this.originator = originator;
       this.description = description;
     }
   }
-})
+});

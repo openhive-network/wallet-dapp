@@ -1,29 +1,30 @@
 <script setup lang="ts">
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import AccountNameInput from '@/components/ui/AccountNameInput.vue';
-import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
-import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
-import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
-import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import type { TRole } from '@hiveio/wax/vite';
+import MetaMaskProvider from '@hiveio/wax-signers-metamask';
 import { mdiAccountPlusOutline, mdiLinkVariant, mdiCheckCircle, mdiHelpCircleOutline, mdiShieldCheckOutline } from '@mdi/js';
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import { toastError } from '@/utils/parse-error';
-import { useWalletStore } from '@/stores/wallet.store';
+import { toast } from 'vue-sonner';
+
+import AccountNameInput from '@/components/ui/AccountNameInput.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
+import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
+import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import { useMetamaskStore } from '@/stores/metamask.store';
 import { getWalletIcon, UsedWallet } from '@/stores/settings.store';
-import type { TRole } from '@hiveio/wax/vite';
-import { toast } from 'vue-sonner';
-import MetaMaskProvider from '@hiveio/wax-signers-metamask';
+import { useWalletStore } from '@/stores/wallet.store';
+import { toastError } from '@/utils/parse-error';
 
 const walletStore = useWalletStore();
 const metamaskStore = useMetamaskStore();
 
 const publicKeys = ref<Record<TRole, string>>({
-  owner: "",
-  active: "",
-  posting: "",
-  memo: ""
+  owner: '',
+  active: '',
+  posting: '',
+  memo: ''
 });
 
 const accountNameValid = ref(false);
@@ -40,8 +41,8 @@ const isMetamaskConnected = ref(false);
 const isMetamaskSnapInstalled = ref(false);
 const isVerifyingWallet = ref(true);
 
-const parseMetamaskPublicKeys = async() => {
-  const toastToDismiss = toast.loading("Metamask detected. Parsing public keys...");
+const parseMetamaskPublicKeys = async () => {
+  const toastToDismiss = toast.loading('Metamask detected. Parsing public keys...');
 
   try {
     isLoading.value = true;
@@ -50,16 +51,16 @@ const parseMetamaskPublicKeys = async() => {
       await metamaskStore.connect(0);
       isMetamaskConnected.value = metamaskStore.isConnected;
     } catch {
-      toast.error("Metamask is not installed or not connected");
+      toast.error('Metamask is not installed or not connected');
       return;
     }
 
-    publicKeys.value = await metamaskStore.metamask!.getPublicKeys("owner", "active", "posting", "memo");
+    publicKeys.value = await metamaskStore.metamask!.getPublicKeys('owner', 'active', 'posting', 'memo');
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
-    toast.success("Successfully parsed Metamask public keys");
+    toast.success('Successfully parsed Metamask public keys');
   } catch (error) {
-    toastError("Failed to parse Metamask public keys", error);
+    toastError('Failed to parse Metamask public keys', error);
     throw error;
   } finally {
     isLoading.value = false;
@@ -67,34 +68,34 @@ const parseMetamaskPublicKeys = async() => {
   }
 };
 
-const connectMetamask = async() => {
+const connectMetamask = async () => {
   isLoading.value = true;
   try {
     await metamaskStore.connect(0);
     isMetamaskConnected.value = metamaskStore.isConnected;
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
-    if (isMetamaskSnapInstalled.value) {
+    if (isMetamaskSnapInstalled.value)
       await parseMetamaskPublicKeys();
-    }
+
   } catch (error) {
-    toastError("Failed to connect to Metamask", error);
+    toastError('Failed to connect to Metamask', error);
   } finally {
     isLoading.value = false;
   }
 };
 
-const installMetamaskSnap = async() => {
+const installMetamaskSnap = async () => {
   isLoading.value = true;
   try {
     await metamaskStore.install();
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 
-    if (isMetamaskSnapInstalled.value) {
+    if (isMetamaskSnapInstalled.value)
       await parseMetamaskPublicKeys();
-    }
+
   } catch (error) {
-    toastError("Failed to install Metamask Snap", error);
+    toastError('Failed to install Metamask Snap', error);
   } finally {
     isLoading.value = false;
   }
@@ -112,19 +113,19 @@ onMounted(async () => {
 
     isVerifyingWallet.value = false;
 
-    if (isMetamaskInstalled && metamaskStore.isInstalled()) {
+    if (isMetamaskInstalled && metamaskStore.isInstalled())
       void parseMetamaskPublicKeys();
-    }
-  } catch (error) {
+
+  } catch {
     isVerifyingWallet.value = false;
   }
 
   const stopWatcher = watch(
     () => walletStore.walletsStatus.metamask,
     (isMetamaskDetected) => {
-      if (isMetamaskDetected && metamaskStore.isInstalled()) {
+      if (isMetamaskDetected && metamaskStore.isInstalled())
         void parseMetamaskPublicKeys();
-      }
+
     }
   );
 
@@ -145,11 +146,23 @@ const getAccountCreateSigningLink = (): string => {
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <div class="flex items-center">
-          <img v-if="hasMetamaskWithSnap" :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
+          <img
+            v-if="hasMetamaskWithSnap"
+            :src="getWalletIcon(UsedWallet.METAMASK)"
+            class="w-[20px] mr-2"
+          >
           <span class="ml-1">MetaMask integrated onboarding</span>
         </div>
-        <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-          <path style="fill: hsla(var(--foreground) / 80%)" :d="mdiAccountPlusOutline"/>
+        <svg
+          width="20"
+          height="20"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+        >
+          <path
+            style="fill: hsla(var(--foreground) / 80%)"
+            :d="mdiAccountPlusOutline"
+          />
         </svg>
       </CardTitle>
       <CardDescription class="mr-8 ml-1">
@@ -157,8 +170,17 @@ const getAccountCreateSigningLink = (): string => {
           <template #default>
             <span class="text-left">
               Connect your wallet and fill in the form below to prepare an account creation link shared with your Hive friend.
-              <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="inline-block align-text-bottom">
-                <path style="fill: currentColor" :d="mdiHelpCircleOutline"/>
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="inline-block align-text-bottom"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiHelpCircleOutline"
+                />
               </svg>
             </span>
           </template>
@@ -166,7 +188,10 @@ const getAccountCreateSigningLink = (): string => {
       </CardDescription>
     </CardHeader>
     <CardContent class="text-sm">
-      <div v-if="!isMetamaskConnected" class="space-y-4">
+      <div
+        v-if="!isMetamaskConnected"
+        class="space-y-4"
+      >
         <p>Step 1: Connect your Metamask wallet:</p>
         <div class="flex justify-center">
           <Button
@@ -176,25 +201,43 @@ const getAccountCreateSigningLink = (): string => {
             class="px-8 py-4 border-[#FF5C16] border-[2px]"
             @click="connectMetamask"
           >
-            <img :src="getWalletIcon(UsedWallet.METAMASK)" class="w-[20px] mr-2" />
+            <img
+              :src="getWalletIcon(UsedWallet.METAMASK)"
+              class="w-[20px] mr-2"
+            >
             <span class="text-md font-bold">Connect Metamask</span>
           </Button>
         </div>
-        <div v-if="isVerifyingWallet" class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="status">
+        <div
+          v-if="isVerifyingWallet"
+          class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4"
+          role="status"
+        >
           <div class="flex items-center">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2" />
             <div>
-              <p class="font-bold">Verifying wallet installation...</p>
+              <p class="font-bold">
+                Verifying wallet installation...
+              </p>
               <p>Checking if Metamask extension is installed.</p>
             </div>
           </div>
         </div>
-        <div v-else-if="!walletStore.walletsStatus.metamask" class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4" role="alert">
-          <p class="font-bold">Metamask not detected</p>
+        <div
+          v-else-if="!walletStore.walletsStatus.metamask"
+          class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4"
+          role="alert"
+        >
+          <p class="font-bold">
+            Metamask not detected
+          </p>
           <p>Please install Metamask extension to continue with wallet-based account creation.</p>
         </div>
       </div>
-      <div v-else-if="isMetamaskConnected && !isMetamaskSnapInstalled" class="space-y-4">
+      <div
+        v-else-if="isMetamaskConnected && !isMetamaskSnapInstalled"
+        class="space-y-4"
+      >
         <p>Step 2: Install our Hive Wallet snap:</p>
         <div class="flex justify-center">
           <Button
@@ -208,29 +251,45 @@ const getAccountCreateSigningLink = (): string => {
           </Button>
         </div>
       </div>
-      <div v-else-if="hasMetamaskWithSnap" class="space-y-4">
-        <p class="mb-4">Step 3: Request account creation</p>
+      <div
+        v-else-if="hasMetamaskWithSnap"
+        class="space-y-4"
+      >
+        <p class="mb-4">
+          Step 3: Request account creation
+        </p>
         <AccountNameInput
-          v-model="createAccountNameOperation"
-          @validation-change="onAccountNameValidationChange"
           id="wallet_account_name"
+          v-model="createAccountNameOperation"
           label="New account name"
           placeholder="Enter desired account name"
+          @validation-change="onAccountNameValidationChange"
         />
         <div class="border p-4 rounded-md">
           <div class="flex items-start">
-            <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mr-2 mt-0.5 flex-shrink-0">
-              <path style="fill: currentColor" :d="mdiShieldCheckOutline"/>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="mr-2 mt-0.5 flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiShieldCheckOutline"
+              />
             </svg>
             <div class="text-sm">
-              <p class="font-bold mb-1">Secure Key Generation</p>
+              <p class="font-bold mb-1">
+                Secure Key Generation
+              </p>
               <p>
                 Secret part of authority data specified for your new Hive account has been generated from your Secure Recovery Phrase and saved by MetaMask wallet.
               </p>
             </div>
           </div>
         </div>
-        <ExpandablePanel :publicKeys="publicKeys" />
+        <ExpandablePanel :public-keys="publicKeys" />
         <Button
           :copy="getAccountCreateSigningLink"
           :disabled="isLoading || !createAccountNameOperation || !accountNameValid"
@@ -238,15 +297,35 @@ const getAccountCreateSigningLink = (): string => {
           variant="default"
         >
           <div class="flex items-center justify-center">
-            <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="mr-2">
-              <path style="fill: currentColor" :d="mdiLinkVariant"/>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="mr-2"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiLinkVariant"
+              />
             </svg>
             <span>Copy Account Creation Link</span>
           </div>
         </Button>
-        <p v-if="hasCopiedCreateSignLink" class="flex items-center justify-center text-sm space-x-2 text-green-600">
-          <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path style="fill: currentColor" :d="mdiCheckCircle"/>
+        <p
+          v-if="hasCopiedCreateSignLink"
+          class="flex items-center justify-center text-sm space-x-2 text-green-600"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiCheckCircle"
+            />
           </svg>
           <span>
             Link copied! Now send this link to someone who has an account to execute this operation in blockchain
@@ -259,9 +338,12 @@ const getAccountCreateSigningLink = (): string => {
           :get-link-function="getAccountCreateSigningLink"
         />
       </div>
-      <div v-if="isLoading" class="flex items-center justify-center py-8">
+      <div
+        v-if="isLoading"
+        class="flex items-center justify-center py-8"
+      >
         <div class="flex items-center space-x-2">
-          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary" />
           <span class="text-sm">Processing...</span>
         </div>
       </div>
