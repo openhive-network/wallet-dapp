@@ -5,14 +5,12 @@ import {
   mdiCheckCircle,
   mdiRefresh,
   mdiKeyOutline,
-  mdiLinkVariant,
   mdiNumeric1Circle,
   mdiNumeric2Circle,
   mdiNumeric3Circle,
   mdiNumeric4Circle,
   mdiDownload,
-  mdiHelpCircleOutline
-} from '@mdi/js';
+  mdiHelpCircleOutline} from '@mdi/js';
 import { computed, ref, reactive } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -20,16 +18,15 @@ import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
 import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import Label from '@/components/ui/label/Label.vue';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
-import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
 import packageJson from '../../../package.json';
+import AccountCreationActionButtons from '../ui/AccountCreationActionButtons.vue';
 
 const { version } = packageJson;
 const accountName = ref('');
@@ -220,12 +217,6 @@ const downloadAuthorityData = () => {
   document.body.removeChild(link);
 
   URL.revokeObjectURL(url);
-};
-
-const getAccountCreateSigningLink = (): string => {
-  const cleanAccountName = accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value;
-  hasCopiedCreateSignLink.value = true;
-  return `${window.location.protocol}//${window.location.host}/account/create?acc=${cleanAccountName}&${Object.entries(authorityData.publicKeys).map(([role, key]) => `${role}=${key}`).join('&')}`;
 };
 
 const canShowConfirmation = computed(() => authorityDataGenerated.value);
@@ -516,90 +507,11 @@ const canCopyLink = computed(() => authorityDataGenerated.value && hasConfirmedD
           </svg>
           <Label class="text-base font-semibold">Prepare Signing Link</Label>
         </div>
-        <TooltipProvider :delay-duration="200">
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <div class="w-full">
-                <Button
-                  :disabled="!canCopyLink"
-                  :copy="getAccountCreateSigningLink"
-                  class="w-full"
-                  variant="default"
-                >
-                  <div class="flex items-center justify-center">
-                    <svg
-                      width="16"
-                      height="16"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      class="mr-2"
-                    >
-                      <path
-                        style="fill: currentColor"
-                        :d="mdiLinkVariant"
-                      />
-                    </svg>
-                    <span>Copy Account Creation Link</span>
-                  </div>
-                </Button>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent
-              v-if="!canCopyLink"
-              side="top"
-              class="bg-amber-50 text-amber-800 border-amber-200 max-w-xs p-3"
-            >
-              <div class="flex items-start space-x-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
-                  />
-                </svg>
-                <div class="flex-1">
-                  <p class="text-sm font-bold text-amber-800">
-                    Confirmation Required
-                  </p>
-                  <p class="text-sm text-amber-700 mt-1">
-                    Please confirm that you have downloaded the authority data file.
-                  </p>
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <HiveFriendHelpText />
-        <p
-          v-if="hasCopiedCreateSignLink"
-          class="flex items-center justify-center text-sm space-x-2 text-green-600"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-          >
-            <path
-              style="fill: currentColor"
-              :d="mdiCheckCircle"
-            />
-          </svg>
-          <span>
-            Link copied! Now send this link to someone who has an account to execute this operation in blockchain
-          </span>
-        </p>
-        <ShareAccountCreationLink
-          :visible="hasCopiedCreateSignLink"
-          :account-name="accountName"
-          :get-link-function="getAccountCreateSigningLink"
+        <AccountCreationActionButtons
+          :create-account-name-operation="accountName"
+          :public-keys="authorityData.publicKeys"
+          :buttons-disabled="!canCopyLink"
+          :show-tooltip="!canCopyLink"
         />
       </div>
     </CardContent>

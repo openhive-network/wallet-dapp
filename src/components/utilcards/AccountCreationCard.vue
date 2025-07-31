@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAccountCreationStore } from '@/stores/account-creation.store';
 import { useWalletStore } from '@/stores/wallet.store';
 
 const props = defineProps<{ type: 'metamask' | 'regular' }>();
@@ -12,12 +13,16 @@ const props = defineProps<{ type: 'metamask' | 'regular' }>();
 const walletStore = useWalletStore();
 const router = useRouter();
 
+const accountCreateStore = useAccountCreationStore();
+
 const walletsStatus = computed(() => walletStore.walletsStatus);
 const hasAnyWallet = computed(() =>
   walletsStatus.value.metamask || walletsStatus.value.keychain || walletsStatus.value.peakvault
 );
 
 const handleClick = async () => {
+  accountCreateStore.resetCopyState();
+
   if (props.type === 'metamask') {
     if (!hasAnyWallet.value) {
       // Check specifically for MetaMask - if not installed, redirect to installation page

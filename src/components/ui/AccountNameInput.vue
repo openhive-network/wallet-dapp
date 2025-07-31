@@ -11,6 +11,7 @@ import { computed, ref, watch } from 'vue';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAccountCreationStore } from '@/stores/account-creation.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
@@ -127,14 +128,17 @@ const validateAccountName = async () => {
 };
 
 watch(accountName, () => {
+  accountCreateStore.resetCopyState();
+
   if (debounceTimer)
     clearTimeout(debounceTimer);
-
 
   debounceTimer = setTimeout(() => {
     validateAccountName();
   }, 500);
 });
+
+const accountCreateStore = useAccountCreationStore();
 
 defineExpose({
   isValid: computed(() => accountNameValid.value),

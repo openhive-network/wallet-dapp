@@ -1,21 +1,21 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax/vite';
 import MetaMaskProvider from '@hiveio/wax-signers-metamask';
-import { mdiAccountPlusOutline, mdiLinkVariant, mdiCheckCircle, mdiHelpCircleOutline, mdiShieldCheckOutline } from '@mdi/js';
+import { mdiAccountPlusOutline, mdiHelpCircleOutline, mdiShieldCheckOutline } from '@mdi/js';
 import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
 import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
 import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
-import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import { useMetamaskStore } from '@/stores/metamask.store';
 import { getWalletIcon, UsedWallet } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
+
+import AccountCreationActionButtons from '../ui/AccountCreationActionButtons.vue';
 
 const walletStore = useWalletStore();
 const metamaskStore = useMetamaskStore();
@@ -36,7 +36,6 @@ const onAccountNameValidationChange = (isValid: boolean) => {
 };
 
 const isLoading = ref(false);
-const hasCopiedCreateSignLink = ref(false);
 const isMetamaskConnected = ref(false);
 const isMetamaskSnapInstalled = ref(false);
 const isVerifyingWallet = ref(true);
@@ -133,12 +132,6 @@ onMounted(async () => {
     stopWatcher();
   });
 });
-
-const getAccountCreateSigningLink = (): string => {
-  const accountName = createAccountNameOperation.value!.startsWith('@') ? createAccountNameOperation.value!.slice(1) : createAccountNameOperation.value!;
-  hasCopiedCreateSignLink.value = true;
-  return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&${Object.entries(publicKeys.value).map(([role, key]) => `${role}=${key}`).join('&')}`;
-};
 </script>
 
 <template>
@@ -290,52 +283,11 @@ const getAccountCreateSigningLink = (): string => {
           </div>
         </div>
         <ExpandablePanel :public-keys="publicKeys" />
-        <Button
-          :copy="getAccountCreateSigningLink"
-          :disabled="isLoading || !createAccountNameOperation || !accountNameValid"
-          class="w-full"
-          variant="default"
-        >
-          <div class="flex items-center justify-center">
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="mr-2"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiLinkVariant"
-              />
-            </svg>
-            <span>Copy Account Creation Link</span>
-          </div>
-        </Button>
-        <p
-          v-if="hasCopiedCreateSignLink"
-          class="flex items-center justify-center text-sm space-x-2 text-green-600"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-          >
-            <path
-              style="fill: currentColor"
-              :d="mdiCheckCircle"
-            />
-          </svg>
-          <span>
-            Link copied! Now send this link to someone who has an account to execute this operation in blockchain
-          </span>
-        </p>
-        <HiveFriendHelpText />
-        <ShareAccountCreationLink
-          :visible="hasCopiedCreateSignLink"
-          :account-name="createAccountNameOperation"
-          :get-link-function="getAccountCreateSigningLink"
+        <AccountCreationActionButtons
+          :create-account-name-operation="createAccountNameOperation"
+          :public-keys="publicKeys"
+          :buttons-disabled="!accountNameValid"
+          :show-tooltip="false"
         />
       </div>
       <div
