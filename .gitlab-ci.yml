@@ -105,7 +105,7 @@ deploy_dev_environment:
     on_stop: stop_dev_environment
 
   rules:
-    - if: '$CI_COMMIT_BRANCH != "" || $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
       when: on_success
     - when: never
 
