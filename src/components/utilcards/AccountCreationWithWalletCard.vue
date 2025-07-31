@@ -1,9 +1,14 @@
 <script lang="ts" setup>
 import { mdiShieldCheckOutline, mdiFileSign, mdiKeyOutline, mdiWallet } from '@mdi/js';
 
+import { useWalletStore } from '@/stores/wallet.store';
+
 import FeatureElement from '../ui/FeatureElement.vue';
 
 import AccountCreationCard from './AccountCreationCard.vue';
+
+
+const walletStore = useWalletStore();
 
 const features = [
   {
@@ -53,7 +58,7 @@ const features = [
       />
     </template>
     <template #buttonText>
-      Continue with MetaMask
+      {{ walletStore._walletsStatus.metamask ? 'Continue with MetaMask' : 'Install MetaMask' }}
     </template>
   </AccountCreationCard>
 </template>

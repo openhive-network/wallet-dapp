@@ -6,6 +6,7 @@ import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import AccountNameInput from '@/components/ui/AccountNameInput.vue';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
@@ -201,31 +202,36 @@ onMounted(async () => {
             <span class="text-md font-bold">Connect Metamask</span>
           </Button>
         </div>
-        <div
+        <Alert
           v-if="isVerifyingWallet"
-          class="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4"
-          role="status"
+          variant="loading"
+          role="loader"
         >
-          <div class="flex items-center">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2" />
-            <div>
-              <p class="font-bold">
-                Verifying wallet installation...
-              </p>
-              <p>Checking if Metamask extension is installed.</p>
-            </div>
-          </div>
-        </div>
-        <div
+          <AlertTitle>
+            Verifying wallet installation...
+          </AlertTitle>
+          <AlertDescription>Checking if Metamask extension is installed.</AlertDescription>
+        </Alert>
+        <Alert
           v-else-if="!walletStore.walletsStatus.metamask"
-          class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4"
-          role="alert"
+          variant="warning"
         >
-          <p class="font-bold">
+          <AlertTitle>
             Metamask not detected
-          </p>
-          <p>Please install Metamask extension to continue with wallet-based account creation.</p>
-        </div>
+          </AlertTitle>
+          <AlertDescription>
+            Please install
+            <a
+              href="https://docs.metamask.io/snaps/get-started/install-flask/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-orange-500 hover:underline"
+            >
+              MetaMask extension
+            </a>
+            to continue with wallet-based account creation.
+          </AlertDescription>
+        </Alert>
       </div>
       <div
         v-else-if="isMetamaskConnected && !isMetamaskSnapInstalled"
