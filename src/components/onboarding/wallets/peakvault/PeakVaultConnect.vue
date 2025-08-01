@@ -21,7 +21,7 @@ const connect = async () => {
 
     const { result } = await window.peakvault.requestContact();
 
-    emit('setaccount', result as string);
+    emit('setaccount', result);
   } catch (error) {
     toastError('Failed to connect to PeakVault', error);
   } finally {
