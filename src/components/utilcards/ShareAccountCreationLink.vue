@@ -5,15 +5,10 @@ import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { copyText } from '@/utils/copy';
 
-interface Props {
+const props = defineProps<{
   accountName: string;
-  visible?: boolean;
   getLinkFunction: () => string;
-}
-
-const props = withDefaults(defineProps<Props>(), {
-  visible: true
-});
+}>();
 
 const shareViaWhatsApp = () => {
   const link = props.getLinkFunction();
@@ -76,10 +71,7 @@ const shareButtons = [
 </script>
 
 <template>
-  <div
-    v-if="visible"
-    class="space-y-3"
-  >
+  <div class="space-y-3">
     <p class="text-sm text-gray-400 text-center">
       Share with:
     </p>

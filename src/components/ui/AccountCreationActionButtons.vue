@@ -19,15 +19,22 @@ const props = defineProps<{
 }>();
 
 const walletStore = useWalletStore();
+const accountCreationStore = useAccountCreationStore();
 
-const { isCreationLinkCopied } = storeToRefs(useAccountCreationStore());
+const { isCreationLinkCopied } = storeToRefs(accountCreationStore);
 
 const hasUser = computed(() => walletStore.hasWallet);
 
 const getAccountCreateSigningLink = (): string => {
   const accountName = props.createAccountNameOperation.startsWith('@') ? props.createAccountNameOperation.slice(1) : props.createAccountNameOperation;
-  isCreationLinkCopied.value = true;
   return `${window.location.protocol}//${window.location.host}/account/create?acc=${accountName}&${Object.entries(props.publicKeys).map(([role, key]) => `${role}=${key}`).join('&')}`;
+};
+
+const copyAccountCreationLink = (): string => {
+  const link = getAccountCreateSigningLink();
+  accountCreationStore.isCreationLinkCopied = true;
+
+  return link;
 };
 </script>
 
@@ -109,7 +116,7 @@ const getAccountCreateSigningLink = (): string => {
           <div class="w-full mb-4">
             <Button
               :disabled="props.buttonsDisabled"
-              :copy="getAccountCreateSigningLink"
+              :copy="copyAccountCreationLink"
               class="w-full"
               variant="default"
             >
@@ -184,7 +191,7 @@ const getAccountCreateSigningLink = (): string => {
       </span>
     </p>
     <ShareAccountCreationLink
-      :visible="isCreationLinkCopied"
+      v-if="isCreationLinkCopied"
       :account-name="props.createAccountNameOperation"
       :get-link-function="getAccountCreateSigningLink"
     />
