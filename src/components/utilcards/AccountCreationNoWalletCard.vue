@@ -25,15 +25,14 @@ const features = [
   <AccountCreationCard type="regular">
     <template #icon>
       <svg
+        width="32"
+        height="32"
         xmlns="http://www.w3.org/2000/svg"
-        class="h-8 w-8 text-primary"
-        fill="none"
         viewBox="0 0 24 24"
-        stroke="currentColor"
+        class="text-primary"
       >
         <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
+          style="fill: currentColor"
           :d="mdiPencil"
         />
       </svg>

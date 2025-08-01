@@ -3,6 +3,7 @@ import type { HTMLAttributes } from 'vue'
 import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 import { type AlertVariants, alertVariants } from '.'
+import { mdiInformation, mdiAlertOctagon, mdiAlertCircle, mdiCheckCircle } from '@mdi/js'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -32,15 +33,15 @@ const iconClass = computed(() => {
 const defaultIcon = computed(() => {
   switch (props.variant) {
     case 'info':
-      return 'M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V9H11V7M11,11H13V17H11V11Z' // info circle
+      return mdiInformation
     case 'warning':
-      return 'M13,13H11V7H13M12,17.3A1.3,1.3 0 0,1 10.7,16A1.3,1.3 0 0,1 12,14.7A1.3,1.3 0 0,1 13.3,16A1.3,1.3 0 0,1 12,17.3M15.73,3H8.27L3,8.27V15.73L8.27,21H15.73L21,15.73V8.27L15.73,3Z' // warning
+      return mdiAlertOctagon
     case 'destructive':
-      return 'M13,13H11V7H13M13,17H11V15H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z' // error
+      return mdiAlertCircle
     case 'success':
-      return 'M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z' // check circle
+      return mdiCheckCircle
     default:
-      return 'M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z' // info circle
+      return mdiInformation
   }
 })
 </script>
