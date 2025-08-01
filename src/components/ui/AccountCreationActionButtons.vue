@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';
 import { useAccountCreationStore } from '@/stores/account-creation.store';
-import { useUserStore } from '@/stores/user.store';
+import { useWalletStore } from '@/stores/wallet.store';
 
 const props = defineProps<{
   createAccountNameOperation: string;
@@ -18,11 +18,11 @@ const props = defineProps<{
   showTooltip: boolean;
 }>();
 
-const userStore = useUserStore();
+const walletStore = useWalletStore();
 
 const { isCreationLinkCopied } = storeToRefs(useAccountCreationStore());
 
-const hasUser = computed(() => userStore.profileImage !== undefined);
+const hasUser = computed(() => walletStore.hasWallet);
 
 const getAccountCreateSigningLink = (): string => {
   const accountName = props.createAccountNameOperation.startsWith('@') ? props.createAccountNameOperation.slice(1) : props.createAccountNameOperation;
