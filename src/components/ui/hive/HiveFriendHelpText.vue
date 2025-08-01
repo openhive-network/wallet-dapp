@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mdiHelpCircleOutline } from '@mdi/js';
 
-import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import HiveFriendHelpTooltip from '@/components/ui/hive/HiveFriendHelpTooltip.vue';
 </script>
 
 <template>

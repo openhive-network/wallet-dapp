@@ -3,7 +3,7 @@ import { mdiShieldCheckOutline, mdiFileSign, mdiKeyOutline, mdiWallet } from '@m
 
 import { useWalletStore } from '@/stores/wallet.store';
 
-import FeatureElement from '../ui/FeatureElement.vue';
+import FeatureElement from '../ui/hive/FeatureElement.vue';
 
 import AccountCreationCard from './AccountCreationCard.vue';
 

@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { computed } from 'vue';
 
 import { Button } from '@/components/ui/button';
-import HiveFriendHelpText from '@/components/ui/HiveFriendHelpText.vue';
+import HiveFriendHelpText from '@/components/ui/hive/HiveFriendHelpText.vue';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import ShareAccountCreationLink from '@/components/utilcards/ShareAccountCreationLink.vue';

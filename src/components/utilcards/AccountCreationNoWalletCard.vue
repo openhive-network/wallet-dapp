@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { mdiFlashOutline, mdiLockOutline, mdiDatabase, mdiPencil } from '@mdi/js';
 
-import FeatureElement from '../ui/FeatureElement.vue';
+import FeatureElement from '../ui/hive/FeatureElement.vue';
 
 import AccountCreationCard from './AccountCreationCard.vue';
 

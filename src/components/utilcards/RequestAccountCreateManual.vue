@@ -14,11 +14,11 @@ import {
 import { computed, ref, reactive } from 'vue';
 import { toast } from 'vue-sonner';
 
-import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import AccountNameInput from '@/components/ui/hive/AccountNameInput.vue';
+import HiveFriendHelpTooltip from '@/components/ui/hive/HiveFriendHelpTooltip.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { Separator } from '@/components/ui/separator';
 import AccountDetailsExpandablePanel from '@/components/utilcards/AccountDetailsExpandablePanel.vue';
@@ -26,7 +26,7 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
 import packageJson from '../../../package.json';
-import AccountCreationActionButtons from '../ui/AccountCreationActionButtons.vue';
+import AccountCreationActionButtons from '../ui/hive/AccountCreationActionButtons.vue';
 
 const { version } = packageJson;
 const accountName = ref('');

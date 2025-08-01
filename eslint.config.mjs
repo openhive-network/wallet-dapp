@@ -23,6 +23,7 @@ export default defineConfig([globalIgnores([
   '**/tailwind.config.js',
   '**/vite-env.d.ts',
   'src/components/ui/*/**',
+  '!src/components/ui/hive/**',
   '**/common-ci-configuration',
   'npm-common-config/**/*',
 ]),

@@ -3,15 +3,15 @@ import type { TRole } from '@hiveio/wax/vite';
 import { mdiAccountPlusOutline, mdiHelpCircleOutline, mdiShieldCheckOutline } from '@mdi/js';
 import { computed, ref } from 'vue';
 
-import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
+import AccountNameInput from '@/components/ui/hive/AccountNameInput.vue';
+import HiveFriendHelpTooltip from '@/components/ui/hive/HiveFriendHelpTooltip.vue';
 import AccountDetailsExpandablePanel from '@/components/utilcards/AccountDetailsExpandablePanel.vue';
 import { MetamaskConnectionManager, MetamaskConnectButton, WalletStatusAlerts, WalletLoadingIndicator } from '@/components/wallet';
 import { getWalletIcon, UsedWallet } from '@/stores/settings.store';
 
-import AccountCreationActionButtons from '../ui/AccountCreationActionButtons.vue';
+import AccountCreationActionButtons from '../ui/hive/AccountCreationActionButtons.vue';
 
 const accountNameValid = ref(false);
 const createAccountNameOperation = ref('');
