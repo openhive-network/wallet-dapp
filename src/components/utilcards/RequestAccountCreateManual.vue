@@ -21,7 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
 import Label from '@/components/ui/label/Label.vue';
 import { Separator } from '@/components/ui/separator';
-import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
+import AccountDetailsExpandablePanel from '@/components/utilcards/AccountDetailsExpandablePanel.vue';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
@@ -162,9 +162,7 @@ const generateAndDownloadAuthorityData = async () => {
     downloadAuthorityData();
 
     authorityDataGenerated.value = true;
-    toast.success('Authority data generated and downloaded successfully!', {
-      description: 'The file has been saved to your downloads folder.'
-    });
+    toast.success('Authority data generated and downloaded successfully!');
 
   } catch (error) {
     toast.error('Failed to generate authority data', {
@@ -435,7 +433,7 @@ const canCopyLink = computed(() => authorityDataGenerated.value && hasConfirmedD
             Authority data generated and downloaded
           </span>
         </p>
-        <ExpandablePanel
+        <AccountDetailsExpandablePanel
           v-if="authorityDataGenerated"
           class="space-y-4"
           :public-keys="authorityData.publicKeys"

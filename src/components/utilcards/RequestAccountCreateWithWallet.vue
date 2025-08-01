@@ -7,7 +7,7 @@ import AccountNameInput from '@/components/ui/AccountNameInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import HiveFriendHelpTooltip from '@/components/ui/HiveFriendHelpTooltip.vue';
-import ExpandablePanel from '@/components/utilcards/ExpandablePanel.vue';
+import AccountDetailsExpandablePanel from '@/components/utilcards/AccountDetailsExpandablePanel.vue';
 import { MetamaskConnectionManager, MetamaskConnectButton, WalletStatusAlerts, WalletLoadingIndicator } from '@/components/wallet';
 import { getWalletIcon, UsedWallet } from '@/stores/settings.store';
 
@@ -173,7 +173,7 @@ const handleStatusChanged = (status: typeof connectionStatus.value) => {
                 </div>
               </div>
             </div>
-            <ExpandablePanel :public-keys="publicKeys" />
+            <AccountDetailsExpandablePanel :public-keys="publicKeys" />
             <AccountCreationActionButtons
               :create-account-name-operation="createAccountNameOperation"
               :public-keys="publicKeys"
