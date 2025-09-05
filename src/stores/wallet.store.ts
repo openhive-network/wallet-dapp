@@ -52,13 +52,16 @@ export const useWalletStore = defineStore('wallet', {
       this.isWalletSelectModalOpen = true;
 
       // Allow functionality of waiting for wallet to be added / selected
-      return new Promise<void>(resolve => {
+      return new Promise<void>((resolve, reject) => {
         let intervalId: NodeJS.Timeout;
         intervalIds.add(intervalId = setInterval(() => {
-          if (this.wallet && !this.isWalletSelectModalOpen) {
+          if (!this.isWalletSelectModalOpen) {
             clearInterval(intervalId);
             intervalIds.delete(intervalId);
-            resolve();
+            if (this.wallet)
+              resolve();
+            else
+              reject(new Error('Wallet wasn\'t selected'));
           }
         }, 1000));
       });
