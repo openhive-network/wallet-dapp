@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline } from '@mdi/js';
-import { computed, onMounted, ref } from 'vue';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiSendOutline, mdiSwapHorizontal, mdiLink } from '@mdi/js';
+import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Button } from '@/components/ui/button';
@@ -16,9 +16,9 @@ const { toggleSidebar, isMobile } = useSidebar();
 
 const walletStore = useWalletStore();
 
-const isDisabledMenuButton = computed(() => !walletStore.hasWallet);
+const isLoggedIn = computed(() => walletStore.hasWallet);
 
-const groups = [{
+const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
   title: 'Account management',
   items: [
     {
@@ -35,13 +35,40 @@ const groups = [{
       title: 'Process Account Creation',
       url: '/account/create',
       icon: mdiAccountReactivateOutline,
-      disabled: isDisabledMenuButton
+      visible: isLoggedIn
     },
     {
       title: 'Process Authority Update',
       url: '/account/update',
       icon: mdiAccountArrowUpOutline,
-      disabled: isDisabledMenuButton
+      visible: isLoggedIn
+    }
+  ]
+}, {
+  title: 'Finances',
+  items: [
+    {
+      title: 'Send transfer',
+      url: '/finances/transfer',
+      icon: mdiSendOutline
+    },
+    {
+      title: 'Tokens',
+      badge: 'soon',
+      url: '/finances/swap',
+      icon: mdiSwapHorizontal,
+      disabled: ref(true)
+    }
+  ]
+}, {
+  title: 'Automation',
+  items: [
+    {
+      title: 'Authorize dApp',
+      badge: 'soon',
+      url: '/finances/verify',
+      icon: mdiLink,
+      disabled: ref(true)
     }
   ]
 }, {
@@ -112,6 +139,7 @@ onMounted(async () => {
               :key="item.title"
             >
               <SidebarMenuButton
+                v-if="item.visible === undefined || item.visible?.value"
                 as-child
                 :class="{ 'bg-primary/5': router.currentRoute.value.path === item.url }"
               >
@@ -130,7 +158,15 @@ onMounted(async () => {
                     style="fill: hsl(var(--foreground))"
                     :d="item.icon"
                   /></svg>
-                  <span class="text-foreground/80">{{ item.title }}</span>
+                  <span class="text-foreground/80 flex items-center">
+                    {{ item.title }}
+                    <span
+                      v-if="item.badge"
+                      class="ml-[6px] px-1 rounded-md bg-primary/5 text-[11px]/[14px] text-gray-600 border border-primary/20"
+                    >
+                      {{ item.badge }}
+                    </span>
+                  </span>
                 </Button>
               </SidebarMenuButton>
             </SidebarMenuItem>
