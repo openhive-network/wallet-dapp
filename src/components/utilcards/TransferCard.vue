@@ -53,6 +53,9 @@ const availableBalance = computed(() => {
 const errorMessage = ref('');
 
 const parseBalances = async (isDirectCall: boolean) => {
+  if (amount.value === '')
+    return null;
+
   const wax = await getWax();
 
   errorMessage.value = '';
@@ -66,7 +69,7 @@ const parseBalances = async (isDirectCall: boolean) => {
     if (isDirectCall)
       throw new Error(errorData);
     else
-      errorMessage.value = errorData;
+      return errorMessage.value = errorData;
   }
 
   return {
@@ -92,7 +95,7 @@ const handleTransfer = async () => {
       transfer_operation: {
         from: settingsStore.settings.account!,
         to: to.value,
-        amount,
+        amount: amount as NaiAsset,
         memo: memo.value || ''
       }
     });
