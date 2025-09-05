@@ -3,13 +3,31 @@ import { mdiAccountBadgeOutline, mdiOpenInNew } from '@mdi/js';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/round-progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 
 const settingsStore = useSettingsStore();
 
 const userStore = useUserStore();
+
+const upvotePercentage = computed(() => {
+  if (!userStore.manabars?.upvote) return 0;
+  return userStore.manabars.upvote.percent;
+});
+
+const downvotePercentage = computed(() => {
+  if (!userStore.manabars?.downvote) return 0;
+  return userStore.manabars.downvote.percent;
+});
+
+const rcPercentage = computed(() => {
+  if (!userStore.manabars?.rc) return 0;
+  return userStore.manabars.rc.percent;
+});
 </script>
 
 <template>
@@ -99,6 +117,80 @@ const userStore = useUserStore();
               <Skeleton class="w-full h-4" />
               <Skeleton class="w-full h-4" />
             </span>
+          </div>
+        </div>
+      </div>
+    </CardContent>
+    <CardContent>
+      <div v-if="userStore.isReady && userStore.manabars" class="space-y-4">
+        <Separator />
+        <div class="space-y-4 pt-2">
+          <h3 class="text-sm font-medium text-muted-foreground">
+            Manabars
+          </h3>
+          <div class="flex flex-col items-center space-y-5">
+            <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+              <div class="flex flex-col items-center">
+                <Progress
+                  :value="upvotePercentage"
+                  class="h-[100px] text-[18px]"
+                  gauge-primary-color="oklch(0.6 0.15 140)"
+                  gauge-secondary-color="oklch(0.6 0.15 140 / 0.2)"
+                />
+                <div class="flex w-full justify-center mt-2 text-sm">
+                  <span class="font-bold">Upvote</span>
+                </div>
+              </div>
+              <div class="flex flex-col items-center">
+                <Progress
+                  :value="downvotePercentage"
+                  class="h-[100px] text-[18px]"
+                  gauge-primary-color="oklch(0.6 0.15 25)"
+                  gauge-secondary-color="oklch(0.6 0.15 25 / 0.2)"
+                />
+                <div class="flex w-full justify-center mt-2 text-sm">
+                  <span class="font-bold">Downvote</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex flex-col items-center">
+              <Progress
+                :value="rcPercentage"
+                class="h-[100px] text-[18px]"
+                gauge-primary-color="oklch(0.6 0.15 260)"
+                gauge-secondary-color="oklch(0.6 0.15 260 / 0.2)"
+              />
+              <div class="flex w-full justify-center mt-2 text-sm">
+                <span class="font-bold">Resource Credits (RC)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        v-else-if="!userStore.isReady"
+        class="space-y-4"
+      >
+        <Separator />
+        <div class="space-y-4 pt-2">
+          <h3 class="text-sm font-medium text-muted-foreground">
+            Manabars
+          </h3>
+          <div class="flex flex-col items-center space-y-5">
+            <div class="flex flex-col items-center space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
+              <div class="flex flex-col items-center">
+                <Skeleton class="h-[100px] w-[100px] rounded-full" />
+                <Skeleton class="h-5 w-20 mt-2" />
+              </div>
+              <div class="flex flex-col items-center">
+                <Skeleton class="h-[100px] w-[100px] rounded-full" />
+                <Skeleton class="h-5 w-20 mt-2" />
+              </div>
+            </div>
+            <div class="flex flex-col items-center">
+              <Skeleton class="h-[100px] w-[100px] rounded-full" />
+              <Skeleton class="h-5 w-40 mt-2" />
+            </div>
           </div>
         </div>
       </div>

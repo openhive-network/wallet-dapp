@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useUserStore } from '@/stores/user.store';
+import { BalanceData, useUserStore } from '@/stores/user.store';
 
 const userStore = useUserStore();
 
@@ -18,9 +18,9 @@ const totalBalanceUSD = computed(() => {
 
   total += HIVE.liquid.usdValue + HIVE.savings.usdValue + HIVE.unclaimed.usdValue;
   total += HBD.liquid.usdValue + HBD.savings.usdValue + HBD.unclaimed.usdValue;
-  total += HP.owned.usdValue + HP.received.usdValue + HP.delegated.usdValue + HP.unclaimed.usdValue + HP.poweringDown.usdValue;
+  total += HP.owned.usdValue + HP.delegated.usdValue + HP.unclaimed.usdValue + HP.poweringDown.usdValue;
 
-  return total.toFixed(2);
+  return BalanceData.stringifyWithPrecision(BigInt(Math.floor(total*100)), 2);
 });
 </script>
 
