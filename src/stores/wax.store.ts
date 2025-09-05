@@ -1,7 +1,14 @@
-import type { TWaxExtended, asset } from '@hiveio/wax/vite';
+import type { NaiAsset, TWaxExtended, asset } from '@hiveio/wax/vite';
 
 export interface WaxApi {
   database_api: {
+    get_current_price_feed: {
+      params: {};
+      result: {
+        base: NaiAsset;
+        quote: NaiAsset;
+      };
+    };
     get_witness_schedule: {
       params: {};
       result: {
