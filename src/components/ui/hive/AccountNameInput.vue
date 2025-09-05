@@ -26,6 +26,7 @@ interface Props {
   showStepIcon?: boolean;
   class?: string;
   disabled?: boolean;
+  requireExists?: boolean;
 }
 
 interface Emits {
@@ -39,7 +40,8 @@ const props = withDefaults(defineProps<Props>(), {
   placeholder: 'Enter your desired account name',
   showStepIcon: false,
   class: '',
-  disabled: false
+  disabled: false,
+  requireExists: false
 });
 
 const emit = defineEmits<Emits>();
@@ -108,15 +110,15 @@ const validateAccountName = async () => {
       }
     }
 
-    if (doesAccountExist) {
-      accountNameValid.value = false;
-      accountNameError.value = 'Account name already exists';
-      emit('validation-change', false);
-    } else {
-      accountNameValid.value = true;
-      accountNameError.value = '';
-      emit('validation-change', true);
-    }
+    const validationChange = props.requireExists ? doesAccountExist : !doesAccountExist;
+
+    accountNameError.value = validationChange
+      ? ''
+      : props.requireExists
+        ? 'Account does not exist'
+        : 'Account name is already taken';
+    accountNameValid.value = validationChange;
+    emit('validation-change', validationChange);
 
   } catch (error) {
     accountNameError.value = 'Failed to validate account name';

@@ -249,6 +249,7 @@ const updateAccountName = (value: string) => {
                   v-model="updateAccountNameOperation!"
                   label="Account name to update"
                   placeholder="Enter account name to update"
+                  require-exists
                   @validation-change="onAccountNameValidationChange"
                 />
                 <div
