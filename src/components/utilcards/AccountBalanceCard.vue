@@ -108,7 +108,10 @@ const totalBalanceUSD = computed(() => {
               </div>
             </div>
           </div>
-          <Separator orientation="vertical" class="h-auto" />
+          <Separator
+            orientation="vertical"
+            class="h-auto"
+          />
           <!-- HBD Balances -->
           <div class="flex-1 pl-4">
             <h3 class="text-md font-semibold flex items-center">

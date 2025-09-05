@@ -1,5 +1,6 @@
 import type { ApiAccount, IManabarData } from '@hiveio/wax/vite';
 import { defineStore } from 'pinia';
+
 import { getWax } from '@/stores/wax.store';
 
 const PERCENT_VALUE_DOUBLE_PRECISION = 100;
@@ -10,7 +11,7 @@ export class BalanceData {
   public readonly usdString: string;
   public readonly stringValue: string;
 
-  public constructor(public readonly amount: bigint, public readonly precision: number, usdPrice: number) {
+  public constructor (public readonly amount: bigint, public readonly precision: number, usdPrice: number) {
     this.stringValue = BalanceData.stringifyWithPrecision(this.amount, this.precision);
 
     // We use the precision instead of USD price precision to avoid floating point issues
@@ -21,19 +22,19 @@ export class BalanceData {
     this.usdValue = Number(integerPart) + Number(fractionalPart) / (10 ** this.precision);
   }
 
-  private static stringifyWithPrecisionTuple(value: bigint, precision: number): [string, string] {
+  private static stringifyWithPrecisionTuple (value: bigint, precision: number): [string, string] {
     const baseValue = value.toString();
     const integerPart = baseValue.slice(0, -precision) || '0';
     const fractionalPart = baseValue.slice(-precision).padStart(precision, '0');
     return [integerPart, fractionalPart];
   }
 
-  public static stringifyWithPrecision(value: bigint, precision: number): string {
+  public static stringifyWithPrecision (value: bigint, precision: number): string {
     const [integerPart, fractionalPart] = BalanceData.stringifyWithPrecisionTuple(value, precision);
     return `${integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${fractionalPart}`;
   }
 
-  public toString(): string {
+  public toString (): string {
     return this.stringValue;
   }
 }
@@ -115,13 +116,13 @@ export const useUserStore = defineStore('user', {
           HBD: {
             liquid: new BalanceData(BigInt(data.hbd_balance.amount), data.hbd_balance.precision, 1),
             savings: new BalanceData(BigInt(data.savings_hbd_balance.amount), data.savings_hbd_balance.precision, 1),
-            unclaimed: new BalanceData(BigInt(data.reward_hbd_balance.amount), data.reward_hbd_balance.precision, 1),
+            unclaimed: new BalanceData(BigInt(data.reward_hbd_balance.amount), data.reward_hbd_balance.precision, 1)
           },
           HIVE: {
             liquid: new BalanceData(BigInt(data.balance.amount), data.balance.precision, hivePrice),
             savings: new BalanceData(BigInt(data.savings_balance.amount), data.savings_balance.precision, hivePrice),
-            unclaimed: new BalanceData(BigInt(data.reward_hive_balance.amount), data.reward_hive_balance.precision, hivePrice),
-          },
+            unclaimed: new BalanceData(BigInt(data.reward_hive_balance.amount), data.reward_hive_balance.precision, hivePrice)
+          }
         };
 
         // Maybe adjust wax code so I don't have to do all of this manually:

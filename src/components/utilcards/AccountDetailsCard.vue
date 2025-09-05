@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { mdiAccountBadgeOutline, mdiOpenInNew } from '@mdi/js';
+import { computed } from 'vue';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/round-progress';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { computed } from 'vue';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 
@@ -122,7 +122,10 @@ const rcPercentage = computed(() => {
       </div>
     </CardContent>
     <CardContent>
-      <div v-if="userStore.isReady && userStore.manabars" class="space-y-4">
+      <div
+        v-if="userStore.isReady && userStore.manabars"
+        class="space-y-4"
+      >
         <Separator />
         <div class="space-y-4 pt-2">
           <h3 class="text-sm font-medium text-muted-foreground">
