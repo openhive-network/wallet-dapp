@@ -153,7 +153,7 @@ defineExpose({
 
 <template>
   <div class="space-y-3">
-    <TooltipProvider>
+    <TooltipProvider v-if="props.label">
       <Tooltip>
         <TooltipTrigger class="flex items-center space-x-2">
           <svg
@@ -173,6 +173,7 @@ defineExpose({
             class="text-base font-semibold"
           >{{ props.label }}</Label>
           <svg
+            v-if="!props.requireExists"
             width="16"
             height="16"
             xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +185,7 @@ defineExpose({
             />
           </svg>
         </TooltipTrigger>
-        <TooltipContent>
+        <TooltipContent v-if="!props.requireExists">
           <div class="text-sm">
             <p class="font-semibold mb-2">
               Account name requirements:
