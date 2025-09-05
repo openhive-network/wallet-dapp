@@ -138,7 +138,7 @@ export const useUserStore = defineStore('user', {
 
         this.manabars = {
           upvote: wax.calculateCurrentManabarValue(now, data.post_voting_power.amount, data.voting_manabar.current_mana, data.voting_manabar.last_update_time),
-          downvote: wax.calculateCurrentManabarValue(now, data.post_voting_power.amount, data.downvote_manabar.current_mana, data.downvote_manabar.last_update_time),
+          downvote: wax.calculateCurrentManabarValue(now, downVoteManabarMax, data.downvote_manabar.current_mana, data.downvote_manabar.last_update_time),
           rc: wax.calculateCurrentManabarValue(now, rcData.max_rc, rcData.rc_manabar.current_mana, rcData.rc_manabar.last_update_time)
         };
       } catch (error) {
