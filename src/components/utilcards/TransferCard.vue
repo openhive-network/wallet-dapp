@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { useSettingsStore } from '@/stores/settings.store';
+import { stringifyWalletName, useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
@@ -53,12 +53,12 @@ const availableBalance = computed(() => {
 const errorMessage = ref('');
 
 const parseBalances = async (isDirectCall: boolean) => {
+  errorMessage.value = '';
+
   if (amount.value === '')
     return null;
 
   const wax = await getWax();
-
-  errorMessage.value = '';
 
   const asset = wax.ASSETS[currency.value];
   const amountRaw = BigInt(Math.floor(parseFloat(amount.value) * (10 ** asset.precision)));
@@ -99,6 +99,13 @@ const handleTransfer = async () => {
         memo: memo.value || ''
       }
     });
+
+    try {
+      await walletStore.createWalletFor(settingsStore.settings, 'active');
+    } catch (error) {
+      toastError(`Could not create a wallet using ${stringifyWalletName(settingsStore.settings.wallet!)} - role active`, error);
+      return;
+    }
 
     await wallet.value!.signTransaction(tx);
 

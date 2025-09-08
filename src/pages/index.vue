@@ -19,7 +19,10 @@ const hasUser = computed(() => settingsStore.settings.account !== undefined);
       <AccountDetails />
       <AccountBalanceCard />
     </div>
-    <div v-else>
+    <div
+      v-else
+      class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4"
+    >
       <ConnectWalletCard />
     </div>
   </div>
