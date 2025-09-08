@@ -80,7 +80,7 @@ const createAccount = async () => {
 
     if (createAccountType.value === 'claimed') {
       tx.pushOperation({
-        create_claimed_account: {
+        create_claimed_account_operation: {
           ...commonAccountCreateConfig,
           extensions: []
         }
@@ -88,7 +88,7 @@ const createAccount = async () => {
 
       if (enableDelegation.value) {
         tx.pushOperation({
-          delegate_vesting_shares: {
+          delegate_vesting_shares_operation: {
             delegator: settings.account!,
             delegatee: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
             vesting_shares: wax.vestsCoins(delegationAmount.value)
@@ -98,7 +98,7 @@ const createAccount = async () => {
 
     } else if (enableDelegation.value) {
       tx.pushOperation({
-        account_create_with_delegation: {
+        account_create_with_delegation_operation: {
           ...commonAccountCreateConfig,
           extensions: [],
           delegation: wax.vestsCoins(delegationAmount.value)
@@ -106,7 +106,7 @@ const createAccount = async () => {
       });
     } else {
       tx.pushOperation({
-        account_create: {
+        account_create_operation: {
           ...commonAccountCreateConfig
         }
       });
