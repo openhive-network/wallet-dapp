@@ -65,10 +65,8 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
   items: [
     {
       title: 'Authorize dApp',
-      badge: 'soon',
-      url: '/finances/verify',
-      icon: mdiLink,
-      disabled: ref(true)
+      url: '/automation/authorize',
+      icon: mdiLink
     }
   ]
 }, {

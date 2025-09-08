@@ -1,6 +1,7 @@
 import AccountCreate from '@/pages/account/create.vue';
 import RequestCreate from '@/pages/account/request.vue';
 import AccountUpdate from '@/pages/account/update.vue';
+import DappAuthorize from '@/pages/automation/authorize.vue';
 import Transfer from '@/pages/finances/transfer.vue';
 import Index from '@/pages/index.vue';
 import SignMessage from '@/pages/sign/message.vue';
@@ -13,5 +14,6 @@ export const routes = [
   { path: '/account/create', component: AccountCreate },
   { path: '/account/request', component: RequestCreate },
   { path: '/account/update', component: AccountUpdate },
-  { path: '/finances/transfer', component: Transfer }
+  { path: '/finances/transfer', component: Transfer },
+  { path: '/automation/authorize', component: DappAuthorize }
 ];

@@ -18,6 +18,34 @@ export interface WaxApi {
       };
     };
   };
+  bridge: {
+    get_profile: {
+      params: { account: string };
+      result: {
+        id: number;
+        name: string;
+        created: string;
+        active: string;
+        post_count: number;
+        reputation: number;
+        blacklists: [];
+        stats: {rank: number; following: number; followers: number;};
+        metadata: {
+          profile: {
+            name?: string;
+            about?: string;
+            website?: string;
+            location?: string;
+            cover_image?: string;
+            profile_image?: string;
+            blacklist_description?: string;
+            muted_list_description?: string;
+          }
+        },
+        context: {followed: boolean;}
+      };
+    }
+  }
 };
 
 let chain: TWaxExtended<WaxApi>;

@@ -2,6 +2,8 @@ import type { ApiAccount, IManabarData } from '@hiveio/wax/vite';
 import { defineStore } from 'pinia';
 
 import { getWax } from '@/stores/wax.store';
+import { lessThanDate } from '@/utils/parse-date';
+import { parseReputation } from '@/utils/parse-reputation';
 
 const PERCENT_VALUE_DOUBLE_PRECISION = 100;
 const ONE_HUNDRED_PERCENT = BigInt(100) * BigInt(PERCENT_VALUE_DOUBLE_PRECISION);
@@ -85,7 +87,7 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     profileImage: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.profile_image || ctx.parsedJsonMetadata?.profile?.profile_image : undefined,
-    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.name || ctx.userData?.name : undefined,
+    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.name || ctx.parsedJsonMetadata?.profile?.name || ctx.userData?.name : undefined,
     about: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.about || ctx.parsedJsonMetadata?.profile?.about : undefined,
     website: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.website || ctx.parsedJsonMetadata?.profile?.website : undefined
   },
@@ -149,11 +151,43 @@ export const useUserStore = defineStore('user', {
       this.userData = data;
       try {
         this.parsedJsonMetadata = JSON.parse(data.json_metadata);
+      } catch {}
+      try {
         this.parsedPostingJsonMetadata = JSON.parse(data.posting_json_metadata);
       } catch {}
       this.parseUserBalances(data).finally(() => {
         this.isReady = true;
       });
+    },
+    async getAccountMetadata (accountName: string) {
+      const wax = await getWax();
+
+      const {
+        created,
+        reputation,
+        metadata: {
+          profile: {
+            about,
+            name,
+            profile_image,
+            website
+          }
+        }
+      } = await wax.api.bridge.get_profile({account: accountName});
+
+      const createdAt = new Date(created + 'Z'); // Adding 'Z' to indicate UTC time
+
+      return {
+        profileImage: profile_image,
+        displayName: name,
+        accountName,
+        about,
+        website,
+        createdAt,
+        createdAgo: lessThanDate(createdAt),
+        reputationScore: reputation,
+        reputation: parseReputation(reputation)
+      };
     }
   }
 });
