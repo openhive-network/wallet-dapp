@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 
 import AuthorizeDappCard from '@/components/utilcards/AuthorizeDappCard.vue';
+import AuthorizeGuideCard from '@/components/utilcards/AuthorizeGuideCard.vue';
 
 const route = useRoute();
 
@@ -17,5 +18,6 @@ const code = computed(() => route.query.code as string);
       :app="app"
       :code="code"
     />
+    <AuthorizeGuideCard v-else />
   </div>
 </template>
