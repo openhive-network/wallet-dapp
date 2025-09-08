@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { Globe, Check, Users, AlertCircle, Clock } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
+import { toast } from 'vue-sonner';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Button from '@/components/ui/button/Button.vue';
@@ -36,6 +37,8 @@ const appData = ref<null | {
 }>(null);
 
 const isLoading = ref(true);
+
+const authorized = ref(false);
 
 onMounted(async () => {
   isLoading.value = true;
@@ -81,6 +84,9 @@ const authorize = async () => {
     await wallet.value!.signTransaction(tx);
 
     await wax.broadcast(tx);
+
+    toast.success(`Successfully authorized ${props.app}`);
+    authorized.value = true;
   } catch (e) {
     toastError('Failed to authorize dApp', e);
   } finally {
@@ -211,11 +217,11 @@ const authorize = async () => {
     <!-- Authorize Button -->
     <div class="flex items-center justify-center mb-4">
       <Button
-        :disabled="isLoading"
+        :disabled="isLoading || authorized"
         :loading="isAuthorizing"
         @click="authorize"
       >
-        Authorize {{ props.app }}
+        {{ authorized ? 'Authorized' : `Authorize ${props.app}` }}
       </Button>
     </div>
 
