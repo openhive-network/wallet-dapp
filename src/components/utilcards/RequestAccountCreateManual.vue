@@ -141,23 +141,23 @@ const generateAndDownloadAuthorityData = async () => {
 
     const wax = await getWax();
 
-    const masterBrainKey = wax.suggestBrainKey();
-    authorityData.masterPassword = masterBrainKey.wifPrivateKey;
+    // Get clean account name (without @ prefix)
+    const cleanAccountName = accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value;
 
-    authorityData.privateKeys.owner = masterBrainKey.wifPrivateKey;
-    authorityData.publicKeys.owner = masterBrainKey.associatedPublicKey;
+    // Get master password
+    const masterPassword = wax.suggestBrainKey().wifPrivateKey;
 
-    // Use the master brain key to derive keys for different roles
-    // In a real implementation, this would use proper key derivation
-    const roles: TRole[] = ['active', 'posting', 'memo'];
+    authorityData.masterPassword = masterPassword;
+
+    // Generate deterministic keys for each role using the master password
+    const roles: TRole[] = ['owner', 'active', 'posting', 'memo'];
 
     for (const role of roles) {
-      // For now, generate unique keys for each role (could be derived from master)
-      const roleBrainKey = wax.suggestBrainKey();
-      authorityData.privateKeys[role] = roleBrainKey.wifPrivateKey;
+      // Generate private key from password using WAX API
+      const privateKeyData = wax.getPrivateKeyFromPassword(cleanAccountName, role, masterPassword);
 
-      // Generate a more realistic looking public key placeholder
-      authorityData.publicKeys[role] = roleBrainKey.associatedPublicKey;
+      authorityData.privateKeys[role] = privateKeyData.wifPrivateKey;
+      authorityData.publicKeys[role] = privateKeyData.associatedPublicKey;
     }
 
     // Automatically download the authority data file
