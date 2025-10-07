@@ -44,8 +44,95 @@ export interface WaxApi {
         },
         context: {followed: boolean;}
       };
-    }
-  }
+    };
+    // NAI Token operations
+    create_nai_token: {
+      params: {
+        creator: string;
+        symbol: string;
+        name: string;
+        description: string;
+        nai: string;
+        initial_supply: string;
+        precision: number;
+        can_stake: boolean;
+      };
+      result: {
+        success: boolean;
+        nai: string;
+        transaction_id: string;
+      };
+    };
+    get_nai_tokens: {
+      params: { creator?: string; limit?: number; start?: string };
+      result: {
+        tokens: Array<{
+          symbol: string;
+          name: string;
+          description: string;
+          nai: string;
+          initial_supply: string;
+          current_supply: string;
+          precision: number;
+          can_stake: boolean;
+          creator: string;
+          created_at: string;
+          active: boolean;
+        }>;
+      };
+    };
+    get_account_balances: {
+      params: { account: string };
+      result: {
+        balances: Array<{
+          symbol: string;
+          name: string;
+          nai: string;
+          liquid_balance: string;
+          staked_balance: string;
+          precision: number;
+          can_stake: boolean;
+        }>;
+      };
+    };
+    transfer_nai_token: {
+      params: {
+        from: string;
+        to: string;
+        amount: string;
+        symbol: string;
+        memo?: string;
+      };
+      result: {
+        success: boolean;
+        transaction_id: string;
+      };
+    };
+    stake_nai_token: {
+      params: {
+        account: string;
+        amount: string;
+        symbol: string;
+        direction: 'stake' | 'unstake';
+      };
+      result: {
+        success: boolean;
+        transaction_id: string;
+      };
+    };
+    user_signup: {
+      params: {
+        account: string;
+        email?: string;
+        referrer?: string;
+      };
+      result: {
+        success: boolean;
+        account_exists: boolean;
+        message: string;
+      };
+    };
+  };
 };
 
 let chain: TWaxExtended<WaxApi>;
