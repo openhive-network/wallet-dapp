@@ -13,36 +13,23 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { getTokenDefinitions } from '@/utils/nai-tokens';
+import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
 const router = useRouter();
 const settingsStore = useSettingsStore();
-
-interface TokenDefinition {
-  symbol: string;
-  name: string;
-  description: string;
-  nai: string;
-  initial_supply: string;
-  precision: number;
-  can_stake: boolean;
-  creator: string;
-  created_at: string;
-  active: boolean;
-}
+const tokensStore = useTokensStore();
 
 // State
-const tokens = ref<TokenDefinition[]>([]);
 const isLoading = ref(true);
 const searchQuery = ref('');
 
 // Computed
 const filteredTokens = computed(() => {
-  if (!searchQuery.value.trim()) return tokens.value;
+  if (!searchQuery.value.trim()) return tokensStore.tokenDefinitions;
 
   const query = searchQuery.value.toLowerCase();
-  return tokens.value.filter(token =>
+  return tokensStore.tokenDefinitions.filter(token =>
     token.name.toLowerCase().includes(query) ||
     token.symbol.toLowerCase().includes(query) ||
     token.nai.toLowerCase().includes(query)
@@ -54,7 +41,7 @@ const loadTokenDefinitions = async () => {
   isLoading.value = true;
 
   try {
-    tokens.value = await getTokenDefinitions(settingsStore.settings.account);
+    await tokensStore.loadTokenDefinitions(settingsStore.settings.account, true);
   } catch (error) {
     toastError('Failed to load token definitions', error);
   } finally {
@@ -168,7 +155,7 @@ onMounted(() => {
       </div>
 
       <div
-        v-else-if="tokens.length === 0"
+        v-else-if="tokensStore.tokenDefinitions.length === 0"
         class="text-center py-12"
       >
         <svg
@@ -233,14 +220,14 @@ onMounted(() => {
 
       <!-- Summary Stats -->
       <div
-        v-if="tokens.length > 0"
+        v-if="tokensStore.tokenDefinitions.length > 0"
         class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6 border-t"
       >
         <Card>
           <CardContent class="pt-6">
             <div class="text-center">
               <div class="text-2xl font-bold">
-                {{ tokens.length }}
+                {{ tokensStore.tokenDefinitions.length }}
               </div>
               <div class="text-sm text-muted-foreground">
                 Total Tokens
@@ -253,7 +240,7 @@ onMounted(() => {
           <CardContent class="pt-6">
             <div class="text-center">
               <div class="text-2xl font-bold text-green-600">
-                {{ tokens.filter(t => t.active).length }}
+                {{ tokensStore.tokenDefinitions.filter(t => t.active).length }}
               </div>
               <div class="text-sm text-muted-foreground">
                 Active Tokens
@@ -266,7 +253,7 @@ onMounted(() => {
           <CardContent class="pt-6">
             <div class="text-center">
               <div class="text-2xl font-bold text-blue-600">
-                {{ tokens.filter(t => t.can_stake).length }}
+                {{ tokensStore.tokenDefinitions.filter(t => t.can_stake).length }}
               </div>
               <div class="text-sm text-muted-foreground">
                 Stakeable Tokens

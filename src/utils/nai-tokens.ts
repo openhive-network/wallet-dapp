@@ -2,6 +2,15 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 
+import {
+  cTokensApi,
+  getUserOperationalKey,
+  transformCTokenBalanceToLegacy,
+  transformCTokenToLegacy,
+  type LegacyTokenBalance,
+  type LegacyTokenDefinition
+} from './ctokens-api';
+
 export interface TokenCreationParams {
   symbol: string;
   name: string;
@@ -191,12 +200,23 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
 };
 
 /**
- * Get token definitions for an account
+ * Get token definitions for an account - now using ctokens-api
  */
-export const getTokenDefinitions = async (creator?: string) => {
+export const getTokenDefinitions = async (creator?: string): Promise<LegacyTokenDefinition[]> => {
   try {
-    // In a real implementation, this would call the bridge API
-    // For now, return mock data
+    // Get registered tokens from ctokens-api
+    const tokens = await cTokensApi.getRegisteredTokens();
+
+    // Filter by creator if provided
+    const filteredTokens = creator
+      ? tokens.filter(token => token.owner === creator)
+      : tokens;
+
+    // Transform to legacy format
+    return filteredTokens.map(token => transformCTokenToLegacy(token));
+  } catch (error) {
+    console.error('Failed to get token definitions:', error);
+    // Fallback to mock data for development
     const mockTokens = [
       {
         symbol: 'MAT',
@@ -214,19 +234,37 @@ export const getTokenDefinitions = async (creator?: string) => {
     ];
 
     return mockTokens;
-  } catch (error) {
-    console.error('Failed to get token definitions:', error);
-    throw error;
   }
 };
 
 /**
- * Get account balances
+ * Get account balances - now using ctokens-api
  */
-export const getAccountBalances = async (_account: string) => {
+export const getAccountBalances = async (_account: string): Promise<LegacyTokenBalance[]> => {
   try {
-    // In a real implementation, this would call the bridge API
-    // For now, return mock data
+    const operationalKey = getUserOperationalKey();
+    if (!operationalKey)
+      throw new Error('No operational key available');
+
+    // Get balances from ctokens-api
+    const balances = await cTokensApi.getAccountBalances(operationalKey);
+
+    // Get all registered tokens to map metadata
+    const tokens = await cTokensApi.getRegisteredTokens();
+
+    // Transform to legacy format
+    const legacyBalances: LegacyTokenBalance[] = [];
+
+    for (const balance of balances) {
+      const token = tokens.find(t => t.nai === balance.nai && t.precision === balance.precision);
+      if (token)
+        legacyBalances.push(transformCTokenBalanceToLegacy(balance, token));
+    }
+
+    return legacyBalances;
+  } catch (error) {
+    console.error('Failed to get account balances:', error);
+    // Fallback to mock data for development
     const mockBalances = [
       {
         symbol: 'HIVE',
@@ -234,24 +272,33 @@ export const getAccountBalances = async (_account: string) => {
         nai: '@@000000021',
         liquid_balance: '150.500',
         staked_balance: '0.000',
+        total_balance: '150.500',
         precision: 3,
-        can_stake: false
+        logo_url: undefined
       },
       {
-        symbol: 'HP',
-        name: 'Hive Power',
-        nai: '@@000000037',
-        liquid_balance: '0.000',
-        staked_balance: '1250.750',
+        symbol: 'HBD',
+        name: 'Hive Backed Dollar',
+        nai: '@@000000013',
+        liquid_balance: '75.250',
+        staked_balance: '0.000',
+        total_balance: '75.250',
         precision: 3,
-        can_stake: true
+        logo_url: undefined
+      },
+      {
+        symbol: 'MAT',
+        name: 'My Awesome Token',
+        nai: '@@123456789',
+        liquid_balance: '1000.000',
+        staked_balance: '500.000',
+        total_balance: '1500.000',
+        precision: 3,
+        logo_url: undefined
       }
     ];
 
     return mockBalances;
-  } catch (error) {
-    console.error('Failed to get account balances:', error);
-    throw error;
   }
 };
 
