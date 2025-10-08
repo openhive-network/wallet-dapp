@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiSendOutline, mdiLink, mdiWallet, mdiViewList } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiSendOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -61,6 +61,11 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
       title: 'My Token Definitions',
       url: '/finances/token-definitions',
       icon: mdiViewList
+    },
+    {
+      title: 'Token Holders',
+      url: '/finances/token-holders',
+      icon: mdiAccountGroup
     }
   ]
 }, {
