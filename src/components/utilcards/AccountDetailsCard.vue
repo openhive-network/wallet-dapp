@@ -136,7 +136,7 @@ const rcPercentage = computed(() => {
               <div class="flex flex-col items-center">
                 <Progress
                   :value="upvotePercentage"
-                  class="h-[100px] text-[18px]"
+                  class="h-[100px] text-[16px]"
                   gauge-primary-color="oklch(0.6 0.15 140)"
                   gauge-secondary-color="oklch(0.6 0.15 140 / 0.2)"
                 />
@@ -147,7 +147,7 @@ const rcPercentage = computed(() => {
               <div class="flex flex-col items-center">
                 <Progress
                   :value="downvotePercentage"
-                  class="h-[100px] text-[18px]"
+                  class="h-[100px] text-[16px]"
                   gauge-primary-color="oklch(0.6 0.15 25)"
                   gauge-secondary-color="oklch(0.6 0.15 25 / 0.2)"
                 />
@@ -159,7 +159,7 @@ const rcPercentage = computed(() => {
             <div class="flex flex-col items-center">
               <Progress
                 :value="rcPercentage"
-                class="h-[100px] text-[18px]"
+                class="h-[100px] text-[16px]"
                 gauge-primary-color="oklch(0.6 0.15 260)"
                 gauge-secondary-color="oklch(0.6 0.15 260 / 0.2)"
               />
