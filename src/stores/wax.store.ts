@@ -1,4 +1,7 @@
-import type { NaiAsset, TWaxExtended, asset } from '@hiveio/wax/vite';
+import type { NaiAsset, TWaxRestExtended, TWaxExtended, asset } from '@hiveio/wax/vite';
+
+import CTokensApi from '@/utils/wallet/ctokens/api';
+import { DEFAULT_CTOKENS_API_URL } from '@/utils/wallet/ctokens/signer';
 
 export interface WaxApi {
   database_api: {
@@ -135,11 +138,15 @@ export interface WaxApi {
   };
 };
 
-let chain: TWaxExtended<WaxApi>;
+let chain: TWaxRestExtended<typeof CTokensApi, TWaxExtended<WaxApi>>;
 
 export const getWax = async () => {
-  if (!chain)
-    chain = (await (await import('@hiveio/wax/vite')).createHiveChain()).extend<WaxApi>();
+  if (!chain) {
+    chain = (await (await import('@hiveio/wax/vite')).createHiveChain()).extend<WaxApi>().extendRest(CTokensApi);
+
+    // These steps are repeated in the CtokensProvider constructor, but we need them here too as for now - maybe find a better way of handling this?
+    chain.restApi.ctokensApi.endpointUrl = DEFAULT_CTOKENS_API_URL;
+  }
 
   return chain;
 };

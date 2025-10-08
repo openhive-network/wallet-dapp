@@ -1,13 +1,16 @@
-import type { TRole } from '@hiveio/wax/vite';
+import type { AEncryptionProvider, TRole } from '@hiveio/wax/vite';
 import KeychainProvider from '@hiveio/wax-signers-keychain';
 import MetaMaskProvider from '@hiveio/wax-signers-metamask';
 import PeakVaultProvider from '@hiveio/wax-signers-peakvault';
 import { defineStore } from 'pinia';
+import { toast } from 'vue-sonner';
 
-import type { Wallet } from '@/utils/wallet/abstraction';
+import { getWax } from '@/stores/wax.store';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 import { useMetamaskStore } from './metamask.store';
 import { type Settings, UsedWallet } from './settings.store';
+
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -18,10 +21,12 @@ export const useWalletStore = defineStore('wallet', {
     _walletsStatus: {
       metamask: false,
       keychain: false,
-      peakvault: false
+      peakvault: false,
+      ctokens: true
     },
-    wallet: undefined as undefined | Wallet,
-    isWalletSelectModalOpen: false
+    wallet: undefined as undefined | AEncryptionProvider,
+    isWalletSelectModalOpen: false,
+    isProvideWalletPasswordModalOpen: false
   }),
   getters: {
     hasWallet: state => !!state.wallet,
@@ -69,7 +74,7 @@ export const useWalletStore = defineStore('wallet', {
     closeWalletSelectModal () {
       this.isWalletSelectModalOpen = false;
     },
-    async createWalletFor (settings: Settings, role: TRole = 'posting') {
+    async createWalletFor (settings: Settings, role: TRole) {
       switch(settings.wallet) {
       case UsedWallet.METAMASK: {
         const metamaskStore = useMetamaskStore();
@@ -90,11 +95,27 @@ export const useWalletStore = defineStore('wallet', {
 
         break;
       }
+      case UsedWallet.CTOKENS_IMPLEMENTATION: {
+        if (!CTokensProvider.isLoggedIn()) {
+          toast.warning('Please provide the password to unlock your wallet', { duration: 5000 });
+
+          this.isProvideWalletPasswordModalOpen = true;
+
+          return;
+        }
+
+        const wax = await getWax();
+
+        this.wallet = await CTokensProvider.for(wax, role);
+
+        break;
+      }
       default:
         throw new Error('Unsupported wallet');
       }
     },
     resetWallet () {
+      (this.wallet as AEncryptionProvider & { destroy?: () => void })?.destroy?.();
       this.wallet = undefined;
     }
   }

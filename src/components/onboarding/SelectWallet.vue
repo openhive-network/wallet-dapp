@@ -60,6 +60,13 @@ const close = () => {
         @click="useWallet(UsedWallet.METAMASK)"
       />
       <OnboardingButton
+        :disabled="!walletsStatus.ctokens"
+        :logo-url="getWalletIcon(UsedWallet.CTOKENS_IMPLEMENTATION)"
+        name="Hive Token Machine"
+        description="Use your HTM wallet"
+        @click="useWallet(UsedWallet.CTOKENS_IMPLEMENTATION)"
+      />
+      <OnboardingButton
         download-url="https://hive-keychain.com/"
         :disabled="!walletsStatus.keychain"
         :logo-url="getWalletIcon(UsedWallet.KEYCHAIN)"
