@@ -11,7 +11,7 @@ const props = defineProps<{
   name: string;
   description: string;
   disabled?: boolean;
-  downloadUrl: string;
+  downloadUrl?: string;
   downloadUrlTriggersClick?: boolean;
 }>();
 
@@ -37,6 +37,7 @@ const emit = defineEmits(['click']);
       </div>
     </Button>
     <TooltipProvider
+      v-if="props.downloadUrl"
       :delay-duration="200"
       disable-hoverable-content
     >

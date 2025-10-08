@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 
+import cTokensLogoUrl from '@/assets/icons/wallets/ctokens.svg';
 import keychainLogoUrl from '@/assets/icons/wallets/keychain.svg';
 import metamaskLogoUrl from '@/assets/icons/wallets/metamask.svg';
 import peakVaultLogoUrl from '@/assets/icons/wallets/peakvault.svg';
@@ -7,7 +8,8 @@ import peakVaultLogoUrl from '@/assets/icons/wallets/peakvault.svg';
 export enum UsedWallet {
   METAMASK,
   KEYCHAIN,
-  PEAKVAULT
+  PEAKVAULT,
+  CTOKENS_IMPLEMENTATION
 }
 
 export const stringifyWalletName = (wallet: UsedWallet) => {
@@ -18,6 +20,8 @@ export const stringifyWalletName = (wallet: UsedWallet) => {
     return 'Keychain';
   case UsedWallet.PEAKVAULT:
     return 'PeakVault';
+  case UsedWallet.CTOKENS_IMPLEMENTATION:
+    return 'cTokens';
   }
 };
 
@@ -29,6 +33,8 @@ export const getWalletIcon = (wallet: UsedWallet) => {
     return keychainLogoUrl;
   case UsedWallet.PEAKVAULT:
     return peakVaultLogoUrl;
+  case UsedWallet.CTOKENS_IMPLEMENTATION:
+    return cTokensLogoUrl;
   }
 };
 

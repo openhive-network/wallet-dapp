@@ -62,7 +62,7 @@ const rcPercentage = computed(() => {
                 v-if="userStore.profileImage"
                 :src="userStore.profileImage"
               />
-              <AvatarFallback>{{ settingsStore.settings.account?.slice(0, 12) }}</AvatarFallback>
+              <AvatarFallback>{{ userStore.userDisplayName }}</AvatarFallback>
             </Avatar>
             <Skeleton
               v-else
@@ -74,7 +74,7 @@ const rcPercentage = computed(() => {
               v-if="userStore.isReady"
               class="inline-flex items-center text-lg/3 font-bold"
             >
-              <span>{{ userStore.name }}</span>
+              <span>{{ userStore.userDisplayName }}</span>
               <a
                 v-if="userStore.website"
                 :href="userStore.website"

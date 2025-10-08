@@ -17,6 +17,9 @@ importers:
       '@eslint/js':
         specifier: ^9.32.0
         version: 9.32.0
+      '@hiveio/beekeeper':
+        specifier: 1.27.12-rc4
+        version: 1.27.12-rc4
       '@hiveio/wax':
         specifier: 1.27.12-rc1-251007115925
         version: 1.27.12-rc1-251007115925
@@ -380,6 +383,10 @@ packages:
 
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
+
+  '@hiveio/beekeeper@1.27.12-rc4':
+    resolution: {integrity: sha1-YtBmd/+XM2ymPmOdG77DXGMYsyM=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.27.12-rc4.tgz}
+    engines: {node: ^20.11 || >= 21.2}
 
   '@hiveio/wax-signers-keychain@1.27.12-rc1-251007115925':
     resolution: {integrity: sha1-PPpAvrHqXEB05xZhFJY/B+68Irc=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-keychain/-/@hiveio/wax-signers-keychain-1.27.12-rc1-251007115925.tgz}
@@ -2663,6 +2670,8 @@ snapshots:
     transitivePeerDependencies:
       - '@vue/composition-api'
       - vue
+
+  '@hiveio/beekeeper@1.27.12-rc4': {}
 
   '@hiveio/wax-signers-keychain@1.27.12-rc1-251007115925':
     dependencies:

@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, defineAsyncComponent } from 'vue';
-import { Toaster } from 'vue-sonner';
+import { Toaster , toast } from 'vue-sonner';
 
 import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { UsedWallet } from '@/stores/settings.store';
-import { useSettingsStore } from '@/stores/settings.store';
+import HTMProvidePassword from '@/components/wallet/HTMProvidePassword.vue';
+import { UsedWallet , useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { getWax } from '@/stores/wax.store';
 
 import ErrorDialog from './components/ErrorDialog.vue';
+import { toastError } from './utils/parse-error';
 
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
@@ -23,10 +23,11 @@ onMounted(async () => {
   settingsStore.loadSettings();
   hasUser.value = settingsStore.settings.account !== undefined;
   if (hasUser.value) {
-    void walletStore.createWalletFor(settingsStore.settings);
-    const wax = await getWax();
-    const { accounts: [ account ] } = await wax.api.database_api.find_accounts({ accounts: [ settingsStore.settings.account! ], delayed_votes_active: false });
-    void userStore.setUserData(account);
+    walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
+      userStore.parseUserData(settingsStore.settings.account!).catch(error => {
+        toast.error(`Failed to load user data: ${(error as Error).message}`);
+      });
+    });
   }
 });
 const complete = async (data: { account: string; wallet: UsedWallet }) => {
@@ -37,10 +38,14 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
   };
   walletStore.closeWalletSelectModal();
   settingsStore.setSettings(settings);
-  void walletStore.createWalletFor(settings);
-  const wax = await getWax();
-  const { accounts: [ account ] } = await wax.api.database_api.find_accounts({ accounts: [ settingsStore.settings.account! ], delayed_votes_active: false });
-  void userStore.setUserData(account);
+
+  try {
+    await walletStore.createWalletFor(settings, 'posting');
+
+    await userStore.parseUserData(settingsStore.settings.account!);
+  } catch (error) {
+    toastError('Failed to create wallet', error);
+  }
 };
 </script>
 
@@ -63,6 +68,12 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
             @close="walletStore.closeWalletSelectModal()"
             @complete="complete"
           />
+        </aside>
+        <aside
+          v-if="walletStore.isProvideWalletPasswordModalOpen"
+          class="fixed inset-0 flex items-center justify-center z-20"
+        >
+          <HTMProvidePassword v-if="settingsStore.settings.wallet === UsedWallet.CTOKENS_IMPLEMENTATION" />
         </aside>
       </SidebarProvider>
       <Toaster

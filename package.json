@@ -27,6 +27,7 @@
     "@eslint/compat": "^1.3.1",
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.32.0",
+    "@hiveio/beekeeper": "1.27.12-rc4",
     "@hiveio/wax": "1.27.12-rc1-251007115925",
     "@hiveio/wax-signers-keychain": "1.27.12-rc1-251007115925",
     "@hiveio/wax-signers-metamask": "1.27.12-rc1-251007115925",
