@@ -17,11 +17,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSettingsStore } from '@/stores/settings.store';
-import { getAccountBalances, transferNAIToken, stakeNAIToken, formatTokenAmount } from '@/utils/nai-tokens';
+import { useTokensStore } from '@/stores/tokens.store';
+import { transferNAIToken, stakeNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 
-const settingsStore = useSettingsStore();
+const tokensStore = useTokensStore();
 
 interface TokenBalance {
   symbol: string;
@@ -35,7 +35,6 @@ interface TokenBalance {
 }
 
 // State
-const balances = ref<TokenBalance[]>([]);
 const isLoading = ref(false);
 const searchQuery = ref('');
 
@@ -55,9 +54,9 @@ const isTransformLoading = ref(false);
 
 // Computed
 const filteredBalances = computed(() => {
-  if (!searchQuery.value) return balances.value;
+  if (!searchQuery.value) return tokensStore.balances;
 
-  return balances.value.filter(balance =>
+  return tokensStore.balances.filter(balance =>
     balance.symbol.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     balance.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
     balance.nai.includes(searchQuery.value)
@@ -65,11 +64,7 @@ const filteredBalances = computed(() => {
 });
 
 const totalValue = computed(() => {
-  // Mock calculation - in real app this would use current token prices
-  return balances.value.reduce((sum, balance) => {
-    const totalBalance = parseFloat(balance.total_balance);
-    return sum + (totalBalance * 0.01); // Mock price of $0.01 per token
-  }, 0);
+  return tokensStore.totalValue;
 });
 
 // Methods
@@ -77,24 +72,7 @@ const loadAccountBalances = async () => {
   try {
     isLoading.value = true;
 
-    const account = settingsStore.settings.account;
-    if (!account) {
-      toast.error('No account connected');
-      return;
-    }
-
-    const accountBalances = await getAccountBalances(account);
-
-    // Transform to match our interface
-    balances.value = accountBalances.map(balance => ({
-      ...balance,
-      total_balance: formatTokenAmount(
-        parseFloat(balance.liquid_balance) + parseFloat(balance.staked_balance),
-        balance.precision
-      )
-    }));
-
-    toast.success('Account balances loaded successfully');
+    await tokensStore.loadBalances(true);
   } catch (error) {
     toastError('Failed to load account balances', error);
   } finally {
@@ -274,7 +252,7 @@ onMounted(() => {
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">
-            {{ balances.length }}
+            {{ tokensStore.tokenCount }}
           </div>
           <p class="text-xs text-muted-foreground">
             Different token types
@@ -302,7 +280,7 @@ onMounted(() => {
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">
-            {{ balances.reduce((sum, b) => sum + parseFloat(b.liquid_balance), 0).toFixed(3) }}
+            {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(b.liquid_balance), 0).toFixed(3) }}
           </div>
           <p class="text-xs text-muted-foreground">
             Available for transfer
@@ -330,7 +308,7 @@ onMounted(() => {
         </CardHeader>
         <CardContent>
           <div class="text-2xl font-bold">
-            {{ balances.reduce((sum, b) => sum + parseFloat(b.staked_balance), 0).toFixed(3) }}
+            {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(b.staked_balance), 0).toFixed(3) }}
           </div>
           <p class="text-xs text-muted-foreground">
             Earning rewards
@@ -352,7 +330,7 @@ onMounted(() => {
 
     <!-- Loading State -->
     <div
-      v-if="isLoading"
+      v-if="tokensStore.isLoadingBalances"
       class="space-y-4"
     >
       <Card
