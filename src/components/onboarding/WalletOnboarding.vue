@@ -3,6 +3,7 @@ import { ref } from 'vue';
 
 import SelectWallet from '@/components/onboarding/SelectWallet.vue';
 import ThankYou from '@/components/onboarding/ThankYou.vue';
+import HTMConnect from '@/components/onboarding/wallets/htm/HTMConnect.vue';
 import KeychainConnect from '@/components/onboarding/wallets/keychain/KeychainConnect.vue';
 import MetamaskConnect from '@/components/onboarding/wallets/metamask/MetamaskConnect.vue';
 import PeakVaultConnect from '@/components/onboarding/wallets/peakvault/PeakVaultConnect.vue';
@@ -68,6 +69,11 @@ const backToStage1 = () => {
         />
         <MetamaskConnect
           v-if="selectedWallet === UsedWallet.METAMASK"
+          @close="backToStage1"
+          @setaccount="setAccount"
+        />
+        <HTMConnect
+          v-if="selectedWallet === UsedWallet.CTOKENS_IMPLEMENTATION"
           @close="backToStage1"
           @setaccount="setAccount"
         />

@@ -82,12 +82,12 @@ export const useUserStore = defineStore('user', {
     parsedPostingJsonMetadata: undefined as undefined | JsonMetadata,
     parsedJsonMetadata: undefined as undefined | JsonMetadata,
     balances: undefined as undefined | AssetBalances,
-    userData: undefined as undefined | ApiAccount,
-    manabars: undefined as undefined | Manabars
+    manabars: undefined as undefined | Manabars,
+    userDisplayName: undefined as undefined | string
   }),
   getters: {
     profileImage: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.profile_image || ctx.parsedJsonMetadata?.profile?.profile_image : undefined,
-    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.name || ctx.parsedJsonMetadata?.profile?.name || ctx.userData?.name : undefined,
+    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.name || ctx.parsedJsonMetadata?.profile?.name || ctx.userDisplayName : undefined,
     about: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.about || ctx.parsedJsonMetadata?.profile?.about : undefined,
     website: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.website || ctx.parsedJsonMetadata?.profile?.website : undefined
   },
@@ -96,17 +96,24 @@ export const useUserStore = defineStore('user', {
     resetSettings () {
       this.isReady = false;
       this.parsedPostingJsonMetadata = undefined;
-      this.userData = undefined;
       this.balances = undefined;
       this.manabars = undefined;
+      this.userDisplayName = undefined;
+    },
+    async getHivePrice () {
+      const wax = await getWax();
+
+      const { base, quote } = await wax.api.database_api.get_current_price_feed({});
+      const hivePrice = Number(base.amount) / Number(quote.amount);
+
+      return hivePrice;
     },
     async parseUserBalances (data: ApiAccount) {
       try {
         const wax = await getWax();
         const { total_vesting_fund_hive, total_vesting_shares, downvote_pool_percent, time } = await wax.api.database_api.get_dynamic_global_properties({});
-        const { base, quote } = await wax.api.database_api.get_current_price_feed({});
-        const hivePrice = Number(base.amount) / Number(quote.amount);
         const vestsToHp = (data: bigint) => BigInt(wax.vestsToHp(data, total_vesting_fund_hive, total_vesting_shares).amount);
+        const hivePrice = await this.getHivePrice();
         this.balances = {
           HP: {
             owned: new BalanceData(vestsToHp(BigInt(data.vesting_shares.amount) - BigInt(data.delegated_vesting_shares.amount)), data.balance.precision, hivePrice),
@@ -147,17 +154,92 @@ export const useUserStore = defineStore('user', {
         console.error('Error fetching prices:', error);
       }
     },
-    setUserData (data: ApiAccount) {
-      this.userData = data;
+    transformUserName (name: string): string {
+      if (name.startsWith('STM'))
+        return name.slice(0, 15) + '...';
+
+
+      if (name.length > 15)
+        return `@${name.slice(0, 15)}...`;
+
+
+      return `@${name}`;
+    },
+    async parseCTokenData (accountName: string) {
+      const wax = await getWax();
+
+      const [ user ] = await wax.restApi.ctokensApi.registeredUsers({ user: accountName });
+
+      if (!user)
+        throw new Error('CTokens user not found');
+
+
+      const hivePrice = await this.getHivePrice();
+
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      const metadata = user.metadata as Record<string, any>;
+
+      this.parsedJsonMetadata = {
+        profile: {
+          about: metadata?.about,
+          name: metadata?.name,
+          profile_image: metadata?.profile_image,
+          website: metadata?.website
+        }
+      };
+      this.balances = {
+        HBD: {
+          liquid: new BalanceData(0n, wax.ASSETS.HBD.precision, 1),
+          savings: new BalanceData(0n, wax.ASSETS.HBD.precision, 1),
+          unclaimed: new BalanceData(0n, wax.ASSETS.HBD.precision, 1)
+        },
+        HIVE: {
+          liquid: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          savings: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          unclaimed: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice)
+        },
+        HP: {
+          poweringDown: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          unclaimed: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          owned: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          received: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice),
+          delegated: new BalanceData(0n, wax.ASSETS.HIVE.precision, hivePrice)
+        }
+      };
+      this.manabars = {
+        downvote: {
+          current: 0n, max: 0n, percent: 0
+        },
+        rc: {
+          current: 0n, max: 0n, percent: 0
+        },
+        upvote: {
+          current: 0n, max: 0n, percent: 0
+        }
+      };
+    },
+    async parseUserData (accountName: string) {
+      this.userDisplayName = this.transformUserName(accountName);
+
+      if (accountName.startsWith('STM'))
+        await this.parseCTokenData(accountName);
+      else
+        await this.parseOnChainUserData(accountName);
+
+      this.isReady = true;
+    },
+    async parseOnChainUserData (accountName: string) {
+      const wax = await getWax();
+
+      const { accounts: [ data ] } = await wax.api.database_api.find_accounts({ accounts: [ accountName ], delayed_votes_active: false });
       try {
         this.parsedJsonMetadata = JSON.parse(data.json_metadata);
       } catch {}
       try {
         this.parsedPostingJsonMetadata = JSON.parse(data.posting_json_metadata);
       } catch {}
-      this.parseUserBalances(data).finally(() => {
-        this.isReady = true;
-      });
+
+      await this.parseUserBalances(data);
     },
     async getAccountMetadata (accountName: string) {
       const wax = await getWax();

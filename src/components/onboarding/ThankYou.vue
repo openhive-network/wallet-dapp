@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
+import { computed } from 'vue';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { UsedWallet } from '@/stores/settings.store';
 import { getWalletIcon, stringifyWalletName } from '@/stores/settings.store';
+import { useUserStore } from '@/stores/user.store';
+
+const userStore = useUserStore();
 
 const emit = defineEmits(['close']);
 
@@ -12,6 +16,10 @@ const props = defineProps<{
   account: string;
   wallet: UsedWallet;
 }>();
+
+const account = computed(() => {
+  return userStore.transformUserName(props.account);
+});
 
 const stringifiedWallet = stringifyWalletName(props.wallet);
 
@@ -44,7 +52,7 @@ const close = () => {
           style="fill: hsl(var(--foreground))"
           :d="mdiClose"
         /></svg>
-        <span class="text-lg font-bold">@{{ props.account }}</span>
+        <span class="text-lg font-bold">{{ account }}</span>
       </div>
     </CardContent>
     <CardFooter class="flex justify-center">
