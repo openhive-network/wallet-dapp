@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiSendOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -16,10 +16,10 @@ const { toggleSidebar, isMobile } = useSidebar();
 
 const walletStore = useWalletStore();
 
-const isLoggedIn = computed(() => walletStore.hasWallet);
+const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 
 const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
-  title: 'Account management',
+  title: 'Hive Account Management',
   items: [
     {
       title: 'Home',
@@ -35,36 +35,31 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
       title: 'Process Account Creation',
       url: '/account/create',
       icon: mdiAccountReactivateOutline,
-      visible: isLoggedIn
+      visible: isL1BasedView
     },
     {
       title: 'Process Authority Update',
       url: '/account/update',
       icon: mdiAccountArrowUpOutline,
-      visible: isLoggedIn
+      visible: isL1BasedView
     }
   ]
 }, {
-  title: 'Finances',
+  title: 'Tokens',
   items: [
     {
-      title: 'Account Balances',
-      url: '/finances/account-balances',
+      title: 'Token Balances',
+      url: '/tokens/my-balance',
       icon: mdiWallet
     },
     {
-      title: 'Send transfer',
-      url: '/finances/transfer',
-      icon: mdiSendOutline
-    },
-    {
       title: 'My Token Definitions',
-      url: '/finances/token-definitions',
+      url: '/tokens/my-tokens',
       icon: mdiViewList
     },
     {
       title: 'Token Holders',
-      url: '/finances/token-holders',
+      url: '/tokens/holders',
       icon: mdiAccountGroup
     }
   ]

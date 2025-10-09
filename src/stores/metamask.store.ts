@@ -1,17 +1,21 @@
 import type { TRole } from '@hiveio/wax';
 import MetamaskProvider from '@hiveio/wax-signers-metamask';
 import { defineStore } from 'pinia';
+import { shallowRef } from 'vue';
 
 import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
 
+// Do not watch for changes inside the metamask wallet - its only a tool we call functions from
+const metamaskWallet = shallowRef<MetamaskProvider | undefined>(undefined);
+
 export const useMetamaskStore = defineStore('metamask', {
   state: () => ({
-    metamask: undefined as undefined | MetamaskProvider,
     performingOperation: false
   }),
   getters: {
-    isConnected: state => !!state.metamask,
-    isFlask: state => state.metamask?.isFlaskDetected
+    metamask: () => metamaskWallet.value,
+    isConnected: () => !!metamaskWallet.value,
+    isFlask: () => metamaskWallet.value?.isFlaskDetected
   },
   actions: {
     async call (method: string, params: unknown[] | Record<string, unknown> | undefined) {
@@ -31,7 +35,7 @@ export const useMetamaskStore = defineStore('metamask', {
         this.performingOperation = true;
 
         console.log('Connecting to Metamask with account index:', accountIndex, 'and role:', role);
-        this.metamask = await MetamaskProvider.for(accountIndex, role, defaultSnapOrigin);
+        metamaskWallet.value = await MetamaskProvider.for(accountIndex, role, defaultSnapOrigin);
       } finally {
         this.performingOperation = false;
       }

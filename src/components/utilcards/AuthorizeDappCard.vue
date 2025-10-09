@@ -69,7 +69,8 @@ const authorize = async () => {
         id: 'dappauth',
         json: JSON.stringify({
           dapp: props.app,
-          code: props.code
+          code: props.code,
+          layer: walletStore.isL2Wallet ? '2' : '1'
         })
       }
     });
