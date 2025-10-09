@@ -8,6 +8,19 @@ import { parseReputation } from '@/utils/parse-reputation';
 const PERCENT_VALUE_DOUBLE_PRECISION = 100;
 const ONE_HUNDRED_PERCENT = BigInt(100) * BigInt(PERCENT_VALUE_DOUBLE_PRECISION);
 
+export const transformUserName = (name: string): string => {
+  if (name.startsWith('STM'))
+    return name.slice(0, 15) + '...';
+
+  if (name.startsWith('@'))
+    name = name.slice(1);
+
+  if (name.length > 15)
+    return `@${name.slice(0, 15)}...`;
+
+  return `@${name}`;
+};
+
 export class BalanceData {
   public readonly usdValue: number;
   public readonly usdString: string;
@@ -87,7 +100,7 @@ export const useUserStore = defineStore('user', {
   }),
   getters: {
     profileImage: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.profile_image || ctx.parsedJsonMetadata?.profile?.profile_image : undefined,
-    name: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.name || ctx.parsedJsonMetadata?.profile?.name || ctx.userDisplayName : undefined,
+    name: (ctx): undefined | string => ctx.isReady ? transformUserName(ctx.parsedPostingJsonMetadata?.profile?.name || ctx.parsedJsonMetadata?.profile?.name || ctx.userDisplayName as string) : undefined,
     about: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.about || ctx.parsedJsonMetadata?.profile?.about : undefined,
     website: (ctx): undefined | string => ctx.isReady ? ctx.parsedPostingJsonMetadata?.profile?.website || ctx.parsedJsonMetadata?.profile?.website : undefined
   },
@@ -154,17 +167,6 @@ export const useUserStore = defineStore('user', {
         console.error('Error fetching prices:', error);
       }
     },
-    transformUserName (name: string): string {
-      if (name.startsWith('STM'))
-        return name.slice(0, 15) + '...';
-
-
-      if (name.length > 15)
-        return `@${name.slice(0, 15)}...`;
-
-
-      return `@${name}`;
-    },
     async parseCTokenData (accountName: string) {
       const wax = await getWax();
 
@@ -219,7 +221,7 @@ export const useUserStore = defineStore('user', {
       };
     },
     async parseUserData (accountName: string) {
-      this.userDisplayName = this.transformUserName(accountName);
+      this.userDisplayName = transformUserName(accountName);
 
       if (accountName.startsWith('STM'))
         await this.parseCTokenData(accountName);

@@ -63,7 +63,7 @@ const close = () => {
         :disabled="!walletsStatus.ctokens"
         :logo-url="getWalletIcon(UsedWallet.CTOKENS_IMPLEMENTATION)"
         name="Hive Token Machine"
-        description="Use your HTM wallet"
+        description="Choose this option if you do not own a Hive account"
         @click="useWallet(UsedWallet.CTOKENS_IMPLEMENTATION)"
       />
       <OnboardingButton
