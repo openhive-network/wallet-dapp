@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { shallowRef } from 'vue';
 
 import {
   cTokensApi,
@@ -12,16 +13,18 @@ import {
 } from '@/utils/ctokens-api';
 import type CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
+
 export const useTokensStore = defineStore('tokens', {
   state: () => ({
     balances: [] as LegacyTokenBalance[],
     tokenDefinitions: [] as LegacyTokenDefinition[],
     isLoadingBalances: false,
     isLoadingTokens: false,
-    lastError: null as string | null,
-    wallet: undefined as CTokensProvider | undefined
+    lastError: null as string | null
   }),
   getters: {
+    wallet: () => cTokensProvider.value,
     totalValue: (state) => {
       return state.balances.reduce((total, balance) => {
         // Mock price of $0.01 per token for now
@@ -185,6 +188,9 @@ export const useTokensStore = defineStore('tokens', {
     },
     clearError () {
       this.lastError = null;
+    },
+    reset (cTokensWallet?: CTokensProvider | undefined) {
+      cTokensProvider.value = cTokensWallet;
     }
   }
 });
