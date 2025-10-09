@@ -145,7 +145,7 @@ export const getWax = async () => {
     chain = (await (await import('@hiveio/wax/vite')).createHiveChain()).extend<WaxApi>().extendRest(CTokensApi);
 
     // These steps are repeated in the CtokensProvider constructor, but we need them here too as for now - maybe find a better way of handling this?
-    chain.restApi.ctokensApi.endpointUrl = DEFAULT_CTOKENS_API_URL;
+    chain.restApi.ctokensApi.endpointUrl = import.meta.env.VITE_CTOKENS_API_URL || DEFAULT_CTOKENS_API_URL;
   }
 
   return chain;
