@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import ThemeSwitch from '@/components/ui/theme-switch';
 import { useSettingsStore, getWalletIcon } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 
@@ -14,11 +15,13 @@ const settingsStore = useSettingsStore();
 const hasUser = computed(() => settingsStore.settings.account !== undefined);
 const walletStore = useWalletStore();
 const userStore = useUserStore();
+const tokensStore = useTokensStore();
 
 const logout = () => {
   settingsStore.resetSettings();
   walletStore.resetWallet();
   userStore.resetSettings();
+  tokensStore.reset();
 };
 </script>
 

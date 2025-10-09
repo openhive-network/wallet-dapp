@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem , useSidebar } from '@/components/ui/sidebar';
+import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
@@ -14,9 +15,11 @@ const router = useRouter();
 
 const { toggleSidebar, isMobile } = useSidebar();
 
+const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
+const hasNoHTMWallet = computed(() => !tokensStore.wallet);
 
 const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
   title: 'Hive Account Management',
@@ -47,6 +50,12 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
 }, {
   title: 'Tokens',
   items: [
+    {
+      title: 'Register HTM Account',
+      url: '/tokens/register-account',
+      icon: mdiAccountPlusOutline,
+      visible: hasNoHTMWallet
+    },
     {
       title: 'Token Balances',
       url: '/tokens/my-balance',

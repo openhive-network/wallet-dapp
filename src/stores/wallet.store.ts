@@ -118,7 +118,7 @@ export const useWalletStore = defineStore('wallet', {
 
         const tokensStore = useTokensStore();
 
-        tokensStore.wallet = this.wallet as CTokensProvider;
+        tokensStore.reset(currentWallet.value as CTokensProvider);
         this.isL2Wallet = true;
 
         break;
