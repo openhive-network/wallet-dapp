@@ -35,7 +35,7 @@ export const useTokensStore = defineStore('tokens', {
     hasTokenDefinitions: (state) => state.tokenDefinitions.length > 0
   },
   actions: {
-    async loadBalances(forceRefresh = false) {
+    async loadBalances (forceRefresh = false) {
       const operationalKey = getUserOperationalKey();
 
       if (!operationalKey) {
@@ -113,7 +113,7 @@ export const useTokensStore = defineStore('tokens', {
         this.isLoadingBalances = false;
       }
     },
-    async loadTokenDefinitions(creator?: string, forceRefresh = false) {
+    async loadTokenDefinitions (creator?: string, forceRefresh = false) {
       if (this.isLoadingTokens && !forceRefresh) return;
 
       this.isLoadingTokens = true;
@@ -161,29 +161,29 @@ export const useTokensStore = defineStore('tokens', {
         this.isLoadingTokens = false;
       }
     },
-    async getBalanceHistory(nai: string, precision: number, page = 1): Promise<CTokenBalanceHistory[]> {
+    async getBalanceHistory (nai: string, precision: number, page = 1): Promise<CTokenBalanceHistory[]> {
       const operationalKey = getUserOperationalKey();
       if (!operationalKey)
         throw new Error('No operational key available');
 
       return cTokensApi.getBalanceHistory(operationalKey, nai, precision, page);
     },
-    async getTopHolders(nai: string, precision: number, page = 1): Promise<CTokenTopHolder[]> {
+    async getTopHolders (nai: string, precision: number, page = 1): Promise<CTokenTopHolder[]> {
       return cTokensApi.getTopHolders(nai, precision, page);
     },
-    getTokenByNAI(nai: string): LegacyTokenBalance | undefined {
+    getTokenByNAI (nai: string): LegacyTokenBalance | undefined {
       return this.balances.find(balance => balance.nai === nai);
     },
-    getTokenDefinitionByNAI(nai: string): LegacyTokenDefinition | undefined {
+    getTokenDefinitionByNAI (nai: string): LegacyTokenDefinition | undefined {
       return this.tokenDefinitions.find(token => token.nai === nai);
     },
-    async refreshAll() {
+    async refreshAll () {
       await Promise.all([
         this.loadBalances(true),
         this.loadTokenDefinitions(undefined, true)
       ]);
     },
-    clearError() {
+    clearError () {
       this.lastError = null;
     }
   }

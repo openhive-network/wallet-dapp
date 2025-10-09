@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
+import type CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const walletStore = useWalletStore();
 const settingsStore = useSettingsStore();
@@ -45,9 +46,16 @@ const useMyMemoKey = async () => {
     if (!hasWallet.value)
       await walletStore.openWalletSelectModal();
 
-    const key = await getMemoKeyForUser(settingsStore.account!);
-    if (key)
-      encryptForKey.value = key;
+    if(walletStore.isL2Wallet) {
+      // XXX: Maybe handle this in a better way in the future - maybe a common interface for L2 wallets?
+      const key = (wallet.value as CTokensProvider)!.publicKey;
+      if (key)
+        encryptForKey.value = key;
+    } else {
+      const key = await getMemoKeyForUser(settingsStore.account!);
+      if (key)
+        encryptForKey.value = key;
+    }
   } finally {
     isLoading.value = false;
   }
@@ -104,7 +112,7 @@ const encryptOrDecrypt = async () => {
     <CardContent>
       <Tabs
         default-value="decrypt"
-        @update:model-value="value => isEncrypt = value === 'encrypt'"
+        @update:model-value="(value: string) => isEncrypt = value === 'encrypt'"
       >
         <TabsList>
           <TabsTrigger value="decrypt">
