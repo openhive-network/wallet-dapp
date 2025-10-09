@@ -3,6 +3,7 @@ import KeychainProvider from '@hiveio/wax-signers-keychain';
 import MetaMaskProvider from '@hiveio/wax-signers-metamask';
 import PeakVaultProvider from '@hiveio/wax-signers-peakvault';
 import { defineStore } from 'pinia';
+import { shallowRef } from 'vue';
 import { toast } from 'vue-sonner';
 
 import { getWax } from '@/stores/wax.store';
@@ -16,6 +17,9 @@ let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
 const intervalIds = new Set<NodeJS.Timeout>();
 
+// Do not watch for changes inside the current wallet - its only a tool we call functions from
+const currentWallet = shallowRef<AEncryptionProvider | undefined>(undefined);
+
 export const useWalletStore = defineStore('wallet', {
   state: () => ({
     _walletsStatus: {
@@ -25,12 +29,12 @@ export const useWalletStore = defineStore('wallet', {
       ctokens: true
     },
     isL2Wallet: false,
-    wallet: undefined as undefined | AEncryptionProvider,
     isWalletSelectModalOpen: false,
     isProvideWalletPasswordModalOpen: false
   }),
   getters: {
-    hasWallet: state => !!state.wallet,
+    wallet: () => currentWallet.value,
+    hasWallet: () => !!currentWallet.value,
     walletsStatus: state => {
       if (!walletRetrievalIntervalId) {
         const checkForWallets = () => {
@@ -82,19 +86,19 @@ export const useWalletStore = defineStore('wallet', {
 
         await metamaskStore.connect(0, role);
 
-        this.wallet = metamaskStore.metamask;
+        currentWallet.value = metamaskStore.metamask;
         this.isL2Wallet = false;
 
         break;
       }
       case UsedWallet.KEYCHAIN: {
-        this.wallet = KeychainProvider.for(settings.account!, role);
+        currentWallet.value = KeychainProvider.for(settings.account!, role);
         this.isL2Wallet = false;
 
         break;
       }
       case UsedWallet.PEAKVAULT: {
-        this.wallet = PeakVaultProvider.for(settings.account!, role);
+        currentWallet.value = PeakVaultProvider.for(settings.account!, role);
         this.isL2Wallet = false;
 
         break;
@@ -110,7 +114,7 @@ export const useWalletStore = defineStore('wallet', {
 
         const wax = await getWax();
 
-        this.wallet = await CTokensProvider.for(wax, role);
+        currentWallet.value = await CTokensProvider.for(wax, role);
 
         const tokensStore = useTokensStore();
 
@@ -124,8 +128,8 @@ export const useWalletStore = defineStore('wallet', {
       }
     },
     resetWallet () {
-      (this.wallet as AEncryptionProvider & { destroy?: () => void })?.destroy?.();
-      this.wallet = undefined;
+      (currentWallet.value as AEncryptionProvider & { destroy?: () => void })?.destroy?.();
+      currentWallet.value = undefined;
     }
   }
 });
