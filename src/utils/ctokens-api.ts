@@ -1,4 +1,19 @@
+import type { TWaxRestExtended, IHiveChainInterface } from '@hiveio/wax';
+
 import { useSettingsStore } from '@/stores/settings.store';
+import { getWax } from '@/stores/wax.store';
+import type {
+  CtokensAppBalance,
+  CtokensAppBalanceHistory,
+  CtokensAppTransactionStatusResponse,
+  CtokensAppArrayOfTokens,
+  CtokensAppArrayOfUsers,
+  CtokensAppArrayOfTopHolders,
+  CtokensAppToken
+} from '@/utils/wallet/ctokens/api';
+
+import type RestApi from '../utils/wallet/ctokens/api';
+
 
 // Types based on ctokens-api OpenAPI specification
 
@@ -62,44 +77,13 @@ export interface TransactionStatusResult {
 
 /**
  * Custom Tokens API Service
- * Provides methods to interact with the ctokens-api
+ * Provides methods to interact with the ctokens-api through wax extension
  */
 export class CTokensApiService {
-  private baseUrl: string;
+  private readonly extendedChain: TWaxRestExtended<typeof RestApi, IHiveChainInterface>;
 
-  public constructor (baseUrl: string = '/ctokens-api') {
-    this.baseUrl = baseUrl;
-  }
-
-  private async makeRequest<T> (endpoint: string, params?: Record<string, string | number>): Promise<T> {
-    const url = new URL(`${this.baseUrl}${endpoint}`, window.location.origin);
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null)
-          url.searchParams.append(key, value.toString());
-      });
-    }
-
-    const response = await fetch(url.toString());
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed: ${response.status} ${response.statusText}. Response: ${errorText.substring(0, 200)}`);
-    }
-
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      const responseText = await response.text();
-      throw new Error(`Expected JSON response but received ${contentType || 'unknown'}. Response: ${responseText.substring(0, 200)}`);
-    }
-
-    try {
-      return await response.json();
-    } catch (_parseError) {
-      const responseText = await response.text();
-      throw new Error(`Failed to parse JSON response. Content: ${responseText.substring(0, 200)}`);
-    }
+  public constructor (extendedChain: TWaxRestExtended<typeof RestApi, IHiveChainInterface>) {
+    this.extendedChain = extendedChain;
   }
 
   /**
@@ -107,7 +91,7 @@ export class CTokensApiService {
    */
   public async testConnection (): Promise<boolean> {
     try {
-      await this.getLastSyncedBlock();
+      await this.extendedChain.restApi.ctokensApi.lastSyncedBlock();
       return true;
     } catch (_error) {
       return false;
@@ -118,21 +102,21 @@ export class CTokensApiService {
    * Get API version
    */
   public async getVersion (): Promise<string> {
-    return this.makeRequest<string>('/version');
+    return await this.extendedChain.restApi.ctokensApi.version();
   }
 
   /**
    * Get last synced block number
    */
   public async getLastSyncedBlock (): Promise<number> {
-    return this.makeRequest<number>('/last-synced-block');
+    return await this.extendedChain.restApi.ctokensApi.lastSyncedBlock();
   }
 
   /**
    * Get account balances for a user
    */
-  public async getAccountBalances (user: string, page: number = 1): Promise<CTokenBalance[]> {
-    return this.makeRequest<CTokenBalance[]>('/balances', { user, page });
+  public async getAccountBalances (user: string, page: number = 1): Promise<CtokensAppBalance[]> {
+    return await this.extendedChain.restApi.ctokensApi.balances({ user, page });
   }
 
   /**
@@ -143,8 +127,8 @@ export class CTokensApiService {
     nai: string,
     precision: number,
     page: number = 1
-  ): Promise<CTokenBalanceHistory[]> {
-    return this.makeRequest<CTokenBalanceHistory[]>('/balance-history', {
+  ): Promise<CtokensAppBalanceHistory[]> {
+    return await this.extendedChain.restApi.ctokensApi.balanceHistory({
       user,
       nai,
       precision,
@@ -155,29 +139,29 @@ export class CTokensApiService {
   /**
    * Get list of registered tokens
    */
-  public async getRegisteredTokens (nai?: string, precision?: number): Promise<CToken[]> {
+  public async getRegisteredTokens (nai?: string, precision?: number): Promise<CtokensAppArrayOfTokens> {
     const params: Record<string, string | number> = {};
     if (nai) params.nai = nai;
     if (precision !== undefined) params.precision = precision;
 
-    return this.makeRequest<CToken[]>('/registered-tokens', params);
+    return await this.extendedChain.restApi.ctokensApi.registeredTokens(params);;
   }
 
   /**
    * Get list of registered users
    */
-  public async getRegisteredUsers (user?: string): Promise<CTokenUser[]> {
-    const params: Record<string, string | number> = {};
+  public async getRegisteredUsers (user?: string): Promise<CtokensAppArrayOfUsers> {
+    const params: Record<string, string> = {};
     if (user) params.user = user;
 
-    return this.makeRequest<CTokenUser[]>('/registered-users', params);
+    return await this.extendedChain.restApi.ctokensApi.registeredUsers(params);
   }
 
   /**
    * Get top holders for a specific token
    */
-  public async getTopHolders (nai: string, precision: number, page: number = 1): Promise<CTokenTopHolder[]> {
-    return this.makeRequest<CTokenTopHolder[]>('/top-holders', {
+  public async getTopHolders (nai: string, precision: number, page: number = 1): Promise<CtokensAppArrayOfTopHolders> {
+    return await this.extendedChain.restApi.ctokensApi.topHolders({
       nai,
       precision,
       page
@@ -186,73 +170,23 @@ export class CTokensApiService {
 
   /**
    * Get transaction status by reference ID
-   * Returns status based on HTTP response codes:
-   * - 404: Transaction pending (not found yet)
-   * - 200: Transaction confirmed
-   * - 400: Transaction failed (with error message)
+   * Returns status based on API response:
+   * - API returns result: Transaction confirmed
+   * - API throws error: Transaction failed or pending
    */
-  public async getTransactionStatus (refId: string): Promise<TransactionStatusResult> {
-    const url = new URL(`${this.baseUrl}/status`, window.location.origin);
-    url.searchParams.append('refId', refId);
-
-    try {
-      const response = await fetch(url.toString());
-
-      if (response.status === 404) {
-        // Transaction is still pending
-        return {
-          status: 'pending',
-          httpCode: 404,
-          error: 'Transaction not found - still processing'
-        };
-      }
-
-      if (response.status === 200) {
-        // Transaction confirmed
-        const data = await response.json();
-        return {
-          status: 'confirmed',
-          httpCode: 200,
-          data
-        };
-      }
-
-      if (response.status === 400) {
-        // Transaction failed
-        const data = await response.json();
-        return {
-          status: 'failed',
-          httpCode: 400,
-          data,
-          error: data.message || 'Transaction failed'
-        };
-      }
-
-      // Unexpected status code
-      const errorText = await response.text();
-      return {
-        status: 'failed',
-        httpCode: response.status,
-        error: `Unexpected response: ${response.status} ${response.statusText}. ${errorText.substring(0, 200)}`
-      };
-
-    } catch (networkError) {
-      return {
-        status: 'failed',
-        httpCode: 0,
-        error: `Network error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`
-      };
-    }
+  public async getTransactionStatus (refId: string): Promise<CtokensAppTransactionStatusResponse> {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    return await this.extendedChain.restApi.ctokensApi.status({ 'ref-id': refId });
   }
 }
 
-// Create singleton instance with configurable URL
-const getApiBaseUrl = (): string => {
-  // Check for environment variable or default to local
-  return import.meta.env.VITE_CTOKENS_API_URL || '/ctokens-api';
-};
+// Create singleton instance
+export const cTokensApi = new CTokensApiService(await getWax());
 
-export const cTokensApi = new CTokensApiService(getApiBaseUrl());
+// Factory function to create instance with specific wax instance
+export const createCTokensApiService = (waxInstance: Awaited<ReturnType<typeof getWax>>): CTokensApiService => {
+  return new CTokensApiService(waxInstance);
+};
 
 /**
  * Enhanced token utilities that integrate with ctokens-api
@@ -345,8 +279,8 @@ export interface LegacyTokenBalance {
 }
 
 export const transformCTokenBalanceToLegacy = (
-  balance: CTokenBalance,
-  token: CToken
+  balance: CtokensAppBalance,
+  token: CtokensAppToken
 ): LegacyTokenBalance => {
   const formattedAmount = formatCTokenAmount(balance.amount, balance.precision);
 
@@ -392,47 +326,6 @@ export const transformCTokenToLegacy = (token: CToken): LegacyTokenDefinition =>
     creator: token.owner,
     created_at: new Date().toISOString(), // ctokens-api doesn't provide creation date
     active: true // assume all registered tokens are active
-  };
-};
-
-/**
- * Poll transaction status until it's no longer pending
- * @param refId - Transaction reference ID
- * @param maxAttempts - Maximum number of polling attempts
- * @param intervalMs - Polling interval in milliseconds
- * @returns Promise resolving to final transaction status
- */
-export const pollTransactionStatus = async (
-  refId: string,
-  maxAttempts: number = 30,
-  intervalMs: number = 2000
-): Promise<TransactionStatusResult> => {
-  const apiService = cTokensApi;
-
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const result = await apiService.getTransactionStatus(refId);
-
-    // If status is not pending, return immediately
-    if (result.status !== 'pending')
-      return result;
-
-    // If this was the last attempt, return the pending status
-    if (attempt === maxAttempts) {
-      return {
-        ...result,
-        error: `Transaction still pending after ${maxAttempts} attempts`
-      };
-    }
-
-    // Wait before next attempt
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-  }
-
-  // This should never be reached, but TypeScript requires it
-  return {
-    status: 'failed',
-    httpCode: 0,
-    error: 'Polling completed without result'
   };
 };
 
