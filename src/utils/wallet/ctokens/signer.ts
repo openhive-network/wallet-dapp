@@ -139,7 +139,7 @@ export class CTokensProvider extends AEncryptionProvider {
     return { management, operational };
   }
 
-  public static async for (chain: IHiveChainInterface, role: TRole, ctokensUrl: string = DEFAULT_CTOKENS_API_URL): Promise<CTokensProvider> {
+  public static async for (chain: IHiveChainInterface, role: TRole, ctokensUrl: string = (import.meta.env.VITE_CTOKENS_API_URL || DEFAULT_CTOKENS_API_URL)): Promise<CTokensProvider> {
     if (role === 'owner') {
       if (!CTokensProvider.#managementWallet)
         throw new WaxCTokensEncryptionProviderError('Owner wallet is not available. Make sure to login with the correct password and import the required key.');
