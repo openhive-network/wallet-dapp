@@ -7,10 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/round-progress';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
-
-const settingsStore = useSettingsStore();
 
 const userStore = useUserStore();
 
@@ -100,7 +97,7 @@ const rcPercentage = computed(() => {
             <span
               v-if="userStore.isReady"
               class="text-xs font-bold top-[-5px]"
-            >@{{ settingsStore.settings.account }}</span>
+            >{{ userStore.name }}</span>
             <Skeleton
               v-else
               class="w-40 h-6"

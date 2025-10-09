@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import type { UsedWallet } from '@/stores/settings.store';
 import { getWalletIcon, stringifyWalletName } from '@/stores/settings.store';
-import { useUserStore } from '@/stores/user.store';
-
-const userStore = useUserStore();
+import { transformUserName } from '@/stores/user.store';
 
 const emit = defineEmits(['close']);
 
@@ -18,7 +16,7 @@ const props = defineProps<{
 }>();
 
 const account = computed(() => {
-  return userStore.transformUserName(props.account);
+  return transformUserName(props.account);
 });
 
 const stringifiedWallet = stringifyWalletName(props.wallet);
