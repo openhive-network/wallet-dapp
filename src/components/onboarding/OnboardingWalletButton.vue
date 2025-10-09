@@ -75,6 +75,9 @@ const emit = defineEmits(['click']);
 
 <style scoped>
 .text-description {
+  word-break: break-word;
+  display: inline-block;
+  white-space: pre-line;
   color: hsla(var(--foreground) / .5);
 }
 </style>

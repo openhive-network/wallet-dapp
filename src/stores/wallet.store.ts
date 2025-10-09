@@ -10,7 +10,7 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 import { useMetamaskStore } from './metamask.store';
 import { type Settings, UsedWallet } from './settings.store';
-
+import { useTokensStore } from './tokens.store';
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -24,6 +24,7 @@ export const useWalletStore = defineStore('wallet', {
       peakvault: false,
       ctokens: true
     },
+    isL2Wallet: false,
     wallet: undefined as undefined | AEncryptionProvider,
     isWalletSelectModalOpen: false,
     isProvideWalletPasswordModalOpen: false
@@ -82,16 +83,19 @@ export const useWalletStore = defineStore('wallet', {
         await metamaskStore.connect(0, role);
 
         this.wallet = metamaskStore.metamask;
+        this.isL2Wallet = false;
 
         break;
       }
       case UsedWallet.KEYCHAIN: {
         this.wallet = KeychainProvider.for(settings.account!, role);
+        this.isL2Wallet = false;
 
         break;
       }
       case UsedWallet.PEAKVAULT: {
         this.wallet = PeakVaultProvider.for(settings.account!, role);
+        this.isL2Wallet = false;
 
         break;
       }
@@ -107,6 +111,11 @@ export const useWalletStore = defineStore('wallet', {
         const wax = await getWax();
 
         this.wallet = await CTokensProvider.for(wax, role);
+
+        const tokensStore = useTokensStore();
+
+        tokensStore.wallet = this.wallet as CTokensProvider;
+        this.isL2Wallet = true;
 
         break;
       }
