@@ -5,6 +5,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -132,6 +133,17 @@ onMounted(() => {
       </CardDescription>
     </CardHeader>
     <CardContent>
+      <Alert
+        v-if="walletStore.isL2Wallet"
+        variant="warning"
+      >
+        <AlertCircle class="w-4 h-4" />
+        <AlertTitle>Potential Layer mismatch warning</AlertTitle>
+        <AlertDescription>
+          You are using a Layer 2 wallet, but signing transactions is only supported using Layer 1 wallets.<br>
+          Make sure you know what you are doing or switch to a Layer 1 wallet.
+        </AlertDescription>
+      </Alert>
       <Textarea
         v-model="inputData"
         placeholder="Transaction in API JSON form"
