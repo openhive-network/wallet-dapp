@@ -6,7 +6,7 @@ import Index from '@/pages/index.vue';
 import SignMessage from '@/pages/sign/message.vue';
 import SignTransaction from '@/pages/sign/transaction.vue';
 import CreateToken from '@/pages/tokens/create.vue';
-import TokenHolders from '@/pages/tokens/holders.vue';
+import TokensList from '@/pages/tokens/list.vue';
 import AccountBalances from '@/pages/tokens/my-balance.vue';
 import TokenDefinitions from '@/pages/tokens/my-tokens.vue';
 import RegisterHTMAccount from '@/pages/tokens/register-account.vue';
@@ -22,6 +22,6 @@ export const routes = [
   { path: '/tokens/create', component: CreateToken },
   { path: '/tokens/my-tokens', component: TokenDefinitions },
   { path: '/tokens/my-balance', component: AccountBalances },
-  { path: '/tokens/holders', component: TokenHolders },
+  { path: '/tokens/list', component: TokensList },
   { path: '/automation/authorize', component: DappAuthorize }
 ];
