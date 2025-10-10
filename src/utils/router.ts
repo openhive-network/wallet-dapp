@@ -10,6 +10,7 @@ import TokensList from '@/pages/tokens/list.vue';
 import AccountBalances from '@/pages/tokens/my-balance.vue';
 import TokenDefinitions from '@/pages/tokens/my-tokens.vue';
 import RegisterHTMAccount from '@/pages/tokens/register-account.vue';
+import TokenDetail from '@/pages/tokens/token.vue';
 
 export const routes = [
   { path: '/', component: Index },
@@ -23,5 +24,6 @@ export const routes = [
   { path: '/tokens/my-tokens', component: TokenDefinitions },
   { path: '/tokens/my-balance', component: AccountBalances },
   { path: '/tokens/list', component: TokensList },
+  { path: '/tokens/token', component: TokenDetail },
   { path: '/automation/authorize', component: DappAuthorize }
 ];

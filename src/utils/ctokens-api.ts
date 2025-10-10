@@ -8,8 +8,7 @@ import type {
   CtokensAppTransactionStatusResponse,
   CtokensAppArrayOfTokens,
   CtokensAppArrayOfUsers,
-  CtokensAppArrayOfTopHolders,
-  CtokensAppToken
+  CtokensAppArrayOfTopHolders
 } from '@/utils/wallet/ctokens/api';
 
 import type RestApi from '../utils/wallet/ctokens/api';
@@ -180,8 +179,17 @@ export class CTokensApiService {
   }
 }
 
-// Create singleton instance
-export const cTokensApi = new CTokensApiService(await getWax());
+// Lazy initialization to avoid top-level await
+let _cTokensApiInstance: CTokensApiService | null = null;
+
+// Get or create singleton instance
+export const getCTokensApi = async (): Promise<CTokensApiService> => {
+  if (!_cTokensApiInstance) {
+    const wax = await getWax();
+    _cTokensApiInstance = new CTokensApiService(wax);
+  }
+  return _cTokensApiInstance;
+};
 
 // Factory function to create instance with specific wax instance
 export const createCTokensApiService = (waxInstance: Awaited<ReturnType<typeof getWax>>): CTokensApiService => {
@@ -262,71 +270,6 @@ export const getUserOperationalKey = (): string => {
   }
 
   return account;
-};
-
-/**
- * Transform CTokenBalance to legacy TokenBalance format
- */
-export interface LegacyTokenBalance {
-  symbol: string;
-  name: string;
-  nai: string;
-  liquid_balance: string;
-  staked_balance: string;
-  total_balance: string;
-  precision: number;
-  logo_url?: string;
-}
-
-export const transformCTokenBalanceToLegacy = (
-  balance: CtokensAppBalance,
-  token: CtokensAppToken
-): LegacyTokenBalance => {
-  const formattedAmount = formatCTokenAmount(balance.amount, balance.precision);
-
-  return {
-    symbol: getTokenSymbol(token),
-    name: getTokenName(token),
-    nai: balance.nai,
-    liquid_balance: formattedAmount,
-    staked_balance: '0.000', // ctokens-api doesn't distinguish liquid vs staked in balances endpoint
-    total_balance: formattedAmount,
-    precision: balance.precision,
-    logo_url: getTokenLogoUrl(token)
-  };
-};
-
-/**
- * Transform CToken to legacy TokenDefinition format
- */
-export interface LegacyTokenDefinition {
-  symbol: string;
-  name: string;
-  description: string;
-  nai: string;
-  initial_supply: string;
-  current_supply: string;
-  precision: number;
-  can_stake: boolean;
-  creator: string;
-  created_at: string;
-  active: boolean;
-}
-
-export const transformCTokenToLegacy = (token: CToken): LegacyTokenDefinition => {
-  return {
-    symbol: getTokenSymbol(token),
-    name: getTokenName(token),
-    description: getTokenDescription(token),
-    nai: token.nai,
-    initial_supply: formatCTokenAmount(token.total_supply, token.precision),
-    current_supply: formatCTokenAmount(token.total_supply, token.precision),
-    precision: token.precision,
-    can_stake: canTokenStake(token),
-    creator: token.owner,
-    created_at: new Date().toISOString(), // ctokens-api doesn't provide creation date
-    active: true // assume all registered tokens are active
-  };
 };
 
 /**
