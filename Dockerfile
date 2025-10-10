@@ -33,3 +33,7 @@ LABEL io.hive.image.branch="$GIT_CURRENT_BRANCH"
 LABEL io.hive.image.commit.log_message="$GIT_LAST_LOG_MESSAGE"
 LABEL io.hive.image.commit.author="$GIT_LAST_COMMITTER"
 LABEL io.hive.image.commit.date="$GIT_LAST_COMMIT_DATE"
+
+ENV VITE_CTOKENS_API_URL=
+ENV VITE_HIVE_NODE_ENDPOINT=
+ENV VITE_HIVE_CHAIN_ID=
