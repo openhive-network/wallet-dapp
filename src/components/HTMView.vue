@@ -12,8 +12,12 @@ const router = useRouter();
 
 const showLoginForm = ref(false);
 
+const props = defineProps<{
+  isPublicPage?: boolean;
+}>();
+
 // Check if user is authenticated (has wallet connected)
-const isAuthenticated = computed(() => tokensStore.wallet);
+const isAuthenticated = computed(() => tokensStore.wallet || props.isPublicPage);
 
 // Show HTM login form
 const showHTMLogin = () => {
@@ -33,7 +37,7 @@ const goToRegistration = () => {
 </script>
 
 <template>
-  <div>
+  <div class="p-8">
     <!-- Show login/registration page when not authenticated -->
     <div
       v-if="!isAuthenticated"

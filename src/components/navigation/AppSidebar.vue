@@ -19,6 +19,7 @@ const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
+const hasHTMWallet = computed(() => !!tokensStore.wallet);
 const hasNoHTMWallet = computed(() => !tokensStore.wallet);
 
 const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
@@ -51,25 +52,27 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
   title: 'Tokens',
   items: [
     {
+      title: 'Tokens List',
+      url: '/tokens/list',
+      icon: mdiAccountGroup
+    },
+    {
       title: 'Register HTM Account',
       url: '/tokens/register-account',
       icon: mdiAccountPlusOutline,
       visible: hasNoHTMWallet
     },
     {
-      title: 'Token Balances',
+      title: 'My HTM Account',
       url: '/tokens/my-balance',
-      icon: mdiWallet
+      icon: mdiWallet,
+      visible: hasHTMWallet
     },
     {
       title: 'My Token Definitions',
       url: '/tokens/my-tokens',
-      icon: mdiViewList
-    },
-    {
-      title: 'Token Holders',
-      url: '/tokens/holders',
-      icon: mdiAccountGroup
+      icon: mdiViewList,
+      visible: hasHTMWallet
     }
   ]
 }, {
