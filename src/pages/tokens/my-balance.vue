@@ -21,19 +21,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTokensStore } from '@/stores/tokens.store';
 import { transferNAIToken, stakeNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
+import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 
 const tokensStore = useTokensStore();
-
-interface TokenBalance {
-  symbol: string;
-  name: string;
-  nai: string;
-  liquid_balance: string;
-  staked_balance: string;
-  total_balance: string;
-  precision: number;
-  logo_url?: string;
-}
 
 // State
 const isLoading = ref(false);
@@ -43,25 +33,62 @@ const searchQuery = ref('');
 const isTransferDialogOpen = ref(false);
 const transferAmount = ref('');
 const transferRecipient = ref('');
-const selectedTokenForTransfer = ref<TokenBalance | null>(null);
+const selectedTokenForTransfer = ref<CtokensAppBalance | null>(null);
 const isTransferLoading = ref(false);
 
 // Transform dialog state
 const isTransformDialogOpen = ref(false);
 const transformAmount = ref('');
 const transformDirection = ref<'liquid-to-staked' | 'staked-to-liquid'>('liquid-to-staked');
-const selectedToken = ref<TokenBalance | null>(null);
+const selectedToken = ref<CtokensAppBalance | null>(null);
 const isTransformLoading = ref(false);
+
+// Helper functions for extracting data from metadata
+const getTokenSymbol = (balance: CtokensAppBalance): string => {
+  const metadata = balance.metadata as { symbol?: string; name?: string } | undefined;
+  return metadata?.symbol || balance.nai?.replace('@@', '') || 'Unknown';
+};
+
+const getTokenName = (balance: CtokensAppBalance): string => {
+  const metadata = balance.metadata as { name?: string; display_name?: string } | undefined;
+  return metadata?.display_name || metadata?.name || getTokenSymbol(balance);
+};
+
+const getTokenLogoUrl = (balance: CtokensAppBalance): string | undefined => {
+  const metadata = balance.metadata as { logo_url?: string; image?: string } | undefined;
+  return metadata?.logo_url || metadata?.image;
+};
+
+// For now, since the API doesn't distinguish between liquid and staked,
+// we'll treat all balance as liquid (this may need to be updated based on actual API behavior)
+const getLiquidBalance = (balance: CtokensAppBalance): string => {
+  return balance.amount || '0';
+};
+
+const getStakedBalance = (_balance: CtokensAppBalance): string => {
+  // TODO: Update this when staked balance info is available from API
+  return '0';
+};
+
+const getTotalBalance = (balance: CtokensAppBalance): string => {
+  const liquid = parseFloat(getLiquidBalance(balance));
+  const staked = parseFloat(getStakedBalance(balance));
+  return (liquid + staked).toString();
+};
 
 // Computed
 const filteredBalances = computed(() => {
   if (!searchQuery.value) return tokensStore.balances;
 
-  return tokensStore.balances.filter(balance =>
-    balance.symbol.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    balance.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    balance.nai.includes(searchQuery.value)
-  );
+  return tokensStore.balances.filter(balance => {
+    const symbol = getTokenSymbol(balance);
+    const name = getTokenName(balance);
+    const nai = balance.nai || '';
+
+    return symbol.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      nai.includes(searchQuery.value);
+  });
 });
 
 const totalValue = computed(() => {
@@ -81,7 +108,7 @@ const loadAccountBalances = async () => {
   }
 };
 
-const openTransferDialog = (balance: TokenBalance) => {
+const openTransferDialog = (balance: CtokensAppBalance) => {
   selectedTokenForTransfer.value = balance;
   transferAmount.value = '';
   transferRecipient.value = '';
@@ -100,10 +127,11 @@ const transferTokens = async () => {
     await transferNAIToken({
       to: transferRecipient.value,
       amount: transferAmount.value,
-      symbol: selectedTokenForTransfer.value.symbol
+      symbol: getTokenSymbol(selectedTokenForTransfer.value)
     });
 
-    toast.success(`Successfully transferred ${transferAmount.value} ${selectedTokenForTransfer.value.symbol} to ${transferRecipient.value}`);
+    const symbol = getTokenSymbol(selectedTokenForTransfer.value);
+    toast.success(`Successfully transferred ${transferAmount.value} ${symbol} to ${transferRecipient.value}`);
 
     // Refresh balances
     await loadAccountBalances();
@@ -116,7 +144,7 @@ const transferTokens = async () => {
   }
 };
 
-const openTransformDialog = (balance: TokenBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
+const openTransformDialog = (balance: CtokensAppBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
   selectedToken.value = balance;
   transformDirection.value = direction;
   transformAmount.value = '';
@@ -134,12 +162,13 @@ const transformTokens = async () => {
 
     await stakeNAIToken({
       amount: transformAmount.value,
-      symbol: selectedToken.value.symbol,
+      symbol: getTokenSymbol(selectedToken.value),
       direction: transformDirection.value === 'liquid-to-staked' ? 'stake' : 'unstake'
     });
 
     const action = transformDirection.value === 'liquid-to-staked' ? 'staked' : 'unstaked';
-    toast.success(`Successfully ${action} ${transformAmount.value} ${selectedToken.value.symbol}`);
+    const symbol = getTokenSymbol(selectedToken.value);
+    toast.success(`Successfully ${action} ${transformAmount.value} ${symbol}`);
 
     // Refresh balances
     await loadAccountBalances();
@@ -151,14 +180,15 @@ const transformTokens = async () => {
     isTransformLoading.value = false;
   }
 };
-const getMaxTransferAmount = (balance: TokenBalance) => {
-  return parseFloat(balance.liquid_balance);
+
+const getMaxTransferAmount = (balance: CtokensAppBalance) => {
+  return parseFloat(getLiquidBalance(balance));
 };
 
-const getMaxTransformAmount = (balance: TokenBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
+const getMaxTransformAmount = (balance: CtokensAppBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
   return direction === 'liquid-to-staked'
-    ? parseFloat(balance.liquid_balance)
-    : parseFloat(balance.staked_balance);
+    ? parseFloat(getLiquidBalance(balance))
+    : parseFloat(getStakedBalance(balance));
 };
 
 // Initialize
@@ -282,7 +312,7 @@ onMounted(() => {
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(b.liquid_balance), 0).toFixed(3) }}
+              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(getLiquidBalance(b)), 0).toFixed(3) }}
             </div>
             <p class="text-xs text-muted-foreground">
               Available for transfer
@@ -310,7 +340,7 @@ onMounted(() => {
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(b.staked_balance), 0).toFixed(3) }}
+              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(getStakedBalance(b)), 0).toFixed(3) }}
             </div>
             <p class="text-xs text-muted-foreground">
               Earning rewards
@@ -409,24 +439,24 @@ onMounted(() => {
                       <div class="flex items-center gap-3">
                         <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                           <img
-                            v-if="balance.logo_url"
-                            :src="balance.logo_url"
-                            :alt="balance.symbol"
+                            v-if="getTokenLogoUrl(balance)"
+                            :src="getTokenLogoUrl(balance)"
+                            :alt="getTokenSymbol(balance)"
                             class="h-6 w-6 rounded-full"
                           >
                           <span
                             v-else
                             class="text-sm font-medium text-primary"
                           >
-                            {{ balance.symbol.charAt(0) }}
+                            {{ getTokenSymbol(balance).charAt(0) }}
                           </span>
                         </div>
                         <div>
                           <div class="font-semibold">
-                            {{ balance.symbol }}
+                            {{ getTokenSymbol(balance) }}
                           </div>
                           <div class="text-sm text-muted-foreground">
-                            {{ balance.name }}
+                            {{ getTokenName(balance) }}
                           </div>
                           <div class="text-xs text-muted-foreground font-mono">
                             {{ balance.nai }}
@@ -448,30 +478,30 @@ onMounted(() => {
                     <!-- Liquid Balance -->
                     <td class="p-4 text-right">
                       <div class="font-medium">
-                        {{ balance.liquid_balance }}
+                        {{ getLiquidBalance(balance) }}
                       </div>
                       <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(balance.liquid_balance) * 0.01).toFixed(2) }}
+                        ${{ (parseFloat(getLiquidBalance(balance)) * 0.01).toFixed(2) }}
                       </div>
                     </td>
 
                     <!-- Staked Balance -->
                     <td class="p-4 text-right">
                       <div class="font-medium">
-                        {{ balance.staked_balance }}
+                        {{ getStakedBalance(balance) }}
                       </div>
                       <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(balance.staked_balance) * 0.01).toFixed(2) }}
+                        ${{ (parseFloat(getStakedBalance(balance)) * 0.01).toFixed(2) }}
                       </div>
                     </td>
 
                     <!-- Total Balance -->
                     <td class="p-4 text-right">
                       <div class="font-medium">
-                        {{ balance.total_balance }}
+                        {{ getTotalBalance(balance) }}
                       </div>
                       <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(balance.total_balance) * 0.01).toFixed(2) }}
+                        ${{ (parseFloat(getTotalBalance(balance)) * 0.01).toFixed(2) }}
                       </div>
                     </td>
 
@@ -481,7 +511,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(balance.liquid_balance) === 0"
+                          :disabled="parseFloat(getLiquidBalance(balance)) === 0"
                           title="Transfer tokens"
                           @click="openTransferDialog(balance)"
                         >
@@ -501,7 +531,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(balance.liquid_balance) === 0"
+                          :disabled="parseFloat(getLiquidBalance(balance)) === 0"
                           title="Stake tokens"
                           @click="openTransformDialog(balance, 'liquid-to-staked')"
                         >
@@ -521,7 +551,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(balance.staked_balance) === 0"
+                          :disabled="parseFloat(getStakedBalance(balance)) === 0"
                           title="Unstake tokens"
                           @click="openTransformDialog(balance, 'staked-to-liquid')"
                         >
@@ -594,9 +624,9 @@ onMounted(() => {
       <Dialog v-model:open="isTransferDialogOpen">
         <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Transfer {{ selectedTokenForTransfer?.symbol }}</DialogTitle>
+            <DialogTitle>Transfer {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}</DialogTitle>
             <DialogDescription>
-              Send tokens to another account. Available balance: {{ selectedTokenForTransfer?.liquid_balance }} {{ selectedTokenForTransfer?.symbol }}
+              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? getLiquidBalance(selectedTokenForTransfer) : '0' }} {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}
             </DialogDescription>
           </DialogHeader>
 
@@ -623,7 +653,7 @@ onMounted(() => {
                 />
                 <Button
                   variant="outline"
-                  @click="transferAmount = selectedTokenForTransfer?.liquid_balance || ''"
+                  @click="transferAmount = selectedTokenForTransfer ? getLiquidBalance(selectedTokenForTransfer) : ''"
                 >
                   Max
                 </Button>
@@ -679,12 +709,12 @@ onMounted(() => {
         <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken?.symbol }}
+              {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken ? getTokenSymbol(selectedToken) : '' }}
             </DialogTitle>
             <DialogDescription>
               {{ transformDirection === 'liquid-to-staked'
-                ? `Stake tokens to earn rewards. Available: ${selectedToken?.liquid_balance} ${selectedToken?.symbol}`
-                : `Unstake tokens to make them liquid. Available: ${selectedToken?.staked_balance} ${selectedToken?.symbol}`
+                ? `Stake tokens to earn rewards. Available: ${selectedToken ? getLiquidBalance(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
+                : `Unstake tokens to make them liquid. Available: ${selectedToken ? getStakedBalance(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
               }}
             </DialogDescription>
           </DialogHeader>
@@ -704,8 +734,8 @@ onMounted(() => {
                 <Button
                   variant="outline"
                   @click="transformAmount = (transformDirection === 'liquid-to-staked'
-                    ? selectedToken?.liquid_balance
-                    : selectedToken?.staked_balance) || ''"
+                    ? (selectedToken ? getLiquidBalance(selectedToken) : '')
+                    : (selectedToken ? getStakedBalance(selectedToken) : '')) || ''"
                 >
                   Max
                 </Button>
