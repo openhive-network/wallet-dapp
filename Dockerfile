@@ -1,6 +1,6 @@
 FROM caddy AS app
 COPY ./dist/ /usr/share/caddy/
-
+COPY ./.env.example /usr/share/caddy/.env
 
 RUN cat > /etc/caddy/Caddyfile <<EOF
 
