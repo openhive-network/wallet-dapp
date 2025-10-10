@@ -31,6 +31,7 @@ build:
   extends: .npm_based_job_base
   stage: build
   script:
+    - cp .env.dev .env # temp needed to allow vite to put variables into the code. It must be changed to the deployment side envs
     - pnpm build
   artifacts:
     paths:
