@@ -112,7 +112,7 @@ const encryptOrDecrypt = async () => {
     <CardContent>
       <Tabs
         default-value="decrypt"
-        @update:model-value="(value: string) => isEncrypt = value === 'encrypt'"
+        @update:model-value="(value: string | number) => isEncrypt = value === 'encrypt'"
       >
         <TabsList>
           <TabsTrigger value="decrypt">
