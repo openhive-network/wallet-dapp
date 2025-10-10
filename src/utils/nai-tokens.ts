@@ -3,13 +3,10 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 
 import {
-  cTokensApi,
-  getUserOperationalKey,
-  transformCTokenBalanceToLegacy,
-  transformCTokenToLegacy,
-  type LegacyTokenBalance,
-  type LegacyTokenDefinition
+  getCTokensApi,
+  getUserOperationalKey
 } from './ctokens-api';
+import type { CtokensAppArrayOfTokens } from './wallet/ctokens/api';
 
 export interface TokenCreationParams {
   symbol: string;
@@ -202,18 +199,14 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
 /**
  * Get token definitions for an account - now using ctokens-api
  */
-export const getTokenDefinitions = async (creator?: string): Promise<LegacyTokenDefinition[]> => {
+export const getTokenDefinitions = async (creator?: string): Promise<CtokensAppArrayOfTokens> => {
   try {
     // Get registered tokens from ctokens-api
+    const cTokensApi = await getCTokensApi();
     const tokens = await cTokensApi.getRegisteredTokens();
 
     // Filter by creator if provided
-    const filteredTokens = creator
-      ? tokens.filter(token => token.owner === creator)
-      : tokens;
-
-    // Transform to legacy format
-    return filteredTokens.map(token => transformCTokenToLegacy(token));
+    return creator ? tokens.filter(token => token.owner === creator) : tokens;
   } catch (error) {
     console.error('Failed to get token definitions:', error);
     // Fallback to mock data for development
@@ -240,28 +233,15 @@ export const getTokenDefinitions = async (creator?: string): Promise<LegacyToken
 /**
  * Get account balances - now using ctokens-api
  */
-export const getAccountBalances = async (_account: string): Promise<LegacyTokenBalance[]> => {
+export const getAccountBalances = async (): Promise<CtokensAppArrayOfTokens> => {
   try {
     const operationalKey = getUserOperationalKey();
     if (!operationalKey)
       throw new Error('No operational key available');
 
     // Get balances from ctokens-api
-    const balances = await cTokensApi.getAccountBalances(operationalKey);
-
-    // Get all registered tokens to map metadata
-    const tokens = await cTokensApi.getRegisteredTokens();
-
-    // Transform to legacy format
-    const legacyBalances: LegacyTokenBalance[] = [];
-
-    for (const balance of balances) {
-      const token = tokens.find(t => t.nai === balance.nai && t.precision === balance.precision);
-      if (token)
-        legacyBalances.push(transformCTokenBalanceToLegacy(balance, token));
-    }
-
-    return legacyBalances;
+    const cTokensApi = await getCTokensApi();
+    return await cTokensApi.getAccountBalances(operationalKey);
   } catch (error) {
     console.error('Failed to get account balances:', error);
     // Fallback to mock data for development

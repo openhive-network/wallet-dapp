@@ -3,6 +3,7 @@ import { mdiClose } from '@mdi/js';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
+import HTMLoginContent from '@/components/HTMLoginContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,6 @@ import { Label } from '@/components/ui/label';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -26,7 +26,7 @@ withDefaults(defineProps<Props>(), {
   description: 'Login to your Hive Token Machine account'
 });
 
-const emit = defineEmits(['success', 'close']);
+const emit = defineEmits(['success', 'close', 'setaccount']);
 
 const walletStore = useWalletStore();
 const userStore = useUserStore();
@@ -37,17 +37,32 @@ const isLoading = ref(false);
 // Existing account login
 const password = ref('');
 
-// New account creation
-const managementKey = ref('');
-const operationalKey = ref('');
-const newPassword = ref('');
-const repeatPassword = ref('');
-
 // Check if user already has HTM wallet configured (only needs password)
 const hasHTMWallet = computed(() => CTokensProvider.isLoggedIn());
 
 const close = () => {
   emit('close');
+};
+
+// Handle account creation from HTMLoginContent
+const handleSetAccount = async (account: string) => {
+  try {
+    // Set settings with the operational key as account and CTOKENS wallet
+    await settingsStore.setSettings({
+      account: account,
+      wallet: UsedWallet.CTOKENS_IMPLEMENTATION
+    });
+
+    // Create wallet provider and parse user data
+    await walletStore.createWalletFor(settingsStore.settings, 'posting');
+    await userStore.parseUserData(account);
+
+    toast.success('HTM wallet created successfully!');
+    emit('success');
+    emit('setaccount', account);
+  } catch (error) {
+    toastError('Failed to setup HTM wallet', error);
+  }
 };
 
 // Login to existing HTM account
@@ -74,51 +89,7 @@ const loginExisting = async () => {
 
     toast.success('Logged in successfully!');
     emit('success');
-  } catch (error) {
-    toastError('Failed to connect to HTM', error);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-// Create new HTM account
-const createNewAccount = async () => {
-  try {
-    if (newPassword.value !== repeatPassword.value) {
-      toastError('Failed to connect to HTM', 'The provided passwords do not match');
-      return;
-    }
-
-    isLoading.value = true;
-
-    const { operational } = await CTokensProvider.createWallet(
-      newPassword.value,
-      operationalKey.value,
-      managementKey.value.length === 0 ? undefined : managementKey.value
-    );
-
-    const wax = await getWax();
-
-    const users = await wax.restApi.ctokensApi.registeredUsers({ user: operational });
-    if (users.length === 0) {
-      toastError('Failed to connect to HTM', 'The provided operational key is not registered in HTM');
-      return;
-    }
-
-    await CTokensProvider.login(newPassword.value);
-
-    // Set settings with the operational key as account and CTOKENS wallet
-    await settingsStore.setSettings({
-      account: operational,
-      wallet: UsedWallet.CTOKENS_IMPLEMENTATION
-    });
-
-    // Create wallet provider and parse user data
-    await walletStore.createWalletFor(settingsStore.settings, 'posting');
-    await userStore.parseUserData(operational);
-
-    toast.success('HTM wallet created successfully!');
-    emit('success');
+    emit('setaccount', operationalKey);
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   } finally {
@@ -200,61 +171,10 @@ const createNewAccount = async () => {
         v-else
         class="space-y-4"
       >
-        <div class="space-y-2">
-          <p class="text-sm text-muted-foreground">
-            Create your HTM wallet by providing your keys and setting a password:
-          </p>
-
-          <div class="space-y-1">
-            <Label for="operational-key">Operational Private Key</Label>
-            <Input
-              id="operational-key"
-              v-model="operationalKey"
-              type="text"
-              placeholder="Enter your operational key"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="management-key">Management Private Key (optional)</Label>
-            <Input
-              id="management-key"
-              v-model="managementKey"
-              type="text"
-              placeholder="Enter your management key"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="new-password">Wallet Password</Label>
-            <Input
-              id="new-password"
-              v-model="newPassword"
-              type="password"
-              placeholder="Create a password to encrypt your wallet"
-            />
-          </div>
-
-          <div class="space-y-1">
-            <Label for="repeat-password">Repeat Password</Label>
-            <Input
-              id="repeat-password"
-              v-model="repeatPassword"
-              type="password"
-              placeholder="Repeat the password"
-              @keyup.enter="createNewAccount"
-            />
-          </div>
-        </div>
-
-        <Button
-          :disabled="isLoading || !operationalKey || !newPassword || !repeatPassword"
-          class="w-full"
-          @click="createNewAccount"
-        >
-          <span v-if="isLoading">Creating Wallet...</span>
-          <span v-else>Create HTM Wallet</span>
-        </Button>
+        <HTMLoginContent
+          :show-steps="false"
+          @setaccount="handleSetAccount"
+        />
       </div>
     </CardContent>
   </Card>
