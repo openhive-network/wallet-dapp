@@ -11,6 +11,7 @@ import {
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
+import HTMView from '@/components/HTMView.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,14 +20,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { useWalletStore } from '@/stores/wallet.store';
 import { copyText } from '@/utils/copy';
 import { createNAIToken, generateNAI as generateNAIUtil, type TokenCreationParams } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
-
-const walletStore = useWalletStore();
-
-const hasWallet = computed(() => walletStore.hasWallet);
 
 // Form state
 const tokenName = ref('');
@@ -153,11 +149,6 @@ const createToken = async () => {
     return;
   }
 
-  if (!hasWallet.value) {
-    await walletStore.openWalletSelectModal();
-    return;
-  }
-
   // Ensure NAI is generated before creating token
   if (!generatedNAI.value) {
     generateNAI();
@@ -234,353 +225,355 @@ const onSymbolInput = (event: Event) => {
 </script>
 
 <template>
-  <div class="container mx-auto p-6 max-w-4xl">
-    <div class="space-y-6">
-      <!-- Header -->
-      <div class="text-center space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight">
-          Create Custom Token
-        </h1>
-        <p class="text-muted-foreground">
-          Create your own custom token on the Hive Token Machine
-        </p>
-      </div>
+  <HTMView>
+    <div class="container mx-auto p-6 max-w-4xl">
+      <div class="space-y-6">
+        <!-- Header -->
+        <div class="text-center space-y-2">
+          <h1 class="text-3xl font-bold tracking-tight">
+            Create Custom Token
+          </h1>
+          <p class="text-muted-foreground">
+            Create your own custom token on the Hive Token Machine
+          </p>
+        </div>
 
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Token Creation Form -->
-        <Card>
-          <CardHeader>
-            <CardTitle class="flex items-center gap-2">
-              <svg
-                width="20"
-                height="20"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiCurrencyUsd"
-                />
-              </svg>
-              Token Details
-            </CardTitle>
-            <CardDescription>
-              Enter the details for your new NAI token. Note: The token name is only a display property that can be changed. The NAI (Network Asset Identifier) is the only unique identifier for your token.
-            </CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-4">
-            <!-- Token Name -->
-            <div class="space-y-2">
-              <Label for="token-name">Token Name *</Label>
-              <Input
-                id="token-name"
-                v-model="tokenName"
-                placeholder="e.g., My Awesome Token"
-                :disabled="isCreatingToken"
-              />
-            </div>
-
-            <!-- Token Symbol -->
-            <div class="space-y-2">
-              <Label for="token-symbol">Token Symbol *</Label>
-              <Input
-                id="token-symbol"
-                :value="tokenSymbol"
-                placeholder="e.g., MAT"
-                class="uppercase"
-                :class="{ 'border-red-500': tokenSymbol.length > 0 && !symbolValidation.isValid }"
-                maxlength="10"
-                :disabled="isCreatingToken"
-                @input="onSymbolInput"
-              />
-              <p
-                class="text-xs"
-                :class="tokenSymbol.length > 0 && !symbolValidation.isValid ? 'text-red-500' : 'text-muted-foreground'"
-              >
-                {{ tokenSymbol.length > 0 && !symbolValidation.isValid ? symbolValidation.message : '3-10 characters, letters only' }}
-              </p>
-            </div>
-
-            <!-- Token Description -->
-            <div class="space-y-2">
-              <Label for="token-description">Description</Label>
-              <Textarea
-                id="token-description"
-                v-model="tokenDescription"
-                placeholder="Describe your token..."
-                :disabled="isCreatingToken"
-                rows="3"
-              />
-            </div>
-
-            <!-- Initial Supply -->
-            <div class="space-y-2">
-              <Label for="initial-supply">Initial Supply *</Label>
-              <Input
-                id="initial-supply"
-                :value="formatNumber(initialSupply)"
-                placeholder="1,000,000"
-                :disabled="isCreatingToken"
-                @input="onSupplyInput"
-              />
-              <p class="text-xs text-muted-foreground">
-                Total number of tokens to create
-              </p>
-            </div>
-
-            <!-- Precision -->
-            <div class="space-y-2">
-              <Label for="precision">Decimal Precision *</Label>
-              <Input
-                id="precision"
-                v-model="precision"
-                type="number"
-                min="0"
-                max="12"
-                step="1"
-                placeholder="3"
-                :disabled="isCreatingToken"
-                class="w-full"
-              />
-              <p class="text-xs text-muted-foreground">
-                Number of decimal places for token amounts (0-12)
-              </p>
-            </div>
-
-            <!-- Staking Options -->
-            <div class="space-y-3">
-              <div class="flex items-center space-x-2">
-                <Checkbox
-                  id="can-stake"
-                  v-model="canStake"
-                  :disabled="isCreatingToken"
-                />
-                <Label
-                  for="can-stake"
-                  class="text-sm font-normal"
-                >
-                  Allow token staking
-                </Label>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
-                <div class="flex items-center space-x-2">
-                  <Checkbox
-                    id="others-can-stake"
-                    :disabled="isCreatingToken || !canStake"
-                  />
-                  <Label
-                    for="others-can-stake"
-                    class="text-sm font-normal"
-                  >
-                    Others can stake
-                  </Label>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                  <Checkbox
-                    id="others-can-unstake"
-                    :disabled="isCreatingToken || !canStake"
-                  />
-                  <Label
-                    for="others-can-unstake"
-                    class="text-sm font-normal"
-                  >
-                    Others can unstake
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <Separator />
-
-            <!-- Generated NAI -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <Label>Generated NAI</Label>
-                <Button
-                  v-if="naiGenerated"
-                  variant="outline"
-                  size="sm"
-                  :disabled="isCreatingToken"
-                  @click="regenerateNAI"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    class="mr-1"
-                  >
-                    <path
-                      style="fill: currentColor"
-                      :d="mdiRefresh"
-                    />
-                  </svg>
-                  Regenerate
-                </Button>
-              </div>
-
-              <div
-                v-if="shouldShowNAIField"
-                class="flex items-center gap-2"
-              >
-                <Input
-                  :value="naiDisplayValue"
-                  readonly
-                  class="font-mono"
-                  :class="{ 'text-muted-foreground': !generatedNAI }"
-                />
-                <Button
-                  v-if="naiGenerated"
-                  variant="outline"
-                  size="sm"
-                  @click="copyNAI"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      style="fill: currentColor"
-                      :d="mdiContentCopy"
-                    />
-                  </svg>
-                </Button>
-              </div>
-
-              <div
-                v-else
-                class="text-sm text-muted-foreground"
-              >
-                Enter a token symbol (3+ characters) to generate unique ID
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- Preview and Actions -->
-        <div class="space-y-6">
-          <!-- Token Preview -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Token Creation Form -->
           <Card>
             <CardHeader>
-              <CardTitle>Token Preview</CardTitle>
+              <CardTitle class="flex items-center gap-2">
+                <svg
+                  width="20"
+                  height="20"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiCurrencyUsd"
+                  />
+                </svg>
+                Token Details
+              </CardTitle>
               <CardDescription>
-                How your token will appear
+                Enter the details for your new NAI token. Note: The token name is only a display property that can be changed. The NAI (Network Asset Identifier) is the only unique identifier for your token.
               </CardDescription>
             </CardHeader>
             <CardContent class="space-y-4">
-              <div class="border rounded-lg p-4 space-y-2">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <h3 class="font-semibold">
-                      {{ tokenName || 'Token Name' }}
-                    </h3>
-                    <p class="text-sm text-muted-foreground">
-                      {{ tokenSymbol || 'SYMBOL' }}
-                    </p>
-                  </div>
-                  <span class="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">{{ naiDisplayValue || 'NAI' }}</span>
+              <!-- Token Name -->
+              <div class="space-y-2">
+                <Label for="token-name">Token Name *</Label>
+                <Input
+                  id="token-name"
+                  v-model="tokenName"
+                  placeholder="e.g., My Awesome Token"
+                  :disabled="isCreatingToken"
+                />
+              </div>
+
+              <!-- Token Symbol -->
+              <div class="space-y-2">
+                <Label for="token-symbol">Token Symbol *</Label>
+                <Input
+                  id="token-symbol"
+                  :value="tokenSymbol"
+                  placeholder="e.g., MAT"
+                  class="uppercase"
+                  :class="{ 'border-red-500': tokenSymbol.length > 0 && !symbolValidation.isValid }"
+                  maxlength="10"
+                  :disabled="isCreatingToken"
+                  @input="onSymbolInput"
+                />
+                <p
+                  class="text-xs"
+                  :class="tokenSymbol.length > 0 && !symbolValidation.isValid ? 'text-red-500' : 'text-muted-foreground'"
+                >
+                  {{ tokenSymbol.length > 0 && !symbolValidation.isValid ? symbolValidation.message : '3-10 characters, letters only' }}
+                </p>
+              </div>
+
+              <!-- Token Description -->
+              <div class="space-y-2">
+                <Label for="token-description">Description</Label>
+                <Textarea
+                  id="token-description"
+                  v-model="tokenDescription"
+                  placeholder="Describe your token..."
+                  :disabled="isCreatingToken"
+                  rows="3"
+                />
+              </div>
+
+              <!-- Initial Supply -->
+              <div class="space-y-2">
+                <Label for="initial-supply">Initial Supply *</Label>
+                <Input
+                  id="initial-supply"
+                  :value="formatNumber(initialSupply)"
+                  placeholder="1,000,000"
+                  :disabled="isCreatingToken"
+                  @input="onSupplyInput"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Total number of tokens to create
+                </p>
+              </div>
+
+              <!-- Precision -->
+              <div class="space-y-2">
+                <Label for="precision">Decimal Precision *</Label>
+                <Input
+                  id="precision"
+                  v-model="precision"
+                  type="number"
+                  min="0"
+                  max="12"
+                  step="1"
+                  placeholder="3"
+                  :disabled="isCreatingToken"
+                  class="w-full"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Number of decimal places for token amounts (0-12)
+                </p>
+              </div>
+
+              <!-- Staking Options -->
+              <div class="space-y-3">
+                <div class="flex items-center space-x-2">
+                  <Checkbox
+                    id="can-stake"
+                    v-model="canStake"
+                    :disabled="isCreatingToken"
+                  />
+                  <Label
+                    for="can-stake"
+                    class="text-sm font-normal"
+                  >
+                    Allow token staking
+                  </Label>
                 </div>
 
-                <p class="text-sm">
-                  {{ tokenDescription || 'Token description will appear here...' }}
-                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
+                  <div class="flex items-center space-x-2">
+                    <Checkbox
+                      id="others-can-stake"
+                      :disabled="isCreatingToken || !canStake"
+                    />
+                    <Label
+                      for="others-can-stake"
+                      class="text-sm font-normal"
+                    >
+                      Others can stake
+                    </Label>
+                  </div>
 
-                <div class="flex justify-between text-xs text-muted-foreground">
-                  <span>Supply: {{ formatNumber(initialSupply) }}</span>
-                  <span>Precision: {{ precision }}</span>
+                  <div class="flex items-center space-x-2">
+                    <Checkbox
+                      id="others-can-unstake"
+                      :disabled="isCreatingToken || !canStake"
+                    />
+                    <Label
+                      for="others-can-unstake"
+                      class="text-sm font-normal"
+                    >
+                      Others can unstake
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <!-- Generated NAI -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <Label>Generated NAI</Label>
+                  <Button
+                    v-if="naiGenerated"
+                    variant="outline"
+                    size="sm"
+                    :disabled="isCreatingToken"
+                    @click="regenerateNAI"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-1"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        :d="mdiRefresh"
+                      />
+                    </svg>
+                    Regenerate
+                  </Button>
                 </div>
 
                 <div
-                  v-if="canStake"
-                  class="flex items-center text-xs text-green-600"
+                  v-if="shouldShowNAIField"
+                  class="flex items-center gap-2"
                 >
-                  <svg
-                    width="12"
-                    height="12"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    class="mr-1"
+                  <Input
+                    :value="naiDisplayValue"
+                    readonly
+                    class="font-mono"
+                    :class="{ 'text-muted-foreground': !generatedNAI }"
+                  />
+                  <Button
+                    v-if="naiGenerated"
+                    variant="outline"
+                    size="sm"
+                    @click="copyNAI"
                   >
-                    <path
-                      style="fill: currentColor"
-                      :d="mdiCheck"
-                    />
-                  </svg>
-                  Staking enabled
+                    <svg
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        :d="mdiContentCopy"
+                      />
+                    </svg>
+                  </Button>
+                </div>
+
+                <div
+                  v-else
+                  class="text-sm text-muted-foreground"
+                >
+                  Enter a token symbol (3+ characters) to generate unique ID
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <!-- Disclaimer -->
-          <Alert>
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiAlert"
-              />
-            </svg>
-            <AlertDescription>
-              <div class="space-y-2">
-                <p class="font-semibold">
-                  Important Disclaimer
-                </p>
-                <p class="text-sm">
-                  Tokens are created on the Hive Token Machine. Please verify all details before creation
-                  as they cannot be changed after deployment. Token symbols should be unique to avoid confusion.
-                  <strong>A transaction fee will be required to create the token.</strong>
-                </p>
+          <!-- Preview and Actions -->
+          <div class="space-y-6">
+            <!-- Token Preview -->
+            <Card>
+              <CardHeader>
+                <CardTitle>Token Preview</CardTitle>
+                <CardDescription>
+                  How your token will appear
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-4">
+                <div class="border rounded-lg p-4 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h3 class="font-semibold">
+                        {{ tokenName || 'Token Name' }}
+                      </h3>
+                      <p class="text-sm text-muted-foreground">
+                        {{ tokenSymbol || 'SYMBOL' }}
+                      </p>
+                    </div>
+                    <span class="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">{{ naiDisplayValue || 'NAI' }}</span>
+                  </div>
 
-                <div class="flex items-center space-x-2 mt-3">
-                  <Checkbox
-                    id="disclaimer"
-                    v-model="agreedToDisclaimer"
-                    :disabled="isCreatingToken"
-                  />
-                  <Label
-                    for="disclaimer"
-                    class="text-sm"
+                  <p class="text-sm">
+                    {{ tokenDescription || 'Token description will appear here...' }}
+                  </p>
+
+                  <div class="flex justify-between text-xs text-muted-foreground">
+                    <span>Supply: {{ formatNumber(initialSupply) }}</span>
+                    <span>Precision: {{ precision }}</span>
+                  </div>
+
+                  <div
+                    v-if="canStake"
+                    class="flex items-center text-xs text-green-600"
                   >
-                    I understand and agree to this disclaimer
-                  </Label>
+                    <svg
+                      width="12"
+                      height="12"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-1"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        :d="mdiCheck"
+                      />
+                    </svg>
+                    Staking enabled
+                  </div>
                 </div>
-              </div>
-            </AlertDescription>
-          </Alert>
+              </CardContent>
+            </Card>
 
-          <!-- Create Button -->
-          <Button
-            class="w-full"
-            size="lg"
-            :disabled="createButtonState.disabled"
-            @click="createToken"
-          >
-            <svg
-              width="20"
-              height="20"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="mr-2"
-              :class="{ 'animate-spin': isCreatingToken }"
+            <!-- Disclaimer -->
+            <Alert>
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiAlert"
+                />
+              </svg>
+              <AlertDescription>
+                <div class="space-y-2">
+                  <p class="font-semibold">
+                    Important Disclaimer
+                  </p>
+                  <p class="text-sm">
+                    Tokens are created on the Hive Token Machine. Please verify all details before creation
+                    as they cannot be changed after deployment. Token symbols should be unique to avoid confusion.
+                    <strong>A transaction fee will be required to create the token.</strong>
+                  </p>
+
+                  <div class="flex items-center space-x-2 mt-3">
+                    <Checkbox
+                      id="disclaimer"
+                      v-model="agreedToDisclaimer"
+                      :disabled="isCreatingToken"
+                    />
+                    <Label
+                      for="disclaimer"
+                      class="text-sm"
+                    >
+                      I understand and agree to this disclaimer
+                    </Label>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+
+            <!-- Create Button -->
+            <Button
+              class="w-full"
+              size="lg"
+              :disabled="createButtonState.disabled"
+              @click="createToken"
             >
-              <path
-                style="fill: currentColor"
-                :d="isCreatingToken ? mdiLoading : mdiRocket"
-              />
-            </svg>
-            {{ createButtonState.text }}
-          </Button>
+              <svg
+                width="20"
+                height="20"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-2"
+                :class="{ 'animate-spin': isCreatingToken }"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="isCreatingToken ? mdiLoading : mdiRocket"
+                />
+              </svg>
+              {{ createButtonState.text }}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  </HTMView>
 </template>

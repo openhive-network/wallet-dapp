@@ -33,6 +33,10 @@ export class CTokensProvider extends AEncryptionProvider {
     return !!CTokensProvider.#operationalWallet;
   }
 
+  public static getOperationalPublicKey (): string | undefined {
+    return CTokensProvider.#operationalWallet?.getPublicKeys()[0];
+  }
+
   private constructor (
     chain: IHiveChainInterface,
     public readonly role: TRole,
