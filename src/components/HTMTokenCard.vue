@@ -3,40 +3,20 @@ import { mdiInfinity } from '@mdi/js';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
-export interface CToken {
-  nai: string;
-  isStaked: boolean;
-  ownerPublicKey: string;
-  precision: number;
-  displayTotalSupply: string;
-  totalSupply: bigint;
-  maxSupply: bigint;
-  displayMaxSupply: string;
-  capped: boolean;
-  othersCanStake: boolean;
-  othersCanUnstake: boolean;
-  isNft: boolean;
-  metadata?: Record<string, unknown>;
-  // Parsed from the metadata
-  name?: string;
-  description?: string;
-  website?: string;
-  image?: string;
-}
+import type { CTokenDisplay } from '@/stores/tokens.store';
 
 interface Props {
-  token: CToken;
+  token: CTokenDisplay;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  click: [token: CToken];
+  click: [token: CTokenDisplay];
 }>();
 
 // Get avatar fallback text
-const getAvatarFallback = (token: CToken): string => {
+const getAvatarFallback = (token: CTokenDisplay): string => {
   if (token.name)
     return token.name.slice(0, 2).toUpperCase();
 

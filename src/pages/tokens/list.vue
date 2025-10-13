@@ -2,79 +2,44 @@
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMTokenCard, { type CToken } from '@/components/HTMTokenCard.vue';
+import HTMTokenCard from '@/components/HTMTokenCard.vue';
 import HTMView from '@/components/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore, type CTokenDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 
 // Router
 const router = useRouter();
 
+// Store
+const tokensStore = useTokensStore();
+
 // State
-const tokensFullList = ref<CToken[]>([]);
-const isLoading = ref(false);
 const currentPage = ref(0);
 const hasMorePages = ref(true);
 
 // Navigate to token detail page (placeholder for now)
-const viewTokenDetails = (token: CToken) => {
+const viewTokenDetails = (token: CTokenDisplay) => {
   router.push(`/tokens/token?nai=${token.nai}&precision=${token.precision}`);
 };
 
 const loadTokens = async (page: number = 1) => {
   try {
-    isLoading.value = true;
+    const result = await tokensStore.loadRegisteredTokens(undefined, undefined, page);
 
-    const wax = await getWax();
-    const formatAsset = (value: string | bigint, precision: number, name?: string): string => {
-      const formatted = wax.formatter.formatNumber(value, precision);
-
-      return name ? `${formatted} ${name}` : formatted;
-    };
-    // Temporary naive implementation of vesting space check
-    const isVesting = (nai: string, precision: number) => (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) != 0;
-
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({}) as Required<CtokensAppToken>[];
-
-    tokensFullList.value.push(...tokens.map(token => {
-      const { name, description, website, image } = (token.metadata || {}) as Record<string, string>;
-
-      return {
-        nai: token.nai,
-        isStaked: isVesting(token.nai, token.precision),
-        displayMaxSupply: formatAsset(token.max_supply, token.precision, name),
-        ownerPublicKey: token.owner,
-        precision: token.precision,
-        displayTotalSupply: formatAsset(token.total_supply, token.precision, name),
-        totalSupply: BigInt(token.total_supply),
-        maxSupply: BigInt(token.max_supply),
-        capped: token.capped,
-        othersCanStake: token.others_can_stake,
-        othersCanUnstake: token.others_can_unstake,
-        isNft: token.is_nft,
-        metadata: token.metadata,
-        name,
-        description,
-        website,
-        image
-      } as CToken;
-    }));
-
-    hasMorePages.value = tokens.length === 100; // API returns 100 results per page
-    currentPage.value = page;
+    if (result) {
+      hasMorePages.value = result.hasMore;
+      currentPage.value = page;
+    }
   } catch (error) {
     toastError('Failed to load tokens', error);
-  } finally {
-    isLoading.value = false;
   }
 };
 
 const loadMore = () => {
-  if (!hasMorePages.value || isLoading.value) return;
+  if (!hasMorePages.value || tokensStore.isLoadingRegisteredTokens) return;
   void loadTokens(currentPage.value + 1);
 };
 
@@ -101,7 +66,7 @@ onMounted(() => {
 
       <!-- Loading Skeletons -->
       <div
-        v-if="isLoading && tokensFullList.length === 0"
+        v-if="tokensStore.isLoadingRegisteredTokens && tokensStore.registeredTokens.length === 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <Card
@@ -131,11 +96,11 @@ onMounted(() => {
 
       <!-- Tokens Grid -->
       <div
-        v-else-if="tokensFullList.length > 0"
+        v-else-if="tokensStore.registeredTokens.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <HTMTokenCard
-          v-for="token in tokensFullList"
+          v-for="token in tokensStore.registeredTokens"
           :key="token.nai"
           :token="token"
           @click="viewTokenDetails"
@@ -144,16 +109,16 @@ onMounted(() => {
 
       <!-- Load More Button -->
       <div
-        v-if="tokensFullList.length > 0 && hasMorePages"
+        v-if="tokensStore.registeredTokens.length > 0 && hasMorePages"
         class="text-center pt-4"
       >
         <Button
           variant="outline"
-          :disabled="isLoading"
+          :disabled="tokensStore.isLoadingRegisteredTokens"
           @click="loadMore"
         >
           <svg
-            v-if="isLoading"
+            v-if="tokensStore.isLoadingRegisteredTokens"
             width="16"
             height="16"
             xmlns="http://www.w3.org/2000/svg"
@@ -165,12 +130,12 @@ onMounted(() => {
               d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"
             />
           </svg>
-          {{ isLoading ? 'Loading...' : 'Load More Tokens' }}
+          {{ tokensStore.isLoadingRegisteredTokens ? 'Loading...' : 'Load More Tokens' }}
         </Button>
       </div>
 
       <!-- Empty State -->
-      <Card v-else-if="tokensFullList.length === 0 && !isLoading">
+      <Card v-else-if="tokensStore.registeredTokens.length === 0 && !tokensStore.isLoadingRegisteredTokens">
         <CardContent class="text-center py-12">
           <svg
             width="64"

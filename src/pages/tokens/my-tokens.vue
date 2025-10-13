@@ -7,12 +7,13 @@ import {
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMTokenCard, { type CToken } from '@/components/HTMTokenCard.vue';
+import HTMTokenCard from '@/components/HTMTokenCard.vue';
 import HTMView from '@/components/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
+import type { CTokenDisplay } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
@@ -22,7 +23,7 @@ const router = useRouter();
 const settingsStore = useSettingsStore();
 
 // State
-const tokensFullList = ref<CToken[]>([]);
+const tokensFullList = ref<CTokenDisplay[]>([]);
 const isLoading = ref(false);
 const currentPage = ref(0);
 const hasMorePages = ref(true);
@@ -53,7 +54,7 @@ const getUserPublicKey = async (): Promise<string | undefined> => {
 };
 
 // Navigate to token detail page
-const viewTokenDetails = (token: CToken) => {
+const viewTokenDetails = (token: CTokenDisplay) => {
   router.push(`/tokens/token?nai=${token.nai}&precision=${token.precision}`);
 };
 
@@ -106,7 +107,7 @@ const loadTokens = async (page: number = 1) => {
         description,
         website,
         image
-      } as CToken;
+      } as CTokenDisplay;
     }));
 
     hasMorePages.value = userTokens.length === 100; // API returns 100 results per page
