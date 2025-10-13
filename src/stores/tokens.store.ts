@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
+import { getWax } from '@/stores/wax.store';
 import {
   getCTokensApi,
   getUserOperationalKey
@@ -15,14 +16,71 @@ import type {
 } from '@/utils/wallet/ctokens/api';
 import type CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+export interface CTokenDisplay {
+  nai: string;
+  isStaked: boolean;
+  ownerPublicKey: string;
+  precision: number;
+  displayTotalSupply: string;
+  totalSupply: bigint;
+  maxSupply: bigint;
+  displayMaxSupply: string;
+  capped: boolean;
+  othersCanStake: boolean;
+  othersCanUnstake: boolean;
+  isNft: boolean;
+  metadata?: Record<string, unknown>;
+  // Parsed from the metadata
+  name?: string;
+  description?: string;
+  website?: string;
+  image?: string;
+}
+
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
+
+// Helper functions for token transformation
+const isVesting = (nai: string, precision: number): boolean =>
+  (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) !== 0;
+
+const formatAsset = async (value: string | bigint, precision: number, name?: string): Promise<string> => {
+  const wax = await getWax();
+  const formatted = wax.formatter.formatNumber(value, precision);
+  return name ? `${formatted} ${name}` : formatted;
+};
+
+const transformTokenToDisplayFormat = async (token: Required<CtokensAppToken>): Promise<CTokenDisplay> => {
+  const { name, description, website, image } = (token.metadata || {}) as Record<string, string>;
+
+  return {
+    nai: token.nai,
+    isStaked: isVesting(token.nai, token.precision),
+    displayMaxSupply: await formatAsset(token.max_supply, token.precision, name),
+    ownerPublicKey: token.owner,
+    precision: token.precision,
+    displayTotalSupply: await formatAsset(token.total_supply, token.precision, name),
+    totalSupply: BigInt(token.total_supply),
+    maxSupply: BigInt(token.max_supply),
+    capped: token.capped,
+    othersCanStake: token.others_can_stake,
+    othersCanUnstake: token.others_can_unstake,
+    isNft: token.is_nft,
+    metadata: token.metadata as Record<string, unknown>,
+    name,
+    description,
+    website,
+    image
+  };
+};
 
 export const useTokensStore = defineStore('tokens', {
   state: () => ({
     balances: [] as CtokensAppArrayOfBalances,
     tokenDefinitions: [] as CtokensAppArrayOfTokens,
+    registeredTokens: [] as CTokenDisplay[],
     isLoadingBalances: false,
     isLoadingTokens: false,
+    isLoadingRegisteredTokens: false,
     lastError: null as string | null
   }),
   getters: {
@@ -37,7 +95,24 @@ export const useTokensStore = defineStore('tokens', {
     },
     tokenCount: (state) => state.balances.length,
     hasBalances: (state) => state.balances.length > 0,
-    hasTokenDefinitions: (state) => state.tokenDefinitions.length > 0
+    hasTokenDefinitions: (state) => state.tokenDefinitions.length > 0,
+    hasRegisteredTokens: (state) => state.registeredTokens.length > 0,
+    // Filtered getters for registered tokens
+    filteredTokens: (state) => (nai?: string, precision?: number) => {
+      let filtered = state.registeredTokens;
+
+      if (nai)
+        filtered = filtered.filter((token: CTokenDisplay) => token.nai === nai);
+
+      if (precision !== undefined)
+        filtered = filtered.filter((token: CTokenDisplay) => token.precision === precision);
+
+      return filtered;
+    },
+    stakedTokens: (state) => state.registeredTokens.filter((token: CTokenDisplay) => token.isStaked),
+    unstakedTokens: (state) => state.registeredTokens.filter((token: CTokenDisplay) => !token.isStaked),
+    nftTokens: (state) => state.registeredTokens.filter((token: CTokenDisplay) => token.isNft),
+    fungibleTokens: (state) => state.registeredTokens.filter((token: CTokenDisplay) => !token.isNft)
   },
   actions: {
     async loadBalances (forceRefresh = false) {
@@ -142,6 +217,60 @@ export const useTokensStore = defineStore('tokens', {
         this.isLoadingTokens = false;
       }
     },
+    /**
+     * Load registered tokens with pre-formatted display data
+     */
+    async loadRegisteredTokens (nai?: string, precision?: number, page = 1, forceRefresh = false) {
+      if (this.isLoadingRegisteredTokens && !forceRefresh) return;
+
+      this.isLoadingRegisteredTokens = true;
+      this.lastError = null;
+
+      try {
+        const cTokensApi = await getCTokensApi();
+
+        // Get raw tokens from API
+        const tokens = await cTokensApi.getRegisteredTokens(nai, precision) as Required<CtokensAppToken>[];
+
+        console.log(tokens);
+
+        // Transform tokens to display format
+        const transformedTokens = await Promise.all(
+          tokens.map(token => transformTokenToDisplayFormat(token))
+        );
+
+        // For pagination, we append or replace based on page
+        if (page === 1)
+          this.registeredTokens = transformedTokens;
+        else
+          this.registeredTokens.push(...transformedTokens);
+
+        return {
+          tokens: transformedTokens,
+          hasMore: tokens.length === 100 // API returns 100 results per page
+        };
+      } catch (error) {
+        console.error('Failed to load registered tokens:', error);
+        this.lastError = error instanceof Error ? error.message : 'Failed to load registered tokens';
+        throw error;
+      } finally {
+        this.isLoadingRegisteredTokens = false;
+      }
+    },
+    /**
+     * Get filtered registered tokens list
+     */
+    getFilteredRegisteredTokens (nai?: string, precision?: number): CTokenDisplay[] {
+      return this.filteredTokens(nai, precision);
+    },
+    /**
+     * Get single registered token by NAI and precision
+     */
+    getRegisteredTokenByNAI (nai: string, precision?: number): CTokenDisplay | undefined {
+      return this.registeredTokens.find((token: CTokenDisplay) =>
+        token.nai === nai && (precision === undefined || token.precision === precision)
+      );
+    },
     async getBalanceHistory (nai: string, precision: number, page = 1): Promise<CtokensAppBalanceHistory[]> {
       const operationalKey = getUserOperationalKey();
       if (!operationalKey)
@@ -163,7 +292,8 @@ export const useTokensStore = defineStore('tokens', {
     async refreshAll () {
       await Promise.all([
         this.loadBalances(true),
-        this.loadTokenDefinitions(undefined, true)
+        this.loadTokenDefinitions(undefined, true),
+        this.loadRegisteredTokens(undefined, undefined, 1, true)
       ]);
     },
     clearError () {
