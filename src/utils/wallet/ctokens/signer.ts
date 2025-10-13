@@ -37,6 +37,14 @@ export class CTokensProvider extends AEncryptionProvider {
     return CTokensProvider.#operationalWallet?.getPublicKeys()[0];
   }
 
+  public static getOperationalWallet (): IBeekeeperUnlockedWallet | undefined {
+    return CTokensProvider.#operationalWallet;
+  }
+
+  public static getManagementWallet (): IBeekeeperUnlockedWallet | undefined {
+    return CTokensProvider.#managementWallet;
+  }
+
   private constructor (
     chain: IHiveChainInterface,
     public readonly role: TRole,
