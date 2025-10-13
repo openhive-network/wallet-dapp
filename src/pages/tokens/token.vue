@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiPencilOutline } from '@mdi/js';
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -75,39 +76,32 @@ const formattedTotalSupply = ref('0');
 const formattedMaxSupply = ref('0');
 const formattedUserBalance = ref('0.000');
 
-// Helper function to update formatted values
+// Update formatted values
 const updateFormattedValues = async () => {
   if (!token.value) return;
 
-  const wax = await getWax();
+  try {
+    const wax = await getWax();
+    const formatAsset = (value: string, precision: number, name?: string): string => {
+      const formatted = wax.formatter.formatNumber(value, precision);
+      return name ? `${formatted} ${name}` : formatted;
+    };
 
-  formattedTotalSupply.value = wax.formatter.formatNumber(
-    token.value.total_supply || '0',
-    token.value.precision || 0
-  );
+    formattedTotalSupply.value = formatAsset(token.value.total_supply!, token.value.precision || 0, tokenSymbol.value);
+    formattedMaxSupply.value = token.value.max_supply === '0'
+      ? '∞ (Unlimited)'
+      : formatAsset(token.value.max_supply!, token.value.precision || 0, tokenSymbol.value);
 
-  if (token.value.max_supply === '0')
-    formattedMaxSupply.value = '∞';
-  else {
-    formattedMaxSupply.value = wax.formatter.formatNumber(
-      token.value.max_supply || '0',
-      token.value.precision || 0
-    );
-  }
-
-  if (userBalance.value) {
-    formattedUserBalance.value = wax.formatter.formatNumber(
-      userBalance.value.amount || '0',
-      userBalance.value.precision || 0
-    );
+    if (userBalance.value)
+      formattedUserBalance.value = formatAsset(userBalance.value.amount!, token.value.precision || 0, tokenSymbol.value);
+  } catch (error) {
+    console.error('Failed to format values:', error);
   }
 };
 
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    isLoading.value = true;
-
     const wax = await getWax();
 
     // Fetch token details by NAI
@@ -144,10 +138,6 @@ const loadTokenDetails = async () => {
 
   } catch (error) {
     toastError('Failed to load token details', error);
-    // Redirect back to tokens list on error
-    router.push('/tokens/list');
-  } finally {
-    isLoading.value = false;
   }
 };
 
@@ -208,18 +198,30 @@ const goBack = () => {
   router.push('/tokens/list');
 };
 
+// Navigate to edit token (placeholder for now)
+const editToken = () => {
+  // TODO: Implement token editing functionality
+  console.log('Edit token:', token.value?.nai);
+};
+
 // Initialize
 onMounted(async () => {
-  await loadTokenDetails();
-  await loadTopHolders();
+  isLoading.value = true;
+
+  await Promise.allSettled([
+    loadTokenDetails(),
+    loadTopHolders()
+  ]);
+
+  isLoading.value = false;
 });
 </script>
 
 <template>
-  <HTMView :is-public-page="false">
+  <HTMView is-public-page>
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
       <!-- Header with back button -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center justify-between gap-4">
         <Button
           variant="ghost"
           size="sm"
@@ -239,6 +241,26 @@ onMounted(async () => {
             />
           </svg>
           Back to Tokens
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          class="gap-2"
+          @click="editToken"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="flex-shrink-0"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiPencilOutline"
+            />
+          </svg>
+          Edit Token Definition
         </Button>
       </div>
 
@@ -275,121 +297,174 @@ onMounted(async () => {
         v-else-if="token"
         class="space-y-6"
       >
-        <!-- Token Header -->
-        <div class="flex flex-col sm:flex-row items-start gap-6 p-6 bg-card rounded-xl border">
-          <Avatar class="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0">
-            <AvatarImage
-              v-if="tokenImage"
-              :src="tokenImage"
-              :alt="tokenName"
-            />
-            <AvatarFallback class="text-xl sm:text-2xl font-bold bg-primary/10 text-primary">
-              {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
-            </AvatarFallback>
-          </Avatar>
+        <!-- Token Information Card -->
+        <Card class="overflow-hidden">
+          <CardContent class="p-6">
+            <!-- Main Token Info -->
+            <div class="flex flex-col sm:flex-row items-start gap-6 mb-6">
+              <Avatar class="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0">
+                <AvatarImage
+                  v-if="tokenImage"
+                  :src="tokenImage"
+                  :alt="tokenName"
+                />
+                <AvatarFallback class="text-xl sm:text-2xl font-bold bg-primary/10 text-primary">
+                  {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
+                </AvatarFallback>
+              </Avatar>
 
-          <div class="flex-1 min-w-0">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-              <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
-                {{ tokenName }}
-              </h1>
-              <div class="flex flex-wrap gap-2">
-                <span
-                  v-if="tokenSymbol"
-                  class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary border border-primary/20"
+              <div class="flex-1 min-w-0">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                  <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
+                    {{ tokenName }}
+                  </h1>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-if="tokenSymbol"
+                      class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary border border-primary/20"
+                    >
+                      {{ tokenSymbol }}
+                    </span>
+                    <span
+                      v-if="token.is_nft"
+                      class="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-500 border border-purple-500/20"
+                    >
+                      NFT
+                    </span>
+                    <span
+                      :class="[
+                        'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                        token.capped ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
+                      ]"
+                    >
+                      {{ token.capped ? 'Capped' : 'Uncapped' }}
+                    </span>
+                  </div>
+                </div>
+
+                <p
+                  v-if="tokenDescription"
+                  class="text-muted-foreground text-base mb-4 leading-relaxed"
                 >
-                  {{ tokenSymbol }}
-                </span>
-                <span
-                  v-if="token.is_nft"
-                  class="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-500 border border-purple-500/20"
-                >
-                  NFT
-                </span>
+                  {{ tokenDescription }}
+                </p>
+
+                <!-- Technical Details - Compact -->
+                <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
+                  <div class="flex items-center gap-1">
+                    <span class="font-medium">NAI:</span>
+                    <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">{{ token.nai }}</code>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="font-medium">Precision:</span>
+                    <span class="bg-muted px-1.5 py-0.5 rounded text-xs">{{ token.precision }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <span class="font-medium">Owner:</span>
+                    <span class="bg-muted px-1.5 py-0.5 rounded text-xs max-w-32 truncate">{{ token.owner }}</span>
+                  </div>
+                </div>
+
+                <!-- Token Properties - Compact -->
+                <div class="flex flex-wrap items-center gap-2 mb-6">
+                  <span
+                    :class="[
+                      'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                      token.is_nft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    ]"
+                  >
+                    {{ token.is_nft ? 'NFT' : 'Fungible' }}
+                  </span>
+                  <span
+                    :class="[
+                      'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                      token.others_can_stake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    ]"
+                  >
+                    {{ token.others_can_stake ? 'Staking ✓' : 'Staking ✗' }}
+                  </span>
+                  <span
+                    :class="[
+                      'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                      token.others_can_unstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                    ]"
+                  >
+                    {{ token.others_can_unstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <p
-              v-if="tokenDescription"
-              class="text-muted-foreground text-base sm:text-lg mb-3 leading-relaxed"
-            >
-              {{ tokenDescription }}
-            </p>
+            <!-- Stats Grid - Dense Layout -->
+            <div class="border-t pt-6">
+              <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg
+                  width="20"
+                  height="20"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="text-primary"
+                >
+                  <path
+                    style="fill: currentColor"
+                    d="M16,6L18.29,8.29L13.41,13.17L9.41,9.17L2,16.59L3.41,18L9.41,12L13.41,16L19.71,9.71L22,12V6H16Z"
+                  />
+                </svg>
+                Token Statistics
+              </h3>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <!-- Total Supply -->
+                <div class="bg-accent/30 rounded-lg p-4 border">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 rounded-full bg-blue-500" />
+                    <span class="text-xs font-medium text-muted-foreground">Total Supply</span>
+                  </div>
+                  <div class="text-sm font-bold text-foreground truncate">
+                    {{ formattedTotalSupply }}
+                  </div>
+                </div>
 
-            <div class="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <div class="flex items-center gap-2">
-                <span class="font-medium">NAI:</span>
-                <code class="bg-muted px-2 py-1 rounded font-mono text-xs">{{ token.nai }}</code>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="font-medium">Precision:</span>
-                <span class="bg-muted px-2 py-1 rounded text-xs">{{ token.precision }} decimals</span>
+                <!-- Max Supply -->
+                <div class="bg-accent/30 rounded-lg p-4 border">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 rounded-full bg-orange-500" />
+                    <span class="text-xs font-medium text-muted-foreground">Max Supply</span>
+                  </div>
+                  <div class="text-sm font-bold text-foreground truncate">
+                    {{ formattedMaxSupply }}
+                  </div>
+                </div>
+
+                <!-- Your Balance -->
+                <div class="bg-accent/30 rounded-lg p-4 border">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 rounded-full bg-green-500" />
+                    <span class="text-xs font-medium text-muted-foreground">Your Balance</span>
+                  </div>
+                  <div class="text-sm font-bold text-foreground truncate">
+                    {{ isLoggedIn ? formattedUserBalance : '—' }}
+                  </div>
+                </div>
+
+                <!-- Market Cap Placeholder -->
+                <div class="bg-accent/30 rounded-lg p-4 border">
+                  <div class="flex items-center gap-2 mb-2">
+                    <div class="w-3 h-3 rounded-full bg-purple-500" />
+                    <span class="text-xs font-medium text-muted-foreground">Market Cap</span>
+                  </div>
+                  <div class="text-sm font-bold text-foreground">
+                    —
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <!-- Token Stats -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <!-- Total Supply -->
-          <Card class="hover:shadow-md transition-shadow duration-200">
-            <CardHeader class="pb-3">
-              <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <div class="w-4 h-4 rounded-full bg-blue-500" />
-                Total Supply
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="text-xl sm:text-2xl font-bold text-foreground">
-                {{ formattedTotalSupply }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">
-                Current circulating supply
-              </p>
-            </CardContent>
-          </Card>
-
-          <!-- Max Supply -->
-          <Card class="hover:shadow-md transition-shadow duration-200">
-            <CardHeader class="pb-3">
-              <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <div class="w-4 h-4 rounded-full bg-orange-500" />
-                Max Supply
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="text-xl sm:text-2xl font-bold text-foreground">
-                {{ formattedMaxSupply }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">
-                {{ token.max_supply === '0' ? 'No maximum limit' : 'Maximum possible supply' }}
-              </p>
-            </CardContent>
-          </Card>
-
-          <!-- Your Balance -->
-          <Card class="hover:shadow-md transition-shadow duration-200">
-            <CardHeader class="pb-3">
-              <CardTitle class="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <div class="w-4 h-4 rounded-full bg-green-500" />
-                Your Balance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="text-xl sm:text-2xl font-bold text-foreground">
-                {{ isLoggedIn ? formattedUserBalance : '—' }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">
-                {{ isLoggedIn ? 'Current balance' : 'Connect wallet to view' }}
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+          </CardContent>
+        </Card>
 
         <!-- Actions Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <!-- Transfer Section -->
-          <Card class="h-fit">
+          <Card class="flex flex-col h-full">
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <svg
@@ -410,7 +485,7 @@ onMounted(async () => {
                 Send {{ tokenSymbol || tokenName }} to another account
               </CardDescription>
             </CardHeader>
-            <CardContent class="space-y-6">
+            <CardContent class="space-y-6 flex-1">
               <div
                 v-if="!isLoggedIn"
                 class="text-center py-12 space-y-4"
@@ -561,7 +636,7 @@ onMounted(async () => {
           </Card>
 
           <!-- Top Holders Section -->
-          <Card class="h-fit">
+          <Card class="flex flex-col h-full">
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <svg
@@ -582,7 +657,7 @@ onMounted(async () => {
                 Accounts with the largest {{ tokenSymbol || tokenName }} balances
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent class="flex-1">
               <div
                 v-if="isLoadingHolders"
                 class="space-y-4"
@@ -687,95 +762,6 @@ onMounted(async () => {
             </CardContent>
           </Card>
         </div>
-
-        <!-- Additional Token Info -->
-        <Card>
-          <CardHeader>
-            <CardTitle class="flex items-center gap-2">
-              <svg
-                width="20"
-                height="20"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="text-primary"
-              >
-                <path
-                  style="fill: currentColor"
-                  d="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-                />
-              </svg>
-              Token Information
-            </CardTitle>
-            <CardDescription>
-              Detailed properties and configuration for this token
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div class="space-y-6">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Token Owner</span>
-                  <code class="text-sm font-mono bg-muted px-2 py-1 rounded break-all">{{ token.owner }}</code>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Decimal Precision</span>
-                  <span class="font-semibold">{{ token.precision }} decimals</span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Supply Capped</span>
-                  <span
-                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border"
-                    :class="token.capped
-                      ? 'bg-green-50 text-green-700 border-green-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'"
-                  >
-                    {{ token.capped ? 'Yes' : 'No' }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="space-y-6">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Others Can Stake</span>
-                  <span
-                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border"
-                    :class="token.others_can_stake
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'"
-                  >
-                    {{ token.others_can_stake ? 'Enabled' : 'Disabled' }}
-                  </span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Others Can Unstake</span>
-                  <span
-                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border"
-                    :class="token.others_can_unstake
-                      ? 'bg-blue-50 text-blue-700 border-blue-200'
-                      : 'bg-gray-50 text-gray-700 border-gray-200'"
-                  >
-                    {{ token.others_can_unstake ? 'Enabled' : 'Disabled' }}
-                  </span>
-                </div>
-
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-4 rounded-lg border bg-accent/30">
-                  <span class="text-sm font-medium text-muted-foreground">Token Type</span>
-                  <span
-                    class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border"
-                    :class="token.is_nft
-                      ? 'bg-purple-50 text-purple-700 border-purple-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'"
-                  >
-                    {{ token.is_nft ? 'NFT' : 'Fungible' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   </HTMView>
