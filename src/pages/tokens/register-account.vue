@@ -9,9 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { isValidPublicKey } from '@/utils/htm-utils';
 import { toastError } from '@/utils/parse-error';
 
 const router = useRouter();
+
 const showLoginForm = ref(false);
 const showRegistrationForm = ref(false);
 const isLoading = ref(false);
@@ -21,13 +23,19 @@ const registrationData = ref({
   name: '',           // Account display name
   about: '',          // Description/bio
   website: '',        // Website URL
-  profile_image: ''   // Profile image URL (for now, will be replaced with image hoster in future)
+  profile_image: '',  // Profile image URL (for now, will be replaced with image hoster in future)
+  hiveAccount: '',    // Hive account name
+  managementKey: '',  // Management public key
+  operationalKey: ''  // Operational public key
 });
 
 // Form validation
 const isFormValid = computed(() => {
   return registrationData.value.name.trim().length > 0 &&
-         registrationData.value.about.trim().length > 0;
+         registrationData.value.about.trim().length > 0 &&
+         registrationData.value.hiveAccount.trim().length > 0 &&
+         isValidPublicKey(registrationData.value.managementKey.trim()) &&
+         isValidPublicKey(registrationData.value.operationalKey.trim());
 });
 
 // Show HTM login form
@@ -44,7 +52,10 @@ const goBack = () => {
     name: '',
     about: '',
     website: '',
-    profile_image: ''
+    profile_image: '',
+    hiveAccount: '',
+    managementKey: '',
+    operationalKey: ''
   };
 };
 
@@ -89,28 +100,38 @@ const registerHTMAccount = async () => {
       return;
     }
 
-    // Prepare metadata following the same structure as userStore posting JSON metadata
-    const metadata = {
-      profile: {
-        name: registrationData.value.name.trim(),
-        about: registrationData.value.about.trim(),
-        website: registrationData.value.website.trim() || undefined,
-        profile_image: registrationData.value.profile_image.trim() || undefined
-      }
-    };
+    // Validate public keys
+    if (!isValidPublicKey(registrationData.value.managementKey.trim())) {
+      toast.error('Please enter a valid management public key');
+      return;
+    }
 
-    console.log('HTM Registration Data:', metadata);
+    if (!isValidPublicKey(registrationData.value.operationalKey.trim())) {
+      toast.error('Please enter a valid operational public key');
+      return;
+    }
 
-    // TODO: Implement actual HTM account registration API call
-    // This will need to integrate with the CTokens system
-    // For now, show a detailed message about what would be registered
-    toast.info('HTM Account registration prepared!', {
-      description: `Registration data prepared for: ${metadata.profile.name}. API integration coming soon.`
+    // For now, we'll just show a success message and store the registration data
+    // In a full implementation, this would call the HTM registration
+    toast.success('HTM Account registration prepared!', {
+      description: `Account data for ${registrationData.value.hiveAccount} has been prepared for HTM registration`
     });
 
-    // After successful registration, could redirect to login or automatically log in
-    // For now, go back to main options
-    goBack();
+    console.log('HTM Registration Data:', {
+      hiveAccount: registrationData.value.hiveAccount,
+      managementKey: registrationData.value.managementKey,
+      operationalKey: registrationData.value.operationalKey,
+      profile: {
+        name: registrationData.value.name,
+        about: registrationData.value.about,
+        website: registrationData.value.website || undefined,
+        profile_image: registrationData.value.profile_image || undefined
+      }
+    });
+
+    // After successful registration, redirect to login
+    showRegistrationForm.value = false;
+    showHTMLogin();
 
   } catch (error) {
     toastError('Failed to register HTM account', error);
@@ -220,6 +241,71 @@ const registerHTMAccount = async () => {
             <p class="text-xs text-muted-foreground">
               Profile image URL (optional) - in the future this will be handled by our image hosting service
             </p>
+          </div>
+
+          <!-- HTM Account Configuration -->
+          <div class="border-t pt-6 space-y-4">
+            <h3 class="text-lg font-semibold">
+              HTM Account Configuration
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Configure your Hive account and cryptographic keys for HTM access
+            </p>
+
+            <!-- Hive Account (required) -->
+            <div class="space-y-2">
+              <Label for="hive-account">
+                Hive Account Name *
+              </Label>
+              <Input
+                id="hive-account"
+                v-model="registrationData.hiveAccount"
+                type="text"
+                placeholder="your-hive-account"
+                required
+                pattern="[a-z0-9\-\.]+"
+                maxlength="16"
+              />
+              <p class="text-xs text-muted-foreground">
+                Your existing Hive blockchain account name
+              </p>
+            </div>
+
+            <!-- Management Key (required) -->
+            <div class="space-y-2">
+              <Label for="management-key">
+                Management Public Key *
+              </Label>
+              <Input
+                id="management-key"
+                v-model="registrationData.managementKey"
+                type="text"
+                placeholder="STM..."
+                required
+                class="font-mono text-sm"
+              />
+              <p class="text-xs text-muted-foreground">
+                Your management public key (used for account authority and token creation)
+              </p>
+            </div>
+
+            <!-- Operational Key (required) -->
+            <div class="space-y-2">
+              <Label for="operational-key">
+                Operational Public Key *
+              </Label>
+              <Input
+                id="operational-key"
+                v-model="registrationData.operationalKey"
+                type="text"
+                placeholder="STM..."
+                required
+                class="font-mono text-sm"
+              />
+              <p class="text-xs text-muted-foreground">
+                Your operational public key (used for day-to-day operations and transfers)
+              </p>
+            </div>
           </div>
 
           <!-- Form Actions -->

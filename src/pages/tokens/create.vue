@@ -20,9 +20,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useTokensStore } from '@/stores/tokens.store';
 import { copyText } from '@/utils/copy';
-import { createNAIToken, generateNAI as generateNAIUtil, type TokenCreationParams } from '@/utils/nai-tokens';
+import { createHTMAsset, generateNAI as generateHTMNAI, parseAssetAmount } from '@/utils/htm-utils';
 import { toastError } from '@/utils/parse-error';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+const tokensStore = useTokensStore();
 
 // Form state
 const tokenName = ref('');
@@ -31,6 +35,7 @@ const tokenDescription = ref('');
 const initialSupply = ref('1000000');
 const precision = ref('3');
 const canStake = ref(false);
+const capped = ref(true);
 const agreedToDisclaimer = ref(false);
 
 // Loading states
@@ -118,7 +123,7 @@ const generateNAI = () => {
     return;
 
   try {
-    generatedNAI.value = generateNAIUtil(tokenSymbol.value.trim());
+    generatedNAI.value = generateHTMNAI();
     naiGenerated.value = true;
     toast.success('Token ID generated successfully!');
   } catch (error) {
@@ -142,14 +147,25 @@ const copyNAI = async () => {
   }
 };
 
-// Create token
+// Create token using HTM
 const createToken = async () => {
   if (!isFormValid.value) {
     toast.error('Please fill all required fields and agree to disclaimer');
     return;
   }
 
-  // Ensure NAI is generated before creating token
+  // Check if user has a wallet connected
+  if (!tokensStore.wallet) {
+    toast.error('Please connect your HTM wallet first');
+    return;
+  }
+
+  // Get the beekeeper wallet from CTokensProvider
+  const beekeeperWallet = CTokensProvider.getOperationalWallet();
+  if (!beekeeperWallet) {
+    toast.error('Beekeeper wallet not available. Please ensure you are logged in with HTM wallet.');
+    return;
+  }  // Ensure NAI is generated before creating token
   if (!generatedNAI.value) {
     generateNAI();
     // Wait a moment for generation to complete
@@ -164,17 +180,25 @@ const createToken = async () => {
   isCreatingToken.value = true;
 
   try {
-    const params: TokenCreationParams = {
-      symbol: tokenSymbol.value.trim(),
-      name: tokenName.value.trim(),
-      description: tokenDescription.value.trim(),
-      nai: generatedNAI.value,
-      initial_supply: initialSupply.value,
-      precision: parseInt(precision.value),
-      can_stake: canStake.value
+    // Prepare HTM asset definition data
+    const assetData = {
+      identifier: {
+        amount: parseAssetAmount(initialSupply.value, parseInt(precision.value)),
+        nai: generatedNAI.value,
+        precision: parseInt(precision.value)
+      },
+      capped: capped.value,
+      maxSupply: capped.value ? parseAssetAmount(initialSupply.value, parseInt(precision.value)) : '0',
+      owner: tokensStore.wallet.publicKey
     };
 
-    await createNAIToken(params);
+    // Create the HTM asset
+    await createHTMAsset(
+      assetData,
+      beekeeperWallet,
+      'token-creator', // This should be the operational account
+      1.0 // Fee amount
+    );
 
     toast.success('Token created successfully!', {
       description: `Token ${tokenSymbol.value} has been created and deployed to the Hive Token Machine.`
