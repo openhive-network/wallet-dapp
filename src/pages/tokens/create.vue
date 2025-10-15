@@ -3,14 +3,13 @@ import {
   mdiCurrencyUsd,
   mdiRefresh,
   mdiContentCopy,
-  mdiCheck,
-  mdiAlert,
   mdiRocket,
   mdiLoading
 } from '@mdi/js';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
+import HTMTokenPreview from '@/components/HTMTokenPreview.vue';
 import HTMView from '@/components/HTMView.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -240,12 +239,27 @@ const onSupplyInput = (event: Event) => {
   initialSupply.value = value;
 };
 
-// Handle symbol input
-const onSymbolInput = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const value = target.value.replace(/[^A-Za-z]/g, '').toUpperCase();
-  tokenSymbol.value = value;
-};
+// Handle symbol input - transform to uppercase letters only
+watch(tokenSymbol, (newValue) => {
+  const cleaned = newValue.replace(/[^A-Za-z]/g, '').toUpperCase();
+  if (cleaned !== newValue)
+    tokenSymbol.value = cleaned;
+});
+
+// Computed property for token preview data
+const previewToken = computed(() => ({
+  name: tokenName.value || undefined,
+  symbol: tokenSymbol.value || undefined,
+  description: tokenDescription.value || undefined,
+  nai: generatedNAI.value || undefined,
+  totalSupply: initialSupply.value,
+  maxSupply: capped.value ? initialSupply.value : undefined,
+  precision: parseInt(precision.value) || 3,
+  capped: capped.value,
+  othersCanStake: canStake.value,
+  othersCanUnstake: canStake.value,
+  ownerPublicKey: tokensStore.wallet?.publicKey
+}));
 </script>
 
 <template>
@@ -301,13 +315,12 @@ const onSymbolInput = (event: Event) => {
                 <Label for="token-symbol">Token Symbol *</Label>
                 <Input
                   id="token-symbol"
-                  :value="tokenSymbol"
+                  v-model="tokenSymbol"
                   placeholder="e.g., MAT"
                   class="uppercase"
                   :class="{ 'border-red-500': tokenSymbol.length > 0 && !symbolValidation.isValid }"
                   maxlength="10"
                   :disabled="isCreatingToken"
-                  @input="onSymbolInput"
                 />
                 <p
                   class="text-xs"
@@ -480,71 +493,10 @@ const onSymbolInput = (event: Event) => {
           <!-- Preview and Actions -->
           <div class="space-y-6">
             <!-- Token Preview -->
-            <Card>
-              <CardHeader>
-                <CardTitle>Token Preview</CardTitle>
-                <CardDescription>
-                  How your token will appear
-                </CardDescription>
-              </CardHeader>
-              <CardContent class="space-y-4">
-                <div class="border rounded-lg p-4 space-y-2">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <h3 class="font-semibold">
-                        {{ tokenName || 'Token Name' }}
-                      </h3>
-                      <p class="text-sm text-muted-foreground">
-                        {{ tokenSymbol || 'SYMBOL' }}
-                      </p>
-                    </div>
-                    <span class="inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">{{ naiDisplayValue || 'NAI' }}</span>
-                  </div>
-
-                  <p class="text-sm">
-                    {{ tokenDescription || 'Token description will appear here...' }}
-                  </p>
-
-                  <div class="flex justify-between text-xs text-muted-foreground">
-                    <span>Supply: {{ formatNumber(initialSupply) }}</span>
-                    <span>Precision: {{ precision }}</span>
-                  </div>
-
-                  <div
-                    v-if="canStake"
-                    class="flex items-center text-xs text-green-600"
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      class="mr-1"
-                    >
-                      <path
-                        style="fill: currentColor"
-                        :d="mdiCheck"
-                      />
-                    </svg>
-                    Staking enabled
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <HTMTokenPreview :token="previewToken" />
 
             <!-- Disclaimer -->
-            <Alert>
-              <svg
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiAlert"
-                />
-              </svg>
+            <Alert variant="warning">
               <AlertDescription>
                 <div class="space-y-2">
                   <p class="font-semibold">

@@ -41,6 +41,19 @@ export interface HTMUserMetadataUpdateData {
   }[];
 }
 
+export interface HTMAssetMetadataUpdateData {
+  owner: TPublicKey;
+  identifier: {
+    amount: string;
+    nai: string;
+    precision: number;
+  };
+  metadata: {
+    key: string;
+    value: string;
+  }[];
+}
+
 /**
  * HTM Transaction Builder - Utility class for creating and managing HTM transactions
  */
@@ -105,6 +118,22 @@ export class HTMTransactionBuilder {
     this.transaction.pushOperation({
       user_metadata_update_operation: {
         user: data.user,
+        metadata: {
+          items: data.metadata
+        }
+      }
+    });
+    return this;
+  }
+
+  /**
+   * Add asset metadata update operation to the transaction
+   */
+  addAssetMetadataUpdate (data: HTMAssetMetadataUpdateData): this {
+    this.transaction.pushOperation({
+      asset_metadata_update_operation: {
+        owner: data.owner,
+        identifier: data.identifier,
         metadata: {
           items: data.metadata
         }
@@ -272,6 +301,51 @@ export async function updateHTMUserMetadata (
   const l1Tx = await wax.createTransaction();
   l1Tx.pushOperation(htmBuilder.getTransaction());
   l1Tx.sign(wallet, managementKey);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Tx);
+  return l1Tx.id.toString();
+}
+
+/**
+ * Update HTM asset metadata
+ */
+export async function updateHTMAssetMetadata (
+  metadataData: HTMAssetMetadataUpdateData,
+  wallet: IBeekeeperUnlockedWallet,
+  operationalAccount: string,
+  feeAmount = 0.001
+): Promise<string> {
+  const wax = await getWax();
+
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = operationalAccount;
+
+  // Create L2 transaction for asset metadata update
+  const htmBuilder = await HTMTransactionBuilder.create();
+  htmBuilder.addAssetMetadataUpdate(metadataData);
+  await htmBuilder.sign(wallet);
+
+  // Create L1 transaction with optional fee transfer and HTM operation
+  const l1Tx = await wax.createTransaction();
+
+  // Add fee transfer operation if fee > 0
+  if (feeAmount > 0) {
+    l1Tx.pushOperation({
+      transfer_operation: {
+        from: operationalAccount,
+        to: 'fee.htm',
+        amount: wax.hiveCoins(feeAmount),
+        memo: 'L2 asset metadata update fee'
+      }
+    });
+  }
+
+  // Add HTM asset metadata update operation
+  l1Tx.pushOperation(htmBuilder.getTransaction());
+
+  // Sign with owner key (management key)
+  l1Tx.sign(wallet, metadataData.owner);
 
   // Broadcast the transaction
   await wax.broadcast(l1Tx);
