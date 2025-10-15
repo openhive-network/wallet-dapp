@@ -1,4 +1,4 @@
-import type { IBeekeeperUnlockedWallet } from '@hiveio/beekeeper';
+import type { IBeekeeperUnlockedWallet } from '@hiveio/beekeeper/vite';
 import type { TPublicKey } from '@hiveio/wax';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
 

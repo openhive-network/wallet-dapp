@@ -162,37 +162,21 @@ const hasStakingFeatures = computed(() =>
         <!-- Token Info -->
         <div class="flex-1 min-w-0">
           <div class="flex flex-col gap-2 mb-1">
-            <CardTitle class="text-lg truncate">
-              {{ token.name || 'Unnamed Token' }}
-            </CardTitle>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-if="token.symbol"
-                class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary border border-primary/20"
-              >
-                {{ token.symbol }}
-              </span>
+            <CardTitle class="text-lg truncate inline-flex gap-2 flex-wrap items-center">
+              <span>{{ token.name || 'Unnamed Token' }}</span>
               <span
                 v-if="token.isNft"
-                class="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-500 border border-purple-500/20"
+                class="inline-flex items-center rounded-md bg-purple-500/10 text-[12px]/[14px] px-1 font-medium text-purple-500 border border-purple-500/20"
               >
-                NFT
-              </span>
-              <span
-                :class="[
-                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token.capped ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
-                ]"
-              >
-                {{ token.capped ? 'Capped' : 'Uncapped' }}
+                nft
               </span>
               <span
                 v-if="token.isStaked"
-                class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-500 border border-green-500/20"
+                class="inline-flex items-center rounded-md bg-blue-500/10  text-[12px]/[14px] px-1 font-medium text-blue-500 border border-blue-500/20"
               >
-                Staked
+                staked
               </span>
-            </div>
+            </CardTitle>
           </div>
           <CardDescription class="text-xs truncate">
             {{ token.nai || 'NAI will be generated' }}
@@ -265,16 +249,28 @@ const hasStakingFeatures = computed(() =>
         class="flex flex-wrap gap-2 pt-2"
       >
         <span
-          v-if="token.othersCanStake"
-          class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 border border-blue-200"
+          :class="[
+            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+            token.isNft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+          ]"
         >
-          Staking ✓
+          {{ token.isNft ? 'NFT' : 'Fungible' }}
         </span>
         <span
-          v-if="token.othersCanUnstake"
-          class="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 border border-blue-200"
+          :class="[
+            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+            token.othersCanStake ? 'bg-blue-50 text-blue-500 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+          ]"
         >
-          Unstaking ✓
+          {{ token.othersCanStake ? 'Staking ✓' : 'Staking ✗' }}
+        </span>
+        <span
+          :class="[
+            'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+            token.othersCanUnstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+          ]"
+        >
+          {{ token.othersCanUnstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
         </span>
       </div>
 
