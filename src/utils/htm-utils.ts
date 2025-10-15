@@ -9,7 +9,8 @@ import {
   type HTMUserSignupData,
   type HTMAssetDefinitionData,
   type HTMTokenTransferData,
-  type HTMUserMetadataUpdateData
+  type HTMUserMetadataUpdateData,
+  type HTMAssetMetadataUpdateData
 } from './htm';
 
 // Re-export types from htm.ts for convenience
@@ -17,7 +18,8 @@ export type {
   HTMUserSignupData,
   HTMAssetDefinitionData,
   HTMTokenTransferData,
-  HTMUserMetadataUpdateData
+  HTMUserMetadataUpdateData,
+  HTMAssetMetadataUpdateData
 } from './htm';
 
 /**
@@ -144,6 +146,52 @@ export async function updateHTMUserMetadata (
   const l1Tx = await wax.createTransaction();
   l1Tx.pushOperation(htmBuilder.getTransaction());
   l1Tx.sign(wallet, managementKey);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Tx);
+  return l1Tx.id.toString();
+}
+
+/**
+ * Update HTM asset metadata
+ * This is the full implementation using HTM library and beekeeper wallets.
+ */
+export async function updateHTMAssetMetadata (
+  metadataData: HTMAssetMetadataUpdateData,
+  wallet: IBeekeeperUnlockedWallet,
+  operationalAccount: string,
+  feeAmount = 0.001
+): Promise<string> {
+  const wax = await getWax();
+
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = operationalAccount;
+
+  // Create L2 HTM transaction for asset metadata update
+  const htmBuilder = await HTMTransactionBuilder.create();
+  htmBuilder.addAssetMetadataUpdate(metadataData);
+  await htmBuilder.sign(wallet);
+
+  // Create L1 transaction with optional fee transfer and HTM operation
+  const l1Tx = await wax.createTransaction();
+
+  // Add fee transfer operation if fee > 0
+  if (feeAmount > 0) {
+    l1Tx.pushOperation({
+      transfer_operation: {
+        from: operationalAccount,
+        to: 'fee.htm',
+        amount: wax.hiveCoins(feeAmount),
+        memo: 'L2 asset metadata update fee'
+      }
+    });
+  }
+
+  // Add HTM asset metadata update operation
+  l1Tx.pushOperation(htmBuilder.getTransaction());
+
+  // Sign with owner key (management key)
+  l1Tx.sign(wallet, metadataData.owner);
 
   // Broadcast the transaction
   await wax.broadcast(l1Tx);
