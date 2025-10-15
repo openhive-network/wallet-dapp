@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import type { IBeekeeperInstance, IBeekeeperOptions } from '@hiveio/beekeeper';
+import beekeeperFactory from '@hiveio/beekeeper';
+import {
+  mdiCheckCircle,
+  mdiDownload,
+  mdiNumeric1Circle,
+  mdiNumeric2Circle,
+  mdiNumeric3Circle,
+  mdiRefresh
+} from '@mdi/js';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -10,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
@@ -20,72 +30,173 @@ const router = useRouter();
 const showLoginForm = ref(false);
 const showRegistrationForm = ref(false);
 const isLoading = ref(false);
+const hasConfirmedDownload = ref(false);
+const keysGenerated = ref(false);
 
-// Registration form data - following the same structure as userStore posting JSON metadata
+// Registration form data - simplified to match standard account creation flow
 const registrationData = ref({
   name: '',                 // Account display name
-  about: '',                // Description/bio
-  website: '',              // Website URL
-  profile_image: '',        // Profile image URL (for now, will be replaced with image hoster in future)
+  about: '',                // Description/bio (optional)
+  website: '',              // Website URL (optional)
+  profile_image: '',        // Profile image URL (optional)
   hiveAccount: '',          // Hive account name
   hivePostingPrivateKey: '',// Hive posting private key (WIF format) - needed to sign L1 transaction
-  managementPrivateKey: '', // Management private key (WIF format)
-  operationalPrivateKey: '',// Operational private key (WIF format)
   walletPassword: '',       // Password to encrypt the wallet
   repeatPassword: ''        // Password confirmation
 });
 
-// Form validation
-const isFormValid = computed(() => {
+// Generated HTM keys (auto-generated, not manually entered)
+const generatedKeys = ref({
+  operationalPrivateKey: '',
+  operationalPublicKey: '',
+  managementPrivateKey: '',
+  managementPublicKey: ''
+});
+
+// Step tracking for improved UX (similar to Hive account creation)
+const currentStep = computed(() => {
+  if (!isBasicInfoValid.value) return 1;
+  if (!keysGenerated.value) return 2;
+  if (!hasConfirmedDownload.value) return 3;
+  return 3;
+});
+
+const stepStatus = computed(() => ({
+  step1: {
+    completed: isBasicInfoValid.value,
+    current: currentStep.value === 1,
+    icon: mdiNumeric1Circle,
+    title: 'Account Info',
+    description: 'Basic information'
+  },
+  step2: {
+    completed: keysGenerated.value,
+    current: currentStep.value === 2,
+    icon: mdiNumeric2Circle,
+    title: 'Generate Keys',
+    description: 'Auto-create HTM keys'
+  },
+  step3: {
+    completed: hasConfirmedDownload.value,
+    current: currentStep.value === 3,
+    icon: mdiNumeric3Circle,
+    title: 'Confirm & Register',
+    description: 'Save keys & register'
+  }
+}));
+
+// Form validation - only basic info needed in step 1
+const isBasicInfoValid = computed(() => {
   return registrationData.value.name.trim().length > 0 &&
-         registrationData.value.about.trim().length > 0 &&
          registrationData.value.hiveAccount.trim().length > 0 &&
          registrationData.value.hivePostingPrivateKey.trim().length > 0 &&
-         registrationData.value.operationalPrivateKey.trim().length > 0 &&
          registrationData.value.walletPassword.trim().length > 0 &&
          registrationData.value.repeatPassword.trim().length > 0 &&
          registrationData.value.walletPassword === registrationData.value.repeatPassword;
 });
 
-// Validation: Check if keys are different
-const keysValidationError = computed(() => {
-  const hiveKey = registrationData.value.hivePostingPrivateKey.trim();
-  const operationalKey = registrationData.value.operationalPrivateKey.trim();
-  const managementKey = registrationData.value.managementPrivateKey.trim();
-
-  if (!hiveKey || !operationalKey) return null;
-
-  if (hiveKey === operationalKey)
-    return 'Hive Posting Key and HTM Operational Key must be different!';
-
-  if (managementKey && hiveKey === managementKey)
-    return 'Hive Posting Key and HTM Management Key must be different!';
-
-  if (managementKey && operationalKey === managementKey)
-    return 'HTM Operational Key and HTM Management Key must be different!';
-
-  return null;
-});
-
-// Generate new HTM keys
-const generateHTMKeys = async () => {
+// Validate URL format
+const isValidUrl = (url: string): boolean => {
+  if (!url) return true; // Empty URL is valid (optional field)
   try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Generate HTM keys automatically (called during registration)
+const generateAndDownloadKeys = async () => {
+  if (!isBasicInfoValid.value) {
+    toast.error('Please fill in all required fields');
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+
     const wax = await getWax();
 
     // Generate operational key
     const operationalBrainKey = wax.suggestBrainKey();
-    registrationData.value.operationalPrivateKey = operationalBrainKey.wifPrivateKey;
+    generatedKeys.value.operationalPrivateKey = operationalBrainKey.wifPrivateKey;
+
+    // Derive public key for operational key
+    const bk = await beekeeperFactory();
+    const tempSession = bk.createSession(Math.random().toString());
+    const { wallet: tempWallet } = await tempSession.createWallet('temp', 'temp', true);
+    generatedKeys.value.operationalPublicKey = await tempWallet.importKey(operationalBrainKey.wifPrivateKey);
 
     // Generate management key (optional, but recommended)
     const managementBrainKey = wax.suggestBrainKey();
-    registrationData.value.managementPrivateKey = managementBrainKey.wifPrivateKey;
+    generatedKeys.value.managementPrivateKey = managementBrainKey.wifPrivateKey;
+    generatedKeys.value.managementPublicKey = await tempWallet.importKey(managementBrainKey.wifPrivateKey);
+
+    keysGenerated.value = true;
+
+    // Auto-download the keys file
+    downloadKeysFile();
 
     toast.success('HTM keys generated successfully!', {
-      description: 'New operational and management keys have been created'
+      description: 'Keys have been auto-generated and downloaded'
     });
   } catch (error) {
     toastError('Failed to generate HTM keys', error);
+  } finally {
+    isLoading.value = false;
   }
+};
+
+// Download HTM keys file (similar to Hive authority data file)
+const downloadKeysFile = () => {
+  const cleanAccountName = registrationData.value.hiveAccount.startsWith('@')
+    ? registrationData.value.hiveAccount.slice(1)
+    : registrationData.value.hiveAccount;
+
+  const keysFile = {
+    account_name: cleanAccountName,
+    display_name: registrationData.value.name,
+    generated_at: new Date().toISOString(),
+    htm_keys: {
+      operational: {
+        public_key: generatedKeys.value.operationalPublicKey,
+        private_key: generatedKeys.value.operationalPrivateKey
+      },
+      management: {
+        public_key: generatedKeys.value.managementPublicKey,
+        private_key: generatedKeys.value.managementPrivateKey
+      }
+    },
+    _note: 'KEEP THIS FILE SAFE! These keys control your HTM account. Store them in a secure location and never share them with anyone.',
+    generator: 'Hive Bridge HTM Registration'
+  };
+
+  const dataStr = JSON.stringify(keysFile, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(dataBlob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${cleanAccountName}-htm-keys.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+};
+
+// Reset process
+const resetProcess = () => {
+  keysGenerated.value = false;
+  hasConfirmedDownload.value = false;
+  generatedKeys.value = {
+    operationalPrivateKey: '',
+    operationalPublicKey: '',
+    managementPrivateKey: '',
+    managementPublicKey: ''
+  };
+  toast.info('Process reset. You can generate new keys.');
 };
 
 // Show HTM login form
@@ -105,11 +216,10 @@ const goBack = () => {
     profile_image: '',
     hiveAccount: '',
     hivePostingPrivateKey: '',
-    managementPrivateKey: '',
-    operationalPrivateKey: '',
     walletPassword: '',
     repeatPassword: ''
   };
+  resetProcess();
 };
 
 // Handle successful login
@@ -119,31 +229,20 @@ const onLoginSuccess = () => {
   router.push('/tokens/my-balance');
 };
 
-// Validate URL format
-const isValidUrl = (url: string): boolean => {
-  if (!url) return true; // Empty URL is valid (optional field)
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 // Handle HTM account registration
 const registerHTMAccount = async () => {
   try {
     isLoading.value = true;
 
-    // Validate form data
-    if (!isFormValid.value) {
-      toast.error('Please fill in all required fields');
+    // Validate that keys have been generated
+    if (!keysGenerated.value) {
+      toast.error('Please generate HTM keys first');
       return;
     }
 
-    // Validate that keys are different
-    if (keysValidationError.value) {
-      toast.error(keysValidationError.value);
+    // Validate that user confirmed download
+    if (!hasConfirmedDownload.value) {
+      toast.error('Please confirm you have saved the keys file');
       return;
     }
 
@@ -168,7 +267,7 @@ const registerHTMAccount = async () => {
     // Get wax instance
     const wax = await getWax();
 
-    // Create temporary beekeeper wallet to import keys and derive public keys
+    // Create temporary beekeeper wallet to import keys and sign transactions
     toast.info('Creating HTM wallet...');
 
     const beekeeper = await (import('@hiveio/beekeeper/vite') as unknown as Promise<{ createBeekeeper: (options: Partial<IBeekeeperOptions>) => Promise<IBeekeeperInstance> }>)
@@ -180,19 +279,17 @@ const registerHTMAccount = async () => {
     const { wallet: tempWallet } = await tempSession.createWallet(tempWalletName, 'temp-password', true);
 
     const hivePostingPublicKey = await tempWallet.importKey(registrationData.value.hivePostingPrivateKey.trim());
-    const operationalPublicKey = await tempWallet.importKey(registrationData.value.operationalPrivateKey.trim());
+    const operationalPublicKey = generatedKeys.value.operationalPublicKey;
+    const managementPublicKey = generatedKeys.value.managementPublicKey;
 
-    let managementPublicKey: string | undefined;
-    if (registrationData.value.managementPrivateKey.trim().length > 0)
-      managementPublicKey = await tempWallet.importKey(registrationData.value.managementPrivateKey.trim());
-
-    const finalManagementKey = managementPublicKey || operationalPublicKey;
+    await tempWallet.importKey(generatedKeys.value.operationalPrivateKey);
+    await tempWallet.importKey(generatedKeys.value.managementPrivateKey);
 
     // Create HTM wallet for persistent storage
     await CTokensProvider.createWallet(
       registrationData.value.walletPassword,
-      registrationData.value.operationalPrivateKey.trim(),
-      registrationData.value.managementPrivateKey.trim() || undefined
+      generatedKeys.value.operationalPrivateKey,
+      generatedKeys.value.managementPrivateKey
     );
 
     // Set proxy account for HTM transactions
@@ -205,7 +302,7 @@ const registerHTMAccount = async () => {
     l2Transaction.pushOperation({
       user_signup_operation: {
         hive_account: registrationData.value.hiveAccount,
-        management_key: finalManagementKey,
+        management_key: managementPublicKey,
         operational_key: operationalPublicKey
       }
     });
@@ -267,139 +364,109 @@ const registerHTMAccount = async () => {
           Register New HTM Account
         </CardTitle>
         <CardDescription>
-          Create your HTM account profile. This information will be stored as metadata following the same structure as Hive posting JSON metadata.
+          Create your HTM account with auto-generated secure keys. Follow the simple steps below.
         </CardDescription>
       </CardHeader>
       <CardContent class="space-y-6">
+        <!-- Progress Steps Indicator -->
+        <div class="grid grid-cols-3 gap-2 mb-6">
+          <div
+            v-for="(step, key) in stepStatus"
+            :key="key"
+            class="flex flex-col items-center text-center"
+          >
+            <div
+              class="w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all duration-200"
+              :class="{
+                'bg-green-100 text-green-600': step.completed,
+                'bg-blue-100 text-blue-600': step.current && !step.completed,
+                'bg-gray-100 text-gray-400': !step.current && !step.completed
+              }"
+            >
+              <svg
+                v-if="step.completed"
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiCheckCircle"
+                />
+              </svg>
+              <svg
+                v-else
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="step.icon"
+                />
+              </svg>
+            </div>
+            <div class="text-xs">
+              <p
+                class="font-medium transition-colors duration-200"
+                :class="{
+                  'text-green-600': step.completed,
+                  'text-blue-600': step.current && !step.completed,
+                  'text-gray-500': !step.current && !step.completed
+                }"
+              >
+                {{ step.title }}
+              </p>
+              <p class="text-gray-400 mt-1">
+                {{ step.description }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
         <form
           class="space-y-4"
           @submit.prevent="registerHTMAccount"
         >
-          <!-- Account Name (required) -->
-          <div class="space-y-2">
-            <Label for="account-name">
-              Account Name *
-            </Label>
-            <Input
-              id="account-name"
-              v-model="registrationData.name"
-              type="text"
-              placeholder="Enter your display name"
-              required
-              maxlength="50"
-            />
-            <p class="text-xs text-muted-foreground">
-              This will be your display name (max 50 characters)
-            </p>
-          </div>
-
-          <!-- About/Description (required) -->
-          <div class="space-y-2">
-            <Label for="account-about">
-              About *
-            </Label>
-            <Textarea
-              id="account-about"
-              v-model="registrationData.about"
-              placeholder="Tell us about yourself or your project..."
-              required
-              rows="4"
-              maxlength="500"
-            />
-            <p class="text-xs text-muted-foreground">
-              Brief description about you or your project (max 500 characters)
-            </p>
-          </div>
-
-          <!-- Website (optional) -->
-          <div class="space-y-2">
-            <Label for="account-website">
-              Website
-            </Label>
-            <Input
-              id="account-website"
-              v-model="registrationData.website"
-              type="url"
-              placeholder="https://your-website.com"
-            />
-            <p class="text-xs text-muted-foreground">
-              Your website or project URL (optional)
-            </p>
-          </div>
-
-          <!-- Profile Image (optional) -->
-          <div class="space-y-2">
-            <Label for="account-profile-image">
-              Profile Image URL
-            </Label>
-            <Input
-              id="account-profile-image"
-              v-model="registrationData.profile_image"
-              type="url"
-              placeholder="https://example.com/your-image.jpg"
-            />
-            <p class="text-xs text-muted-foreground">
-              Profile image URL (optional) - in the future this will be handled by our image hosting service
-            </p>
-          </div>
-
-          <!-- HTM Account Configuration -->
-          <div class="border-t pt-6 space-y-4">
-            <h3 class="text-lg font-semibold">
-              HTM Account Configuration
-            </h3>
-            <p class="text-sm text-muted-foreground">
-              Configure your Hive account and cryptographic keys for HTM access
-            </p>
-
-            <!-- Warning about different keys -->
-            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
-              <div class="flex items-start gap-3">
+          <!-- Step 1: Basic Account Information -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
                 <svg
+                  width="18"
+                  height="18"
                   xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
+                  viewBox="0 0 24 24"
                 >
                   <path
-                    fill-rule="evenodd"
-                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                    clip-rule="evenodd"
+                    style="fill: hsl(var(--primary))"
+                    :d="mdiNumeric1Circle"
                   />
                 </svg>
-                <div class="flex-1">
-                  <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-200">
-                    Important: Use Different Keys!
-                  </h4>
-                  <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-                    HTM keys must be <strong>different</strong> from your Hive posting key. Use your Hive posting key only for the "Hive Posting Private Key" field. Generate new, separate keys for HTM Operational and Management.
-                  </p>
-                </div>
+                <Label class="text-base font-semibold">Account Information</Label>
               </div>
             </div>
 
-            <!-- Show validation error if keys are the same -->
-            <div
-              v-if="keysValidationError"
-              class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg p-4"
-            >
-              <div class="flex items-center gap-2">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-5 w-5 text-red-600 dark:text-red-500"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-                <p class="text-sm font-medium text-red-800 dark:text-red-200">
-                  {{ keysValidationError }}
-                </p>
-              </div>
+            <!-- Display Name (required) -->
+            <div class="space-y-2">
+              <Label for="account-name">
+                Display Name *
+              </Label>
+              <Input
+                id="account-name"
+                v-model="registrationData.name"
+                type="text"
+                placeholder="Enter your display name"
+                required
+                maxlength="50"
+              />
+              <p class="text-xs text-muted-foreground">
+                Your public display name (max 50 characters)
+              </p>
             </div>
 
             <!-- Hive Account (required) -->
@@ -435,52 +502,7 @@ const registerHTMAccount = async () => {
                 class="font-mono text-sm"
               />
               <p class="text-xs text-muted-foreground">
-                Your Hive posting private key from your <strong>existing Hive account</strong> (required to register on HTM). This is different from HTM keys.
-              </p>
-            </div>
-
-            <!-- Operational Private Key (required) -->
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <Label for="operational-private-key">
-                  HTM Operational Private Key *
-                </Label>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  @click="generateHTMKeys"
-                >
-                  Generate HTM Keys
-                </Button>
-              </div>
-              <Input
-                id="operational-private-key"
-                v-model="registrationData.operationalPrivateKey"
-                type="password"
-                placeholder="5... (will be auto-generated)"
-                required
-                class="font-mono text-sm"
-              />
-              <p class="text-xs text-muted-foreground">
-                HTM operational private key in WIF format (used for day-to-day operations and transfers). Click "Generate HTM Keys" to create new keys automatically.
-              </p>
-            </div>
-
-            <!-- Management Private Key (optional) -->
-            <div class="space-y-2">
-              <Label for="management-private-key">
-                HTM Management Private Key (Optional)
-              </Label>
-              <Input
-                id="management-private-key"
-                v-model="registrationData.managementPrivateKey"
-                type="password"
-                placeholder="5... (auto-generated with Operational Key)"
-                class="font-mono text-sm"
-              />
-              <p class="text-xs text-muted-foreground">
-                HTM management private key in WIF format (optional, used for account authority and token creation). Auto-generated when you click "Generate HTM Keys".
+                Your Hive posting private key (required to register on HTM)
               </p>
             </div>
 
@@ -513,9 +535,188 @@ const registerHTMAccount = async () => {
                 placeholder="Repeat your password"
                 required
               />
-              <p class="text-xs text-muted-foreground">
-                Confirm your wallet password
+            </div>
+
+            <!-- About/Description (optional) -->
+            <div class="space-y-2">
+              <Label for="account-about">
+                About (Optional)
+              </Label>
+              <Textarea
+                id="account-about"
+                v-model="registrationData.about"
+                placeholder="Tell us about yourself or your project..."
+                rows="3"
+                maxlength="500"
+              />
+            </div>
+
+            <!-- Website (optional) -->
+            <div class="space-y-2">
+              <Label for="account-website">
+                Website (Optional)
+              </Label>
+              <Input
+                id="account-website"
+                v-model="registrationData.website"
+                type="url"
+                placeholder="https://your-website.com"
+              />
+            </div>
+
+            <!-- Profile Image (optional) -->
+            <div class="space-y-2">
+              <Label for="account-profile-image">
+                Profile Image URL (Optional)
+              </Label>
+              <Input
+                id="account-profile-image"
+                v-model="registrationData.profile_image"
+                type="url"
+                placeholder="https://example.com/your-image.jpg"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Step 2: Generate HTM Keys -->
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-2">
+                <svg
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: hsl(var(--primary))"
+                    :d="mdiNumeric2Circle"
+                  />
+                </svg>
+                <Label class="text-base font-semibold">HTM Keys Generation</Label>
+              </div>
+              <Button
+                v-if="keysGenerated"
+                variant="ghost"
+                size="sm"
+                class="text-gray-400"
+                type="button"
+                @click="resetProcess"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="mr-1"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiRefresh"
+                  />
+                </svg>
+                Reset
+              </Button>
+            </div>
+
+            <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+              <p class="text-sm text-blue-800 dark:text-blue-200">
+                HTM keys will be <strong>automatically generated</strong> for you. No need to manually enter keys. Simply click the button below to generate and download your secure keys.
               </p>
+            </div>
+
+            <Button
+              type="button"
+              :disabled="!isBasicInfoValid || isLoading"
+              class="w-full"
+              @click="keysGenerated ? downloadKeysFile() : generateAndDownloadKeys()"
+            >
+              <svg
+                v-if="!isLoading"
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-2"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="keysGenerated ? mdiDownload : mdiNumeric2Circle"
+                />
+              </svg>
+              <span v-if="isLoading">Generating...</span>
+              <span v-else-if="keysGenerated">Download Keys File Again</span>
+              <span v-else>Generate & Download HTM Keys</span>
+            </Button>
+
+            <!-- Show generated public keys (read-only) -->
+            <div
+              v-if="keysGenerated"
+              class="space-y-3 mt-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg"
+            >
+              <h4 class="text-sm font-semibold">
+                Generated Public Keys (Read-Only)
+              </h4>
+              <div class="space-y-2">
+                <div>
+                  <Label class="text-xs text-muted-foreground">Operational Public Key</Label>
+                  <Input
+                    :value="generatedKeys.operationalPublicKey"
+                    readonly
+                    class="font-mono text-xs bg-white dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <Label class="text-xs text-muted-foreground">Management Public Key</Label>
+                  <Input
+                    :value="generatedKeys.managementPublicKey"
+                    readonly
+                    class="font-mono text-xs bg-white dark:bg-gray-800"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Step 3: Confirm Download and Register -->
+          <div
+            v-if="keysGenerated"
+            class="space-y-4"
+          >
+            <div class="flex items-center space-x-2">
+              <svg
+                width="18"
+                height="18"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  style="fill: hsl(var(--primary))"
+                  :d="mdiNumeric3Circle"
+                />
+              </svg>
+              <Label class="text-base font-semibold">Confirm & Register</Label>
+            </div>
+
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4">
+              <div class="flex items-center space-x-2">
+                <input
+                  id="confirm-download"
+                  v-model="hasConfirmedDownload"
+                  type="checkbox"
+                  class="w-4 h-4"
+                >
+                <label
+                  for="confirm-download"
+                  class="text-sm text-yellow-800 dark:text-yellow-200 cursor-pointer"
+                >
+                  I confirm that I have <strong>downloaded and safely stored</strong> my HTM keys file
+                </label>
+              </div>
             </div>
           </div>
 
@@ -531,7 +732,7 @@ const registerHTMAccount = async () => {
             </Button>
             <Button
               type="submit"
-              :disabled="isLoading || !isFormValid"
+              :disabled="isLoading || !keysGenerated || !hasConfirmedDownload"
               class="flex-1"
             >
               <span v-if="isLoading">Registering...</span>

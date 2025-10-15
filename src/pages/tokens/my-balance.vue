@@ -1,38 +1,51 @@
 <script setup lang="ts">
 import {
-  mdiCurrencyUsd,
   mdiRefresh,
   mdiSend,
   mdiAccount,
-  mdiLock,
-  mdiLockOpen,
-  mdiWater
+  mdiArrowUp,
+  mdiArrowDown,
+  mdiPlusCircle,
+  mdiWallet,
+  mdiImageMultiple
 } from '@mdi/js';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
+import MemoInput from '@/components/MemoInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTokensStore } from '@/stores/tokens.store';
+import { getWax } from '@/stores/wax.store';
+import { getUserOperationalKey } from '@/utils/ctokens-api';
 import { transferNAIToken, stakeNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 
+const router = useRouter();
 const tokensStore = useTokensStore();
 
 // State
 const isLoading = ref(false);
 const searchQuery = ref('');
+const failedImages = ref<Set<string>>(new Set());
+
+// Pagination state
+const itemsPerPage = ref(10);
+const displayedItemsCount = ref(10);
 
 // Transfer dialog state
 const isTransferDialogOpen = ref(false);
 const transferAmount = ref('');
 const transferRecipient = ref('');
+const transferMemo = ref('');
 const selectedTokenForTransfer = ref<CtokensAppBalance | null>(null);
 const isTransferLoading = ref(false);
 
@@ -42,6 +55,21 @@ const transformAmount = ref('');
 const transformDirection = ref<'liquid-to-staked' | 'staked-to-liquid'>('liquid-to-staked');
 const selectedToken = ref<CtokensAppBalance | null>(null);
 const isTransformLoading = ref(false);
+
+// Account statistics
+const createdTokensCount = ref(0);
+const ownedTokensCount = ref(0);
+const nftCollectionsCount = ref(0);
+const stakedTokensCount = ref(0);
+
+// Helper function to format count with >100, >60 etc
+const formatCount = (count: number): string => {
+  if (count > 100) {
+    const rounded = Math.floor(count / 10) * 10;
+    return `>${rounded}`;
+  }
+  return count.toString();
+};
 
 // Helper functions for extracting data from metadata
 const getTokenSymbol = (balance: CtokensAppBalance): string => {
@@ -59,14 +87,25 @@ const getTokenLogoUrl = (balance: CtokensAppBalance): string | undefined => {
   return metadata?.logo_url || metadata?.image;
 };
 
-// For now, since the API doesn't distinguish between liquid and staked,
-// we'll treat all balance as liquid (this may need to be updated based on actual API behavior)
+// Check if a token is staked (vesting) based on NAI
+const isVesting = (nai: string, precision: number): boolean => {
+  // The vesting bit is bit 5 (0x20) in the NAI encoding
+  return (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) != 0;
+};
+
+// Get liquid balance - if the NAI indicates vesting (staked), return 0
 const getLiquidBalance = (balance: CtokensAppBalance): string => {
+  if (isVesting(balance.nai || '', balance.precision || 0))
+    return '0';
+
   return balance.amount || '0';
 };
 
-const getStakedBalance = (_balance: CtokensAppBalance): string => {
-  // TODO: Update this when staked balance info is available from API
+// Get staked balance - if the NAI indicates vesting (staked), return the amount
+const getStakedBalance = (balance: CtokensAppBalance): string => {
+  if (isVesting(balance.nai || '', balance.precision || 0))
+    return balance.amount || '0';
+
   return '0';
 };
 
@@ -76,11 +115,13 @@ const getTotalBalance = (balance: CtokensAppBalance): string => {
   return (liquid + staked).toString();
 };
 
-// Computed
-const filteredBalances = computed(() => {
-  if (!searchQuery.value) return tokensStore.balances;
+// Filter balances based on search query
+const filteredBalancesAll = computed(() => {
+  const balances = tokensStore.balances;
 
-  return tokensStore.balances.filter(balance => {
+  if (!searchQuery.value) return balances;
+
+  return balances.filter(balance => {
     const symbol = getTokenSymbol(balance);
     const name = getTokenName(balance);
     const nai = balance.nai || '';
@@ -91,16 +132,69 @@ const filteredBalances = computed(() => {
   });
 });
 
-const totalValue = computed(() => {
-  return tokensStore.totalValue;
+// Paginated balances (displayed items)
+const filteredBalances = computed(() => {
+  return filteredBalancesAll.value.slice(0, displayedItemsCount.value);
+});
+
+// Check if there are more items to load
+const hasMoreItems = computed(() => {
+  return displayedItemsCount.value < filteredBalancesAll.value.length;
+});
+
+// Load more items
+const loadMoreItems = () => {
+  displayedItemsCount.value = Math.min(
+    displayedItemsCount.value + itemsPerPage.value,
+    filteredBalancesAll.value.length
+  );
+};
+
+// Reset pagination when search changes
+watch(searchQuery, () => {
+  displayedItemsCount.value = itemsPerPage.value;
 });
 
 // Methods
+const loadAccountStatistics = async () => {
+  try {
+    const wax = await getWax();
+    const operationalKey = getUserOperationalKey();
+
+    if (!operationalKey) {
+      console.warn('No operational key available');
+      return;
+    }
+
+    // Get all tokens created by this user (owner field matches operational key)
+    const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
+    const createdTokens = allTokens.filter(token => token.owner === operationalKey);
+    createdTokensCount.value = createdTokens.length;
+
+    // Get owned tokens (tokens with balance)
+    const balances = await wax.restApi.ctokensApi.balances({ user: operationalKey });
+    ownedTokensCount.value = balances.length;
+
+    // Get NFT collections (created NFT tokens)
+    const nftTokens = createdTokens.filter(token => token.is_nft);
+    nftCollectionsCount.value = nftTokens.length;
+
+    // Get staked tokens (tokens with vesting bit set)
+    const stakedBalances = balances.filter(b => isVesting(b.nai || '', b.precision || 0));
+    stakedTokensCount.value = stakedBalances.length;
+  } catch (error) {
+    console.error('Failed to load account statistics:', error);
+  }
+};
+
 const loadAccountBalances = async () => {
   try {
     isLoading.value = true;
 
-    await tokensStore.loadBalances(true);
+    await Promise.all([
+      tokensStore.loadBalances(true),
+      loadAccountStatistics()
+    ]);
   } catch (error) {
     toastError('Failed to load account balances', error);
   } finally {
@@ -112,6 +206,7 @@ const openTransferDialog = (balance: CtokensAppBalance) => {
   selectedTokenForTransfer.value = balance;
   transferAmount.value = '';
   transferRecipient.value = '';
+  transferMemo.value = '';
   isTransferDialogOpen.value = true;
 };
 
@@ -127,7 +222,8 @@ const transferTokens = async () => {
     await transferNAIToken({
       to: transferRecipient.value,
       amount: transferAmount.value,
-      symbol: getTokenSymbol(selectedTokenForTransfer.value)
+      symbol: getTokenSymbol(selectedTokenForTransfer.value),
+      memo: transferMemo.value || undefined
     });
 
     const symbol = getTokenSymbol(selectedTokenForTransfer.value);
@@ -181,14 +277,62 @@ const transformTokens = async () => {
   }
 };
 
-const getMaxTransferAmount = (balance: CtokensAppBalance) => {
-  return parseFloat(getLiquidBalance(balance));
+// Handle image load error
+const handleImageError = (nai: string) => {
+  failedImages.value.add(nai);
 };
 
-const getMaxTransformAmount = (balance: CtokensAppBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
-  return direction === 'liquid-to-staked'
-    ? parseFloat(getLiquidBalance(balance))
-    : parseFloat(getStakedBalance(balance));
+// Check if image should be shown
+const shouldShowImage = (balance: CtokensAppBalance): boolean => {
+  const logoUrl = getTokenLogoUrl(balance);
+  return !!logoUrl && !failedImages.value.has(balance.nai || '');
+};
+
+// Navigate to token details page
+const navigateToToken = (balance: CtokensAppBalance) => {
+  router.push({
+    path: '/tokens/token',
+    query: {
+      nai: balance.nai,
+      precision: balance.precision?.toString()
+    }
+  });
+};
+
+// Set max transfer amount with proper precision
+const setMaxTransferAmount = async () => {
+  if (!selectedTokenForTransfer.value) return;
+
+  try {
+    const wax = await getWax();
+    const formattedAmount = wax.formatter.formatNumber(
+      selectedTokenForTransfer.value.amount || '0',
+      selectedTokenForTransfer.value.precision || 0
+    );
+    transferAmount.value = formattedAmount;
+  } catch (error) {
+    console.error('Failed to set max transfer amount:', error);
+  }
+};
+
+// Set max transform amount with proper precision
+const setMaxTransformAmount = async () => {
+  if (!selectedToken.value) return;
+
+  try {
+    const wax = await getWax();
+    const amount = transformDirection.value === 'liquid-to-staked'
+      ? (selectedToken.value.amount || '0')
+      : getStakedBalance(selectedToken.value);
+
+    const formattedAmount = wax.formatter.formatNumber(
+      amount,
+      selectedToken.value.precision || 0
+    );
+    transformAmount.value = formattedAmount;
+  } catch (error) {
+    console.error('Failed to set max transform amount:', error);
+  }
 };
 
 // Initialize
@@ -239,7 +383,7 @@ onMounted(() => {
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle class="text-sm font-medium">
-              Total Portfolio Value
+              Created Tokens
             </CardTitle>
             <svg
               width="16"
@@ -250,16 +394,16 @@ onMounted(() => {
             >
               <path
                 style="fill: currentColor"
-                :d="mdiCurrencyUsd"
+                :d="mdiPlusCircle"
               />
             </svg>
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              ${{ totalValue.toFixed(2) }}
+              {{ formatCount(createdTokensCount) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              +2.1% from last month
+              Tokens you've created
             </p>
           </CardContent>
         </Card>
@@ -267,7 +411,7 @@ onMounted(() => {
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle class="text-sm font-medium">
-              Total Tokens
+              Owned Tokens
             </CardTitle>
             <svg
               width="16"
@@ -278,16 +422,16 @@ onMounted(() => {
             >
               <path
                 style="fill: currentColor"
-                :d="mdiAccount"
+                :d="mdiWallet"
               />
             </svg>
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              {{ tokensStore.tokenCount }}
+              {{ formatCount(ownedTokensCount) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              Different token types
+              Tokens in your balance
             </p>
           </CardContent>
         </Card>
@@ -295,7 +439,7 @@ onMounted(() => {
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle class="text-sm font-medium">
-              Liquid Balance
+              NFT Collections
             </CardTitle>
             <svg
               width="16"
@@ -306,16 +450,16 @@ onMounted(() => {
             >
               <path
                 style="fill: currentColor"
-                :d="mdiWater"
+                :d="mdiImageMultiple"
               />
             </svg>
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(getLiquidBalance(b)), 0).toFixed(3) }}
+              {{ formatCount(nftCollectionsCount) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              Available for transfer
+              NFT collections created
             </p>
           </CardContent>
         </Card>
@@ -323,7 +467,7 @@ onMounted(() => {
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle class="text-sm font-medium">
-              Staked Balance
+              Staked Tokens
             </CardTitle>
             <svg
               width="16"
@@ -334,16 +478,16 @@ onMounted(() => {
             >
               <path
                 style="fill: currentColor"
-                :d="mdiLock"
+                :d="mdiArrowUp"
               />
             </svg>
           </CardHeader>
           <CardContent>
             <div class="text-2xl font-bold">
-              {{ tokensStore.balances.reduce((sum, b) => sum + parseFloat(getStakedBalance(b)), 0).toFixed(3) }}
+              {{ formatCount(stakedTokensCount) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              Earning rewards
+              Tokens currently staked
             </p>
           </CardContent>
         </Card>
@@ -352,11 +496,24 @@ onMounted(() => {
       <!-- Search -->
       <div class="flex items-center gap-4">
         <div class="flex-1">
-          <Input
-            v-model="searchQuery"
-            placeholder="Search tokens by symbol, name, or NAI..."
-            class="max-w-sm"
-          />
+          <TooltipProvider
+            :delay-duration="200"
+            disable-hoverable-content
+          >
+            <Tooltip>
+              <TooltipTrigger class="max-w-sm w-full">
+                <Input
+                  v-model="searchQuery"
+                  placeholder="Search tokens by symbol, name, or NAI..."
+                  class="w-full"
+                  disabled
+                />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Search not available yet</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -432,31 +589,52 @@ onMounted(() => {
                   <tr
                     v-for="balance in filteredBalances"
                     :key="balance.nai"
-                    class="border-b hover:bg-muted/50 transition-colors"
+                    class="border-b hover:bg-muted/50 transition-colors cursor-pointer"
+                    @click="navigateToToken(balance)"
                   >
                     <!-- Asset Info -->
                     <td class="p-4">
                       <div class="flex items-center gap-3">
-                        <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                           <img
-                            v-if="getTokenLogoUrl(balance)"
+                            v-if="shouldShowImage(balance)"
                             :src="getTokenLogoUrl(balance)"
                             :alt="getTokenSymbol(balance)"
-                            class="h-6 w-6 rounded-full"
+                            class="h-full w-full object-cover"
+                            @error="handleImageError(balance.nai || '')"
                           >
                           <span
                             v-else
                             class="text-sm font-medium text-primary"
                           >
-                            {{ getTokenSymbol(balance).charAt(0) }}
+                            {{ getTokenSymbol(balance).charAt(0).toUpperCase() }}
                           </span>
                         </div>
                         <div>
-                          <div class="font-semibold">
-                            {{ getTokenSymbol(balance) }}
+                          <div class="flex items-center gap-2">
+                            <span class="font-semibold">
+                              {{ getTokenName(balance) }}
+                            </span>
+                            <span
+                              v-if="isVesting(balance.nai || '', balance.precision || 0)"
+                              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  style="fill: currentColor"
+                                  :d="mdiArrowUp"
+                                />
+                              </svg>
+                              STAKED
+                            </span>
                           </div>
                           <div class="text-sm text-muted-foreground">
-                            {{ getTokenName(balance) }}
+                            {{ getTokenSymbol(balance) }}
                           </div>
                           <div class="text-xs text-muted-foreground font-mono">
                             {{ balance.nai }}
@@ -513,7 +691,7 @@ onMounted(() => {
                           size="sm"
                           :disabled="parseFloat(getLiquidBalance(balance)) === 0"
                           title="Transfer tokens"
-                          @click="openTransferDialog(balance)"
+                          @click.stop="openTransferDialog(balance)"
                         >
                           <svg
                             width="14"
@@ -533,7 +711,7 @@ onMounted(() => {
                           size="sm"
                           :disabled="parseFloat(getLiquidBalance(balance)) === 0"
                           title="Stake tokens"
-                          @click="openTransformDialog(balance, 'liquid-to-staked')"
+                          @click.stop="openTransformDialog(balance, 'liquid-to-staked')"
                         >
                           <svg
                             width="14"
@@ -543,7 +721,7 @@ onMounted(() => {
                           >
                             <path
                               style="fill: currentColor"
-                              :d="mdiLock"
+                              :d="mdiArrowUp"
                             />
                           </svg>
                         </Button>
@@ -553,7 +731,7 @@ onMounted(() => {
                           size="sm"
                           :disabled="parseFloat(getStakedBalance(balance)) === 0"
                           title="Unstake tokens"
-                          @click="openTransformDialog(balance, 'staked-to-liquid')"
+                          @click.stop="openTransformDialog(balance, 'staked-to-liquid')"
                         >
                           <svg
                             width="14"
@@ -563,7 +741,7 @@ onMounted(() => {
                           >
                             <path
                               style="fill: currentColor"
-                              :d="mdiLockOpen"
+                              :d="mdiArrowDown"
                             />
                           </svg>
                         </Button>
@@ -575,6 +753,23 @@ onMounted(() => {
             </div>
           </CardContent>
         </Card>
+
+        <!-- Load More Button -->
+        <div
+          v-if="hasMoreItems"
+          class="flex justify-center pt-4"
+        >
+          <Button
+            variant="outline"
+            size="lg"
+            @click="loadMoreItems"
+          >
+            Load More
+            <span class="ml-2 text-muted-foreground">
+              ({{ displayedItemsCount }} / {{ filteredBalancesAll.length }})
+            </span>
+          </Button>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -624,7 +819,24 @@ onMounted(() => {
       <Dialog v-model:open="isTransferDialogOpen">
         <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Transfer {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}</DialogTitle>
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="selectedTokenForTransfer && shouldShowImage(selectedTokenForTransfer)"
+                  :src="getTokenLogoUrl(selectedTokenForTransfer)"
+                  :alt="getTokenSymbol(selectedTokenForTransfer)"
+                  class="h-full w-full object-cover"
+                  @error="handleImageError(selectedTokenForTransfer.nai || '')"
+                >
+                <span
+                  v-else
+                  class="text-base font-medium text-primary"
+                >
+                  {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer).charAt(0).toUpperCase() : '' }}
+                </span>
+              </div>
+              <DialogTitle>Transfer {{ selectedTokenForTransfer ? getTokenName(selectedTokenForTransfer) : '' }}</DialogTitle>
+            </div>
             <DialogDescription>
               Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? getLiquidBalance(selectedTokenForTransfer) : '0' }} {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}
             </DialogDescription>
@@ -642,23 +854,46 @@ onMounted(() => {
 
             <div class="grid gap-2">
               <Label for="amount">Amount</Label>
-              <div class="flex gap-2">
+              <div class="relative">
                 <Input
                   id="amount"
                   v-model="transferAmount"
-                  type="number"
-                  :step="1 / Math.pow(10, selectedTokenForTransfer?.precision || 3)"
-                  :max="getMaxTransferAmount(selectedTokenForTransfer!)"
+                  type="text"
+                  inputmode="decimal"
                   placeholder="0.000"
+                  class="pr-20 transition-colors"
                 />
-                <Button
-                  variant="outline"
-                  @click="transferAmount = selectedTokenForTransfer ? getLiquidBalance(selectedTokenForTransfer) : ''"
-                >
-                  Max
-                </Button>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span class="text-xs text-muted-foreground">
+                    {{ getTokenSymbol(selectedTokenForTransfer!) }}
+                  </span>
+                </div>
               </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-muted-foreground">
+                  Available: {{ getLiquidBalance(selectedTokenForTransfer!) }}
+                </span>
+                <button
+                  v-if="selectedTokenForTransfer && Number(getLiquidBalance(selectedTokenForTransfer)) > 0"
+                  type="button"
+                  class="text-primary hover:text-primary/80 font-medium"
+                  @click="setMaxTransferAmount"
+                >
+                  MAX
+                </button>
+              </div>
+              <p
+                v-if="selectedTokenForTransfer"
+                class="text-xs text-muted-foreground"
+              >
+                Precision: {{ selectedTokenForTransfer.precision }} decimal places
+              </p>
             </div>
+
+            <MemoInput
+              v-model="transferMemo"
+              :disabled="isTransferLoading"
+            />
           </div>
 
           <div class="flex justify-end gap-2">
@@ -708,9 +943,26 @@ onMounted(() => {
       <Dialog v-model:open="isTransformDialogOpen">
         <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>
-              {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken ? getTokenSymbol(selectedToken) : '' }}
-            </DialogTitle>
+            <div class="flex items-center gap-3 mb-2">
+              <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                <img
+                  v-if="selectedToken && shouldShowImage(selectedToken)"
+                  :src="getTokenLogoUrl(selectedToken)"
+                  :alt="getTokenSymbol(selectedToken)"
+                  class="h-full w-full object-cover"
+                  @error="handleImageError(selectedToken.nai || '')"
+                >
+                <span
+                  v-else
+                  class="text-base font-medium text-primary"
+                >
+                  {{ selectedToken ? getTokenSymbol(selectedToken).charAt(0).toUpperCase() : '' }}
+                </span>
+              </div>
+              <DialogTitle>
+                {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken ? getTokenName(selectedToken) : '' }}
+              </DialogTitle>
+            </div>
             <DialogDescription>
               {{ transformDirection === 'liquid-to-staked'
                 ? `Stake tokens to earn rewards. Available: ${selectedToken ? getLiquidBalance(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
@@ -722,24 +974,40 @@ onMounted(() => {
           <div class="grid gap-4 py-4">
             <div class="grid gap-2">
               <Label for="transformAmount">Amount</Label>
-              <div class="flex gap-2">
+              <div class="relative">
                 <Input
                   id="transformAmount"
                   v-model="transformAmount"
-                  type="number"
-                  :step="1 / Math.pow(10, selectedToken?.precision || 3)"
-                  :max="getMaxTransformAmount(selectedToken!, transformDirection)"
+                  type="text"
+                  inputmode="decimal"
                   placeholder="0.000"
+                  class="pr-20 transition-colors"
                 />
-                <Button
-                  variant="outline"
-                  @click="transformAmount = (transformDirection === 'liquid-to-staked'
-                    ? (selectedToken ? getLiquidBalance(selectedToken) : '')
-                    : (selectedToken ? getStakedBalance(selectedToken) : '')) || ''"
-                >
-                  Max
-                </Button>
+                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span class="text-xs text-muted-foreground">
+                    {{ getTokenSymbol(selectedToken!) }}
+                  </span>
+                </div>
               </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-muted-foreground">
+                  Available: {{ transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken!) : getStakedBalance(selectedToken!) }}
+                </span>
+                <button
+                  v-if="selectedToken && Number(transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken) : getStakedBalance(selectedToken)) > 0"
+                  type="button"
+                  class="text-primary hover:text-primary/80 font-medium"
+                  @click="setMaxTransformAmount"
+                >
+                  MAX
+                </button>
+              </div>
+              <p
+                v-if="selectedToken"
+                class="text-xs text-muted-foreground"
+              >
+                Precision: {{ selectedToken.precision }} decimal places
+              </p>
             </div>
           </div>
 
@@ -777,7 +1045,7 @@ onMounted(() => {
               >
                 <path
                   style="fill: currentColor"
-                  :d="transformDirection === 'liquid-to-staked' ? mdiLock : mdiLockOpen"
+                  :d="transformDirection === 'liquid-to-staked' ? mdiArrowUp : mdiArrowDown"
                 />
               </svg>
               {{ isTransformLoading
