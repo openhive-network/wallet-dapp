@@ -110,10 +110,6 @@ const displayMaxSupply = computed(() => {
   const symbol = props.token.symbol || props.token.name;
   return symbol ? `${formatted} ${symbol}` : formatted;
 });
-
-const hasStakingFeatures = computed(() =>
-  props.token.othersCanStake || props.token.othersCanUnstake
-);
 </script>
 
 <template>
@@ -245,7 +241,6 @@ const hasStakingFeatures = computed(() =>
 
       <!-- Token Feature Badges -->
       <div
-        v-if="hasStakingFeatures"
         class="flex flex-wrap gap-2 pt-2"
       >
         <span

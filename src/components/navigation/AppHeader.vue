@@ -39,13 +39,13 @@ const logout = () => {
             :src="userStore.profileImage"
           />
           <AvatarFallback v-if="settingsStore.isLoaded && hasUser">
-            {{ userStore.name?.slice(1, 3) }}
+            {{ userStore.userDisplayName?.slice(1, 3) }}
           </AvatarFallback>
         </Avatar>
         <span
           v-if="settingsStore.isLoaded && hasUser"
           class="font-bold max-w-[150px] md:max-w-full truncate"
-        >{{ userStore.name }}</span>
+        >{{ userStore.userDisplayName }}</span>
       </div>
       <div class="ml-auto inline-flex items-center space-x-4 md:space-x-6">
         <ThemeSwitch class="w-6 h-6" />
