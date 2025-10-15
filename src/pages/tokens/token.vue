@@ -155,6 +155,7 @@ const loadTokenDetails = async () => {
     await updateFormattedValues();
 
     // Load user balance if user is logged in
+    // FIX THIS
     if (isLoggedIn.value) {
       try {
         // Get user balances from the store
@@ -759,7 +760,7 @@ onMounted(async () => {
                       :class="transferForm.amount ? (amountValidation.isValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
                     />
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                      {{ tokenSymbol || 'TOK' }}
+                      {{ tokenSymbol }}
                     </span>
                   </div>
                   <div class="flex justify-between text-xs">
