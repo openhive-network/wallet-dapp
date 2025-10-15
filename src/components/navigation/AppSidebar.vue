@@ -52,27 +52,27 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
   title: 'Tokens',
   items: [
     {
-      title: 'Tokens List',
-      url: '/tokens/list',
-      icon: mdiAccountGroup
-    },
-    {
-      title: 'Register HTM Account',
-      url: '/tokens/register-account',
-      icon: mdiAccountPlusOutline,
-      visible: hasNoHTMWallet
-    },
-    {
       title: 'My HTM Account',
       url: '/tokens/my-balance',
       icon: mdiWallet,
       visible: hasHTMWallet
     },
     {
+      title: 'Tokens List',
+      url: '/tokens/list',
+      icon: mdiAccountGroup
+    },
+    {
       title: 'My Token Definitions',
       url: '/tokens/my-tokens',
       icon: mdiViewList,
       visible: hasHTMWallet
+    },
+    {
+      title: 'Register HTM Account',
+      url: '/tokens/register-account',
+      icon: mdiAccountPlusOutline,
+      visible: hasNoHTMWallet
     }
   ]
 }, {
