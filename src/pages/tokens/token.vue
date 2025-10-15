@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { mdiPencilOutline } from '@mdi/js';
+import { mdiPencilOutline, mdiContentCopy, mdiCheck } from '@mdi/js';
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
+import MemoInput from '@/components/MemoInput.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
+import { copyText } from '@/utils/copy';
+import { isValidPublicKey } from '@/utils/htm';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
 
@@ -32,6 +35,8 @@ const topHolders = ref<CtokensAppTopHolder[]>([]);
 const isLoading = ref(true);
 const isLoadingHolders = ref(false);
 const isTransferring = ref(false);
+const isCopied = ref(false);
+const isNaiCopied = ref(false);
 
 // Transfer form
 const transferForm = ref({
@@ -46,6 +51,26 @@ const precision = computed(() => route.query.precision);
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!settingsStore.settings.account);
+
+// Check if current user is the token owner
+const isTokenOwner = computed(() => {
+  if (!token.value?.owner || !tokensStore.wallet?.publicKey) return false;
+  return token.value.owner === tokensStore.wallet.publicKey;
+});
+
+// Validate recipient address (must be a public key)
+const isRecipientValid = computed(() => {
+  if (!transferForm.value.to) return false;
+  return isValidPublicKey(transferForm.value.to);
+});
+
+// Validate amount
+const amountValidation = computed(() => {
+  if (!transferForm.value.amount || !token.value)
+    return { isValid: false, error: '' };
+
+  return validateAmountPrecision(transferForm.value.amount, token.value.precision || 0);
+});
 
 // Computed properties
 const tokenName = computed(() => {
@@ -70,6 +95,13 @@ const tokenImage = computed(() => {
   if (!token.value) return '';
   const metadata = token.value.metadata as { image?: string } | undefined;
   return metadata?.image || '';
+});
+
+const tokenOwnerShort = computed(() => {
+  if (!token.value?.owner) return '';
+  const owner = token.value.owner;
+  if (owner.length <= 16) return owner;
+  return `${owner.slice(0, 8)}...${owner.slice(-8)}`;
 });
 
 const formattedTotalSupply = ref('0');
@@ -159,6 +191,87 @@ const loadTopHolders = async () => {
   }
 };
 
+// Set max amount with proper precision
+const setMaxAmount = async () => {
+  if (!userBalance.value || !token.value) return;
+
+  try {
+    const wax = await getWax();
+    const formattedAmount = wax.formatter.formatNumber(
+      userBalance.value.amount!,
+      token.value.precision || 0
+    );
+    transferForm.value.amount = formattedAmount;
+  } catch (error) {
+    console.error('Failed to set max amount:', error);
+  }
+};
+
+// Validate amount precision and overflow
+const validateAmountPrecision = (amount: string, precision: number): { isValid: boolean; error?: string; parsedAmount?: string } => {
+  try {
+    // Remove thousand separators (commas, spaces) to get clean number
+    const cleanAmount = amount.replace(/[,\s]/g, '');
+
+    // Check if amount contains only valid characters (digits, decimal point)
+    if (!/^\d*\.?\d*$/.test(cleanAmount))
+      return { isValid: false, error: 'Amount must contain only digits and decimal point' };
+
+    // Check if amount is a valid number
+    const numAmount = parseFloat(cleanAmount);
+    if (isNaN(numAmount) || numAmount <= 0)
+      return { isValid: false, error: 'Amount must be a positive number' };
+
+    // Check for infinity
+    if (!isFinite(numAmount))
+      return { isValid: false, error: 'Amount value is too large' };
+
+    // Check decimal places - count actual decimal places in input
+    const decimalIndex = cleanAmount.indexOf('.');
+    if (decimalIndex !== -1) {
+      const decimalPlaces = cleanAmount.length - decimalIndex - 1;
+      if (decimalPlaces > precision) {
+        return {
+          isValid: false,
+          error: `Amount has too many decimal places. Maximum ${precision} decimal places allowed for this token.`
+        };
+      }
+    }
+
+    // Convert to base units to check for overflow
+    const multiplier = Math.pow(10, precision);
+    const baseUnits = numAmount * multiplier;
+
+    // Check for overflow - ensure it's within safe integer range
+    // Maximum safe integer in JavaScript is 2^53 - 1
+    const MAX_SAFE_BASE_UNITS = Number.MAX_SAFE_INTEGER;
+    if (baseUnits > MAX_SAFE_BASE_UNITS)
+      return { isValid: false, error: 'Amount is too large and would cause overflow' };
+
+    // Ensure conversion to base units produces an integer (no precision loss)
+    const roundedBaseUnits = Math.round(baseUnits);
+    if (Math.abs(baseUnits - roundedBaseUnits) > 0.0001) {
+      return {
+        isValid: false,
+        error: `Amount precision mismatch. Please use at most ${precision} decimal places.`
+      };
+    }
+
+    // Check if user has sufficient balance
+    // Note: Based on API response, userBalance.value.amount appears to be a decimal value
+    if (userBalance.value) {
+      const userBalanceDecimal = parseFloat(userBalance.value.amount!);
+      // Compare decimal values directly (both numAmount and userBalanceDecimal are decimal)
+      if (numAmount > userBalanceDecimal)
+        return { isValid: false, error: 'Insufficient balance for this transfer' };
+    }
+
+    return { isValid: true, parsedAmount: roundedBaseUnits.toString() };
+  } catch (_error) {
+    return { isValid: false, error: 'Invalid amount format' };
+  }
+};
+
 // Handle transfer (simplified for now)
 const handleTransfer = async () => {
   if (!token.value || !isLoggedIn.value) {
@@ -167,7 +280,20 @@ const handleTransfer = async () => {
   }
 
   if (!transferForm.value.to || !transferForm.value.amount) {
-    toastError('Please fill in recipient and amount', new Error('Missing fields'));
+    toastError('Please fill in recipient address and amount', new Error('Missing fields'));
+    return;
+  }
+
+  // Validate that recipient is a public key, not a Hive account name
+  if (!isValidPublicKey(transferForm.value.to)) {
+    toastError('Invalid recipient address', new Error('Recipient must be a valid public key address (starts with STM)'));
+    return;
+  }
+
+  // Validate amount precision and check for overflow
+  const validation = validateAmountPrecision(transferForm.value.amount, token.value.precision || 0);
+  if (!validation.isValid) {
+    toastError('Invalid amount', new Error(validation.error || 'Invalid amount format'));
     return;
   }
 
@@ -178,8 +304,10 @@ const handleTransfer = async () => {
     // In a real implementation, this would use the transfer API
     console.log('Transfer:', {
       token: token.value.nai,
+      precision: token.value.precision,
       to: transferForm.value.to,
       amount: transferForm.value.amount,
+      amountInBaseUnits: validation.parsedAmount,
       memo: transferForm.value.memo
     });
 
@@ -198,10 +326,44 @@ const goBack = () => {
   router.push('/tokens/list');
 };
 
-// Navigate to edit token (placeholder for now)
+// Navigate to edit token
 const editToken = () => {
-  // TODO: Implement token editing functionality
-  console.log('Edit token:', token.value?.nai);
+  router.push({
+    path: '/tokens/edit',
+    query: { nai: token.value?.nai, precision: token.value?.precision }
+  });
+};
+
+// Copy owner address to clipboard
+const copyOwnerAddress = () => {
+  if (!token.value?.owner) return;
+
+  try {
+    copyText(token.value.owner);
+    toast.success('Owner address copied to clipboard');
+    isCopied.value = true;
+    setTimeout(() => {
+      isCopied.value = false;
+    }, 1000);
+  } catch (_error) {
+    toast.error('Failed to copy address');
+  }
+};
+
+// Copy NAI to clipboard
+const copyNAI = () => {
+  if (!token.value?.nai) return;
+
+  try {
+    copyText(token.value.nai);
+    toast.success('NAI copied to clipboard');
+    isNaiCopied.value = true;
+    setTimeout(() => {
+      isNaiCopied.value = false;
+    }, 1000);
+  } catch (_error) {
+    toast.error('Failed to copy NAI');
+  }
 };
 
 // Initialize
@@ -243,6 +405,7 @@ onMounted(async () => {
           Back to Tokens
         </Button>
         <Button
+          v-if="isTokenOwner"
           variant="default"
           size="sm"
           class="gap-2"
@@ -308,8 +471,26 @@ onMounted(async () => {
                   :src="tokenImage"
                   :alt="tokenName"
                 />
-                <AvatarFallback class="text-xl sm:text-2xl font-bold bg-primary/10 text-primary">
-                  {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
+                <AvatarFallback class="bg-primary/10">
+                  <svg
+                    v-if="!tokenImage"
+                    width="48"
+                    height="48"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="text-muted-foreground"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      d="M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H5M11,7H13V17H11V7Z"
+                    />
+                  </svg>
+                  <span
+                    v-else
+                    class="text-xl sm:text-2xl font-bold text-primary"
+                  >
+                    {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
+                  </span>
                 </AvatarFallback>
               </Avatar>
 
@@ -353,7 +534,25 @@ onMounted(async () => {
                 <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
                   <div class="flex items-center gap-1">
                     <span class="font-medium">NAI:</span>
-                    <code class="bg-muted px-1.5 py-0.5 rounded font-mono text-xs">{{ token.nai }}</code>
+                    <button
+                      type="button"
+                      class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono hover:bg-muted/80 transition-colors inline-flex items-center gap-1.5"
+                      @click="copyNAI"
+                    >
+                      {{ token.nai }}
+                      <svg
+                        width="14"
+                        height="14"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        class="transition-all"
+                      >
+                        <path
+                          style="fill: currentColor"
+                          :d="isNaiCopied ? mdiCheck : mdiContentCopy"
+                        />
+                      </svg>
+                    </button>
                   </div>
                   <div class="flex items-center gap-1">
                     <span class="font-medium">Precision:</span>
@@ -361,7 +560,25 @@ onMounted(async () => {
                   </div>
                   <div class="flex items-center gap-1">
                     <span class="font-medium">Owner:</span>
-                    <span class="bg-muted px-1.5 py-0.5 rounded text-xs max-w-32 truncate">{{ token.owner }}</span>
+                    <button
+                      type="button"
+                      class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono hover:bg-muted/80 transition-colors inline-flex items-center gap-1.5"
+                      @click="copyOwnerAddress"
+                    >
+                      {{ tokenOwnerShort }}
+                      <svg
+                        width="14"
+                        height="14"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        class="transition-all"
+                      >
+                        <path
+                          style="fill: currentColor"
+                          :d="isCopied ? mdiCheck : mdiContentCopy"
+                        />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
@@ -524,18 +741,24 @@ onMounted(async () => {
                     for="recipient"
                     class="text-sm font-medium text-foreground"
                   >
-                    Recipient Account
+                    Recipient Address (Public Key)
                   </Label>
                   <Input
                     id="recipient"
                     v-model="transferForm.to"
-                    placeholder="Enter recipient account or address"
+                    placeholder="Enter recipient public key address (STM...)"
                     :disabled="isTransferring"
-                    class="transition-colors"
-                    :class="transferForm.to && transferForm.to.length > 2 ? 'border-green-500 focus-visible:ring-green-500' : ''"
+                    class="transition-colors font-mono text-sm"
+                    :class="transferForm.to ? (isRecipientValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
                   />
                   <p class="text-xs text-muted-foreground">
-                    Enter the account name or address to send tokens to
+                    Enter a valid public key address starting with STM (not a Hive account name)
+                  </p>
+                  <p
+                    v-if="transferForm.to && !isRecipientValid"
+                    class="text-xs text-red-500"
+                  >
+                    Invalid address format. Must be a public key (STM...)
                   </p>
                 </div>
 
@@ -550,13 +773,12 @@ onMounted(async () => {
                     <Input
                       id="amount"
                       v-model="transferForm.amount"
-                      type="number"
-                      step="any"
-                      min="0"
+                      type="text"
+                      inputmode="decimal"
                       :placeholder="`Amount in ${tokenSymbol || tokenName}`"
                       :disabled="isTransferring"
                       class="pr-20 transition-colors"
-                      :class="transferForm.amount && Number(transferForm.amount) > 0 ? 'border-green-500 focus-visible:ring-green-500' : ''"
+                      :class="transferForm.amount ? (amountValidation.isValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
                     />
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
                       {{ tokenSymbol || 'TOK' }}
@@ -570,37 +792,34 @@ onMounted(async () => {
                       v-if="userBalance && Number(userBalance.amount) > 0"
                       type="button"
                       class="text-primary hover:text-primary/80 font-medium"
-                      @click="transferForm.amount = formattedUserBalance"
+                      @click="setMaxAmount"
                     >
-                      Max
+                      MAX
                     </button>
                   </div>
-                </div>
-
-                <div class="space-y-2">
-                  <Label
-                    for="memo"
-                    class="text-sm font-medium text-foreground"
+                  <p
+                    v-if="token"
+                    class="text-xs text-muted-foreground"
                   >
-                    Memo (Optional)
-                  </Label>
-                  <Textarea
-                    id="memo"
-                    v-model="transferForm.memo"
-                    placeholder="Optional transfer memo or note"
-                    rows="3"
-                    :disabled="isTransferring"
-                    class="resize-none"
-                  />
-                  <p class="text-xs text-muted-foreground">
-                    Add an optional note for this transaction
+                    Precision: {{ token.precision }} decimal places
+                  </p>
+                  <p
+                    v-if="transferForm.amount && !amountValidation.isValid && amountValidation.error"
+                    class="text-xs text-red-500"
+                  >
+                    {{ amountValidation.error }}
                   </p>
                 </div>
+
+                <MemoInput
+                  v-model="transferForm.memo"
+                  :disabled="isTransferring"
+                />
 
                 <Button
                   class="w-full"
                   size="lg"
-                  :disabled="isTransferring || !transferForm.to || !transferForm.amount || Number(transferForm.amount) <= 0"
+                  :disabled="isTransferring || !isRecipientValid || !amountValidation.isValid"
                   @click="handleTransfer"
                 >
                   <svg

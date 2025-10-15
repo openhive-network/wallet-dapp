@@ -14,7 +14,7 @@ import type {
   CtokensAppBalanceHistory,
   CtokensAppTopHolder
 } from '@/utils/wallet/ctokens/api';
-import type CTokensProvider from '@/utils/wallet/ctokens/signer';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 export interface CTokenDisplay {
   nai: string;
@@ -32,6 +32,7 @@ export interface CTokenDisplay {
   metadata?: Record<string, unknown>;
   // Parsed from the metadata
   name?: string;
+  symbol?: string;
   description?: string;
   website?: string;
   image?: string;
@@ -50,15 +51,15 @@ const formatAsset = async (value: string | bigint, precision: number, name?: str
 };
 
 const transformTokenToDisplayFormat = async (token: Required<CtokensAppToken>): Promise<CTokenDisplay> => {
-  const { name, description, website, image } = (token.metadata || {}) as Record<string, string>;
+  const { name, symbol, description, website, image } = (token.metadata || {}) as Record<string, string>;
 
   return {
     nai: token.nai,
     isStaked: isVesting(token.nai, token.precision),
-    displayMaxSupply: await formatAsset(token.max_supply, token.precision, name),
+    displayMaxSupply: await formatAsset(token.max_supply, token.precision, symbol || name),
     ownerPublicKey: token.owner,
     precision: token.precision,
-    displayTotalSupply: await formatAsset(token.total_supply, token.precision, name),
+    displayTotalSupply: await formatAsset(token.total_supply, token.precision, symbol || name),
     totalSupply: BigInt(token.total_supply),
     maxSupply: BigInt(token.max_supply),
     capped: token.capped,
@@ -67,6 +68,7 @@ const transformTokenToDisplayFormat = async (token: Required<CtokensAppToken>): 
     isNft: token.is_nft,
     metadata: token.metadata as Record<string, unknown>,
     name,
+    symbol,
     description,
     website,
     image
@@ -298,6 +300,57 @@ export const useTokensStore = defineStore('tokens', {
     },
     clearError () {
       this.lastError = null;
+    },
+    async updateTokenMetadata (
+      nai: string,
+      precision: number,
+      metadata: Record<string, string>
+    ): Promise<void> {
+      const operationalKey = getUserOperationalKey();
+      if (!operationalKey)
+        throw new Error('No operational key available');
+
+      // Get management wallet from CTokensProvider
+      const managementWallet = CTokensProvider.getManagementWallet();
+      if (!managementWallet)
+        throw new Error('No management wallet available');
+
+      const { updateHTMAssetMetadata } = await import('@/utils/htm-utils');
+
+      // Convert metadata object to array of key-value pairs
+      const metadataItems = Object.entries(metadata).map(([key, value]) => ({
+        key,
+        value
+      }));
+
+      // Prepare metadata update data
+      const metadataUpdateData = {
+        owner: operationalKey,
+        identifier: {
+          amount: '0',
+          nai,
+          precision
+        },
+        metadata: metadataItems
+      };
+
+      // Get operational account from settings
+      const settingsStore = await import('@/stores/settings.store').then(m => m.useSettingsStore());
+      const operationalAccount = settingsStore.settings.account;
+
+      if (!operationalAccount)
+        throw new Error('No operational account configured');
+
+      // Broadcast the metadata update transaction
+      await updateHTMAssetMetadata(
+        metadataUpdateData,
+        managementWallet,
+        operationalAccount,
+        0.001 // Fee amount in HIVE
+      );
+
+      // Refresh token data after update
+      await this.loadRegisteredTokens(nai, precision, 1, true);
     },
     reset (cTokensWallet?: CTokensProvider | undefined) {
       cTokensProvider.value = cTokensWallet;

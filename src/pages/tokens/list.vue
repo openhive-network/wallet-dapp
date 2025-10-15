@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiRefresh, mdiPlus } from '@mdi/js';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -7,6 +8,7 @@ import HTMView from '@/components/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
@@ -14,6 +16,7 @@ import { toastError } from '@/utils/parse-error';
 const router = useRouter();
 
 // Store
+const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 
 // State
@@ -43,6 +46,11 @@ const loadMore = () => {
   void loadTokens(currentPage.value + 1);
 };
 
+// Navigate to create token page
+const createNewToken = () => {
+  router.push('/tokens/create');
+};
+
 // Initialize
 onMounted(() => {
   loadMore();
@@ -56,11 +64,53 @@ onMounted(() => {
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold tracking-tight">
-            Custom Tokens
+            Tokens List
           </h1>
           <p class="text-muted-foreground">
             Browse all registered tokens on Hive Token Machine
           </p>
+        </div>
+
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            :disabled="tokensStore.isLoadingRegisteredTokens"
+            @click="loadMore"
+          >
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              :class="{ 'animate-spin': tokensStore.isLoadingRegisteredTokens }"
+              class="mr-2"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiRefresh"
+              />
+            </svg>
+            Refresh
+          </Button>
+
+          <Button
+            v-if="settingsStore.account"
+            @click="createNewToken"
+          >
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="mr-2"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiPlus"
+              />
+            </svg>
+            Create Token
+          </Button>
         </div>
       </div>
 
