@@ -6,6 +6,7 @@ import {
   mdiRocket,
   mdiLoading
 } from '@mdi/js';
+import { HtmTransaction, type asset, type asset_definition } from '@mtyszczak-cargo/htm';
 import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -19,13 +20,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { createHTMAsset, generateNAI as generateHTMNAI, parseAssetAmount } from '@/utils/htm-utils';
+import { generateNAI as generateHTMNAI, parseAssetAmount } from '@/utils/htm-utils';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const tokensStore = useTokensStore();
+const walletStore = useWalletStore();
+const settingsStore = useSettingsStore();
 
 // Form state
 const tokenName = ref('');
@@ -33,7 +39,8 @@ const tokenSymbol = ref('');
 const tokenDescription = ref('');
 const initialSupply = ref('1000000');
 const precision = ref('3');
-const canStake = ref(false);
+const othersCanStake = ref(true);
+const othersCanUnstake = ref(true);
 const capped = ref(true);
 const agreedToDisclaimer = ref(false);
 
@@ -75,8 +82,9 @@ const shouldShowNAIField = computed(() => {
 const isFormValid = computed(() => {
   return tokenName.value.trim() !== '' &&
          symbolValidation.value.isValid &&
-         initialSupply.value.trim() !== '' &&
+         initialSupply.value !== '' &&
          parseInt(initialSupply.value) > 0 &&
+         BigInt(initialSupply.value) <= BigInt('9223372036854775807') &&
          parseInt(precision.value) >= 0 &&
          parseInt(precision.value) <= 12 &&
          agreedToDisclaimer.value;
@@ -117,14 +125,15 @@ watch(tokenSymbol, (newSymbol) => {
 });
 
 // Generate unique token ID
-const generateNAI = () => {
+const generateNAI = (): string | undefined => {
   if (!symbolValidation.value.isValid)
     return;
 
   try {
     generatedNAI.value = generateHTMNAI();
     naiGenerated.value = true;
-    toast.success('Token ID generated successfully!');
+
+    return generatedNAI.value;
   } catch (error) {
     toastError('Failed to generate token ID', error);
   }
@@ -159,18 +168,19 @@ const createToken = async () => {
     return;
   }
 
-  // Get the beekeeper wallet from CTokensProvider
-  const beekeeperWallet = CTokensProvider.getOperationalWallet();
-  if (!beekeeperWallet) {
-    toast.error('Beekeeper wallet not available. Please ensure you are logged in with HTM wallet.');
+  // Check if user has a wallet connected
+  if (walletStore.isL2Wallet) {
+    toast.error('Please connect your L1 wallet first');
     return;
-  }  // Ensure NAI is generated before creating token
-  if (!generatedNAI.value) {
-    generateNAI();
-    // Wait a moment for generation to complete
-    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 
-    if (!generatedNAI.value) {
+  // For fee payment
+  await walletStore.createWalletFor(settingsStore.settings, 'active');
+
+  if (!generatedNAI.value) {
+    const nai = generateNAI();
+
+    if (!nai) {
       toast.error('Failed to generate token NAI. Please try again.');
       return;
     }
@@ -179,33 +189,74 @@ const createToken = async () => {
   isCreatingToken.value = true;
 
   try {
+    const wax = await getWax();
+
+    tokensStore.reset(await CTokensProvider.for(wax, 'active'));
+
+    const identifier: asset = {
+      amount: parseAssetAmount(initialSupply.value, parseInt(precision.value)),
+      nai: generatedNAI.value,
+      precision: parseInt(precision.value)
+    };
+    const owner = tokensStore.wallet.publicKey!;
+    const assetTokenName = tokenName.value.trim();
+
     // Prepare HTM asset definition data
-    const assetData = {
-      identifier: {
-        amount: parseAssetAmount(initialSupply.value, parseInt(precision.value)),
-        nai: generatedNAI.value,
-        precision: parseInt(precision.value)
-      },
+    const assetDefinition: asset_definition = {
+      identifier,
       capped: capped.value,
       maxSupply: capped.value ? parseAssetAmount(initialSupply.value, parseInt(precision.value)) : '0',
-      owner: tokensStore.wallet.publicKey
+      owner,
+      metadata: {
+        items: [
+          { key: 'name', value: assetTokenName },
+          { key: 'symbol', value: tokenSymbol.value.trim() },
+          { key: 'description', value: tokenDescription.value.trim() }
+        ]
+      },
+      isNft: false,
+      othersCanStake: othersCanStake.value,
+      othersCanUnstake: othersCanUnstake.value
     };
 
-    // Create the HTM asset
-    await createHTMAsset(
-      assetData,
-      beekeeperWallet,
-      'token-creator', // This should be the operational account
-      1.0 // Fee amount
-    );
+    // Set proxy account for HTM transactions
+    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
 
+    // Create Layer 2 HTM transaction for user signup
+    const l2Transaction = new HtmTransaction(wax);
+
+    l2Transaction.pushOperation({
+      asset_definition_operation: assetDefinition
+    });
+
+    await tokensStore.wallet!.signTransaction(l2Transaction);
+
+    // Create Layer 1 transaction and broadcast
+    const l1Transaction = await wax.createTransaction();
+    l1Transaction.pushOperation({
+      transfer_operation: {
+        from: settingsStore.settings.account!,
+        to: 'htm.fee',
+        amount: wax.hiveCoins(1),
+        memo: `${assetTokenName} creation fee`
+      }
+    });
+    l1Transaction.pushOperation(l2Transaction);
+
+    // Sign Layer 1 transaction with the Hive active key
+    await walletStore.createWalletFor(settingsStore.settings, 'active');
+    await walletStore.wallet!.signTransaction(l1Transaction);
+
+    // Broadcast the transaction
+    await wax.broadcast(l1Transaction);
+
+    // Success!
     toast.success('Token created successfully!', {
-      description: `Token ${tokenSymbol.value} has been created and deployed to the Hive Token Machine.`
+      description: `Token ${assetTokenName} has been created and deployed to the Hive Token Machine.`
     });
 
     // Reset form
     resetForm();
-
   } catch (error) {
     toastError('Failed to create token', error);
   } finally {
@@ -220,23 +271,11 @@ const resetForm = () => {
   tokenDescription.value = '';
   initialSupply.value = '1000000';
   precision.value = '3';
-  canStake.value = false;
+  othersCanStake.value = false;
+  othersCanUnstake.value = false;
   agreedToDisclaimer.value = false;
   generatedNAI.value = '';
   naiGenerated.value = false;
-};
-
-// Format number with commas
-const formatNumber = (value: string) => {
-  const num = parseInt(value.replace(/,/g, ''));
-  return isNaN(num) ? value : num.toLocaleString();
-};
-
-// Handle supply input
-const onSupplyInput = (event: Event) => {
-  const target = event.target as HTMLInputElement;
-  const value = target.value.replace(/[^0-9]/g, '');
-  initialSupply.value = value;
 };
 
 // Handle symbol input - transform to uppercase letters only
@@ -256,8 +295,8 @@ const previewToken = computed(() => ({
   maxSupply: capped.value ? initialSupply.value : undefined,
   precision: parseInt(precision.value) || 3,
   capped: capped.value,
-  othersCanStake: canStake.value,
-  othersCanUnstake: canStake.value,
+  othersCanStake: othersCanStake.value,
+  othersCanUnstake: othersCanUnstake.value,
   ownerPublicKey: tokensStore.wallet?.publicKey
 }));
 </script>
@@ -347,10 +386,9 @@ const previewToken = computed(() => ({
                 <Label for="initial-supply">Initial Supply *</Label>
                 <Input
                   id="initial-supply"
-                  :value="formatNumber(initialSupply)"
-                  placeholder="1,000,000"
+                  v-model="initialSupply"
+                  placeholder="1000000"
                   :disabled="isCreatingToken"
-                  @input="onSupplyInput"
                 />
                 <p class="text-xs text-muted-foreground">
                   Total number of tokens to create
@@ -378,25 +416,12 @@ const previewToken = computed(() => ({
 
               <!-- Staking Options -->
               <div class="space-y-3">
-                <div class="flex items-center space-x-2">
-                  <Checkbox
-                    id="can-stake"
-                    v-model="canStake"
-                    :disabled="isCreatingToken"
-                  />
-                  <Label
-                    for="can-stake"
-                    class="text-sm font-normal"
-                  >
-                    Allow token staking
-                  </Label>
-                </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
                   <div class="flex items-center space-x-2">
                     <Checkbox
                       id="others-can-stake"
-                      :disabled="isCreatingToken || !canStake"
+                      v-model="othersCanStake"
+                      :disabled="isCreatingToken"
                     />
                     <Label
                       for="others-can-stake"
@@ -409,7 +434,8 @@ const previewToken = computed(() => ({
                   <div class="flex items-center space-x-2">
                     <Checkbox
                       id="others-can-unstake"
-                      :disabled="isCreatingToken || !canStake"
+                      v-model="othersCanUnstake"
+                      :disabled="isCreatingToken"
                     />
                     <Label
                       for="others-can-unstake"
@@ -505,7 +531,8 @@ const previewToken = computed(() => ({
                   <p class="text-sm">
                     Tokens are created on the Hive Token Machine. Please verify all details before creation
                     as they cannot be changed after deployment. Token symbols should be unique to avoid confusion.
-                    <strong>A transaction fee will be required to create the token.</strong>
+                    <strong>A transaction fee of 1.000 (one) HIVE will be required to create the token.
+                      This will require user to have a Hive account with active key configured</strong>
                   </p>
 
                   <div class="flex items-center space-x-2 mt-3">

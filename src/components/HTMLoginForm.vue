@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -37,6 +39,8 @@ const isLoading = ref(false);
 // Existing account login
 const password = ref('');
 
+const tokensStore = useTokensStore();
+
 // Check if user already has HTM wallet configured (only needs password)
 const hasHTMWallet = computed(() => CTokensProvider.isLoggedIn());
 
@@ -44,18 +48,33 @@ const close = () => {
   emit('close');
 };
 
+const handleConditionalSiteLogin = async (operationalKey: string) => {
+  const wax = await getWax();
+
+  if (walletStore.wallet !== undefined && !walletStore.isL2Wallet) {
+    // Already logged in using L1 wallet, so just add another layer on top of that
+    tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
+
+    return;
+  }
+
+  // Not logged in using any wallet so allow user log in using HTM wallet
+
+  // Set settings with the operational key as account and CTOKENS wallet
+  settingsStore.setSettings({
+    account: operationalKey,
+    wallet: UsedWallet.CTOKENS_IMPLEMENTATION
+  });
+
+  // Create wallet provider and parse user data
+  await walletStore.createWalletFor(settingsStore.settings, 'posting');
+  await userStore.parseUserData(operationalKey);
+};
+
 // Handle account creation from HTMLoginContent
 const handleSetAccount = async (account: string) => {
   try {
-    // Set settings with the operational key as account and CTOKENS wallet
-    await settingsStore.setSettings({
-      account: account,
-      wallet: UsedWallet.CTOKENS_IMPLEMENTATION
-    });
-
-    // Create wallet provider and parse user data
-    await walletStore.createWalletFor(settingsStore.settings, 'posting');
-    await userStore.parseUserData(account);
+    await handleConditionalSiteLogin(account);
 
     toast.success('HTM wallet created successfully!');
     emit('success');
@@ -77,15 +96,7 @@ const loginExisting = async () => {
     if (!operationalKey)
       throw new Error('Failed to get operational key after login');
 
-    // Set settings with the operational key as account and CTOKENS wallet
-    await settingsStore.setSettings({
-      account: operationalKey,
-      wallet: UsedWallet.CTOKENS_IMPLEMENTATION
-    });
-
-    // Create wallet provider and parse user data
-    await walletStore.createWalletFor(settingsStore.settings, 'posting');
-    await userStore.parseUserData(operationalKey);
+    await handleConditionalSiteLogin(operationalKey);
 
     toast.success('Logged in successfully!');
     emit('success');
