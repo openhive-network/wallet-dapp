@@ -471,7 +471,7 @@ onMounted(async () => {
                   :src="tokenImage"
                   :alt="tokenName"
                 />
-                <AvatarFallback class="bg-primary/10">
+                <AvatarFallback>
                   <svg
                     v-if="!tokenImage"
                     width="48"
@@ -499,28 +499,6 @@ onMounted(async () => {
                   <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
                     {{ tokenName }}
                   </h1>
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      v-if="tokenSymbol"
-                      class="inline-flex items-center rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary border border-primary/20"
-                    >
-                      {{ tokenSymbol }}
-                    </span>
-                    <span
-                      v-if="token.is_nft"
-                      class="inline-flex items-center rounded-md bg-purple-500/10 px-2 py-1 text-xs font-medium text-purple-500 border border-purple-500/20"
-                    >
-                      NFT
-                    </span>
-                    <span
-                      :class="[
-                        'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                        token.capped ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'
-                      ]"
-                    >
-                      {{ token.capped ? 'Capped' : 'Uncapped' }}
-                    </span>
-                  </div>
                 </div>
 
                 <p

@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { IBeekeeperInstance, IBeekeeperOptions } from '@hiveio/beekeeper';
-import beekeeperFactory from '@hiveio/beekeeper';
 import {
   mdiCheckCircle,
   mdiDownload,
@@ -14,20 +12,26 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import HTMLoginForm from '@/components/HTMLoginForm.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+const walletStore = useWalletStore();
+const tokensStore = useTokensStore();
+const settingsStore = useSettingsStore();
+
 const router = useRouter();
 
-const showLoginForm = ref(false);
+const showLoginSuccess = ref(false);
 const showRegistrationForm = ref(false);
 const isLoading = ref(false);
 const hasConfirmedDownload = ref(false);
@@ -39,8 +43,6 @@ const registrationData = ref({
   about: '',                // Description/bio (optional)
   website: '',              // Website URL (optional)
   profile_image: '',        // Profile image URL (optional)
-  hiveAccount: '',          // Hive account name
-  hivePostingPrivateKey: '',// Hive posting private key (WIF format) - needed to sign L1 transaction
   walletPassword: '',       // Password to encrypt the wallet
   repeatPassword: ''        // Password confirmation
 });
@@ -88,8 +90,6 @@ const stepStatus = computed(() => ({
 // Form validation - only basic info needed in step 1
 const isBasicInfoValid = computed(() => {
   return registrationData.value.name.trim().length > 0 &&
-         registrationData.value.hiveAccount.trim().length > 0 &&
-         registrationData.value.hivePostingPrivateKey.trim().length > 0 &&
          registrationData.value.walletPassword.trim().length > 0 &&
          registrationData.value.repeatPassword.trim().length > 0 &&
          registrationData.value.walletPassword === registrationData.value.repeatPassword;
@@ -118,20 +118,19 @@ const generateAndDownloadKeys = async () => {
 
     const wax = await getWax();
 
-    // Generate operational key
-    const operationalBrainKey = wax.suggestBrainKey();
-    generatedKeys.value.operationalPrivateKey = operationalBrainKey.wifPrivateKey;
-
     // Derive public key for operational key
-    const bk = await beekeeperFactory();
-    const tempSession = bk.createSession(Math.random().toString());
-    const { wallet: tempWallet } = await tempSession.createWallet('temp', 'temp', true);
-    generatedKeys.value.operationalPublicKey = await tempWallet.importKey(operationalBrainKey.wifPrivateKey);
-
     // Generate management key (optional, but recommended)
     const managementBrainKey = wax.suggestBrainKey();
-    generatedKeys.value.managementPrivateKey = managementBrainKey.wifPrivateKey;
-    generatedKeys.value.managementPublicKey = await tempWallet.importKey(managementBrainKey.wifPrivateKey);
+
+    // Generate operational key
+    const operationalBrainKey = wax.suggestBrainKey();
+
+    generatedKeys.value = {
+      operationalPrivateKey: operationalBrainKey.wifPrivateKey,
+      operationalPublicKey: operationalBrainKey.associatedPublicKey,
+      managementPrivateKey: managementBrainKey.wifPrivateKey,
+      managementPublicKey: managementBrainKey.associatedPublicKey
+    };
 
     keysGenerated.value = true;
 
@@ -150,9 +149,7 @@ const generateAndDownloadKeys = async () => {
 
 // Download HTM keys file (similar to Hive authority data file)
 const downloadKeysFile = () => {
-  const cleanAccountName = registrationData.value.hiveAccount.startsWith('@')
-    ? registrationData.value.hiveAccount.slice(1)
-    : registrationData.value.hiveAccount;
+  const cleanAccountName = generatedKeys.value.operationalPublicKey;
 
   const keysFile = {
     account_name: cleanAccountName,
@@ -178,7 +175,7 @@ const downloadKeysFile = () => {
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${cleanAccountName}-htm-keys.json`;
+  link.download = `htm-keys-${new Date().toISOString()}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -199,14 +196,14 @@ const resetProcess = () => {
   toast.info('Process reset. You can generate new keys.');
 };
 
-// Show HTM login form
+// Show HTM login success
 const showHTMLogin = () => {
-  showLoginForm.value = true;
+  showLoginSuccess.value = true;
 };
 
 // Go back to main options
 const goBack = () => {
-  showLoginForm.value = false;
+  showLoginSuccess.value = false;
   showRegistrationForm.value = false;
   // Reset form data
   registrationData.value = {
@@ -214,8 +211,6 @@ const goBack = () => {
     about: '',
     website: '',
     profile_image: '',
-    hiveAccount: '',
-    hivePostingPrivateKey: '',
     walletPassword: '',
     repeatPassword: ''
   };
@@ -223,115 +218,98 @@ const goBack = () => {
 };
 
 // Handle successful login
-const onLoginSuccess = () => {
-  showLoginForm.value = false;
+const goToMyAccount = () => {
+  showLoginSuccess.value = false;
   // Redirect to my balance page after successful login
   router.push('/tokens/my-balance');
 };
 
-// Handle HTM account registration
+// @internal
 const registerHTMAccount = async () => {
   try {
     isLoading.value = true;
 
     // Validate that keys have been generated
-    if (!keysGenerated.value) {
-      toast.error('Please generate HTM keys first');
-      return;
-    }
+    if (!keysGenerated.value)
+      throw new Error('Please generate HTM keys first');
 
     // Validate that user confirmed download
-    if (!hasConfirmedDownload.value) {
-      toast.error('Please confirm you have saved the keys file');
-      return;
-    }
+    if (!hasConfirmedDownload.value)
+      throw new Error('Please confirm you have saved the keys file');
+
 
     // Validate passwords match
-    if (registrationData.value.walletPassword !== registrationData.value.repeatPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
+    if (registrationData.value.walletPassword !== registrationData.value.repeatPassword)
+      throw new Error('Passwords do not match');
+
 
     // Validate website URL if provided
-    if (registrationData.value.website && !isValidUrl(registrationData.value.website)) {
-      toast.error('Please enter a valid website URL');
-      return;
-    }
+    if (registrationData.value.website && !isValidUrl(registrationData.value.website))
+      throw new Error('Please enter a valid website URL');
+
 
     // Validate profile image URL if provided
-    if (registrationData.value.profile_image && !isValidUrl(registrationData.value.profile_image)) {
-      toast.error('Please enter a valid profile image URL');
-      return;
-    }
+    if (registrationData.value.profile_image && !isValidUrl(registrationData.value.profile_image))
+      throw new Error('Please enter a valid profile image URL');
+
 
     // Get wax instance
     const wax = await getWax();
 
     // Create temporary beekeeper wallet to import keys and sign transactions
-    toast.info('Creating HTM wallet...');
-
-    const beekeeper = await (import('@hiveio/beekeeper/vite') as unknown as Promise<{ createBeekeeper: (options: Partial<IBeekeeperOptions>) => Promise<IBeekeeperInstance> }>)
-      .then(bk => bk.createBeekeeper({ enableLogs: false, inMemory: true }));
-
-    const tempSession = beekeeper.createSession(Math.random().toString());
-    const tempWalletName = `registration-${Date.now()}`;
-
-    const { wallet: tempWallet } = await tempSession.createWallet(tempWalletName, 'temp-password', true);
-
-    const hivePostingPublicKey = await tempWallet.importKey(registrationData.value.hivePostingPrivateKey.trim());
-    const operationalPublicKey = generatedKeys.value.operationalPublicKey;
-    const managementPublicKey = generatedKeys.value.managementPublicKey;
-
-    await tempWallet.importKey(generatedKeys.value.operationalPrivateKey);
-    await tempWallet.importKey(generatedKeys.value.managementPrivateKey);
 
     // Create HTM wallet for persistent storage
-    await CTokensProvider.createWallet(
+    const keys = await CTokensProvider.createWallet(
       registrationData.value.walletPassword,
       generatedKeys.value.operationalPrivateKey,
       generatedKeys.value.managementPrivateKey
     );
 
+    await CTokensProvider.login(
+      registrationData.value.walletPassword
+    );
+
+    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
+      throw new Error('Setting HTM Account via proxy is not supported yet. Please log in using your L1 wallet first.');
+
     // Set proxy account for HTM transactions
-    HtmTransaction.HiveProxyAccount = registrationData.value.hiveAccount;
+    HtmTransaction.HiveProxyAccount = settingsStore.settings.account;
 
     // Create Layer 2 HTM transaction for user signup
-    toast.info('Preparing HTM registration transaction...');
     const l2Transaction = new HtmTransaction(wax);
 
     l2Transaction.pushOperation({
       user_signup_operation: {
-        hive_account: registrationData.value.hiveAccount,
-        management_key: managementPublicKey,
-        operational_key: operationalPublicKey
+        hive_account: settingsStore.settings.account,
+        management_key: keys.management!,
+        operational_key: keys.operational
       }
     });
 
-    l2Transaction.sign(tempWallet);
+    tokensStore.reset(await CTokensProvider.for(wax, 'owner'));
+
+    await tokensStore.wallet?.signTransaction(l2Transaction);
 
     // Create Layer 1 transaction and broadcast
     const l1Transaction = await wax.createTransaction();
     l1Transaction.pushOperation(l2Transaction);
 
     // Sign Layer 1 transaction with the Hive posting key
-    toast.info('Signing transaction with Hive posting key...');
-    l1Transaction.sign(tempWallet, hivePostingPublicKey);
+    await walletStore.createWalletFor(settingsStore.settings, 'posting');
+    await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction
-    toast.info('Broadcasting HTM registration transaction...');
     await wax.broadcast(l1Transaction);
 
     // Success!
-    toast.success('HTM Account registered successfully!', {
-      description: `Account ${registrationData.value.hiveAccount} has been registered on the Hive Token Machine`
-    });
+    toast.success('HTM Account registered successfully!');
 
     // After successful registration, redirect to login
     showRegistrationForm.value = false;
     showHTMLogin();
 
   } catch (error) {
-    toastError('Failed to register HTM account', error);
+    toastError('Failed to create HTM account', error);
   } finally {
     isLoading.value = false;
   }
@@ -340,19 +318,49 @@ const registerHTMAccount = async () => {
 
 <template>
   <div class="container mx-auto py-12 px-4 max-w-2xl">
-    <!-- Show HTM Login Form -->
-    <div
-      v-if="showLoginForm"
-      class="flex justify-center"
+    <!-- Show HTM Login Success -->
+    <Card
+      v-if="showLoginSuccess"
+      class="w-full"
     >
-      <HTMLoginForm
-        :show-close-button="true"
-        title="HTM Login"
-        description="Login to your existing HTM account or create a new one"
-        @success="onLoginSuccess"
-        @close="goBack"
-      />
-    </div>
+      <CardContent class="pt-6">
+        <div class="flex flex-col items-center text-center space-y-6">
+          <!-- Success Icon -->
+          <div class="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+            <svg
+              width="32"
+              height="32"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="text-green-600 dark:text-green-400"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiCheckCircle"
+              />
+            </svg>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-2xl font-semibold text-green-600 dark:text-green-400">
+              Welcome to HTM!
+            </h2>
+            <p class="text-muted-foreground">
+              You are now successfully logged in to your HTM account. You can manage your tokens, create new ones, and explore all the features available.
+            </p>
+          </div>
+
+          <!-- Action Button -->
+          <Button
+            size="lg"
+            class="mt-4"
+            @click="goToMyAccount"
+          >
+            Go to My Account
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
 
     <!-- Show HTM Registration Form -->
     <Card
@@ -469,74 +477,6 @@ const registerHTMAccount = async () => {
               </p>
             </div>
 
-            <!-- Hive Account (required) -->
-            <div class="space-y-2">
-              <Label for="hive-account">
-                Hive Account Name *
-              </Label>
-              <Input
-                id="hive-account"
-                v-model="registrationData.hiveAccount"
-                type="text"
-                placeholder="your-hive-account"
-                required
-                pattern="[a-z0-9\-\.]+"
-                maxlength="16"
-              />
-              <p class="text-xs text-muted-foreground">
-                Your existing Hive blockchain account name
-              </p>
-            </div>
-
-            <!-- Hive Posting Private Key (required) -->
-            <div class="space-y-2">
-              <Label for="hive-posting-private-key">
-                Hive Posting Private Key *
-              </Label>
-              <Input
-                id="hive-posting-private-key"
-                v-model="registrationData.hivePostingPrivateKey"
-                type="password"
-                placeholder="5..."
-                required
-                class="font-mono text-sm"
-              />
-              <p class="text-xs text-muted-foreground">
-                Your Hive posting private key (required to register on HTM)
-              </p>
-            </div>
-
-            <!-- Wallet Password (required) -->
-            <div class="space-y-2">
-              <Label for="wallet-password">
-                Wallet Password *
-              </Label>
-              <Input
-                id="wallet-password"
-                v-model="registrationData.walletPassword"
-                type="password"
-                placeholder="Enter a secure password"
-                required
-              />
-              <p class="text-xs text-muted-foreground">
-                Create a password to encrypt and secure your HTM wallet locally
-              </p>
-            </div>
-
-            <!-- Repeat Password (required) -->
-            <div class="space-y-2">
-              <Label for="repeat-password">
-                Repeat Password *
-              </Label>
-              <Input
-                id="repeat-password"
-                v-model="registrationData.repeatPassword"
-                type="password"
-                placeholder="Repeat your password"
-                required
-              />
-            </div>
-
             <!-- About/Description (optional) -->
             <div class="space-y-2">
               <Label for="account-about">
@@ -576,6 +516,45 @@ const registerHTMAccount = async () => {
                 placeholder="https://example.com/your-image.jpg"
               />
             </div>
+          </div>
+
+          <Separator />
+
+          <!-- Wallet Password (required) -->
+          <div class="space-y-2">
+            <Label for="wallet-password">
+              Wallet Password *
+            </Label>
+            <Input
+              id="wallet-password"
+              v-model="registrationData.walletPassword"
+              type="password"
+              placeholder="Enter a secure password"
+              required
+            />
+            <p class="text-xs text-muted-foreground">
+              Create a password to encrypt and secure your HTM wallet locally
+            </p>
+          </div>
+
+          <!-- Repeat Password (required) -->
+          <div class="space-y-2">
+            <Label for="repeat-password">
+              Repeat Password *
+            </Label>
+            <Input
+              id="repeat-password"
+              v-model="registrationData.repeatPassword"
+              type="password"
+              placeholder="Repeat your password"
+              required
+            />
+          </div>
+
+          <div v-if="registrationData.walletPassword && registrationData.repeatPassword && registrationData.walletPassword !== registrationData.repeatPassword">
+            <p class="text-sm text-red-500">
+              Passwords do not match
+            </p>
           </div>
 
           <Separator />
@@ -663,7 +642,7 @@ const registerHTMAccount = async () => {
                 <div>
                   <Label class="text-xs text-muted-foreground">Operational Public Key</Label>
                   <Input
-                    :value="generatedKeys.operationalPublicKey"
+                    :default-value="generatedKeys.operationalPublicKey"
                     readonly
                     class="font-mono text-xs bg-white dark:bg-gray-800"
                   />
@@ -671,7 +650,7 @@ const registerHTMAccount = async () => {
                 <div>
                   <Label class="text-xs text-muted-foreground">Management Public Key</Label>
                   <Input
-                    :value="generatedKeys.managementPublicKey"
+                    :default-value="generatedKeys.managementPublicKey"
                     readonly
                     class="font-mono text-xs bg-white dark:bg-gray-800"
                   />

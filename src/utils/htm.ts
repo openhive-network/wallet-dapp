@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
-import type { IBeekeeperUnlockedWallet } from '@hiveio/beekeeper';
+import type { IBeekeeperUnlockedWallet } from '@hiveio/beekeeper/vite';
 import type { TPublicKey, IWaxBaseInterface } from '@hiveio/wax';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
 
