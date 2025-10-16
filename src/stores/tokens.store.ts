@@ -380,7 +380,9 @@ export const useTokensStore = defineStore('tokens', {
       await this.loadRegisteredTokens(nai, precision, 1, true);
     },
     async reset (cTokensWallet?: CTokensProvider | undefined) {
-      await cTokensProvider.value?.destroy();
+      // Cleanup only if we don't want to use any other L2 wallet
+      if (cTokensWallet === undefined)
+        await cTokensProvider.value?.destroy();
       cTokensProvider.value = cTokensWallet;
     }
   }
