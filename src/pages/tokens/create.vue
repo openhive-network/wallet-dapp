@@ -131,7 +131,7 @@ const generateNAI = (): string | undefined => {
     return;
 
   try {
-    generatedNAI.value = generateHTMNAI(tokenSymbol.value);
+    generatedNAI.value = generateHTMNAI(tokenSymbol.value, Number.parseInt(precision.value));
     console.log('Regenerating NAI', generatedNAI.value);
     naiGenerated.value = true;
 
