@@ -16,6 +16,8 @@ import type {
 } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+import { transformUserName } from './user.store';
+
 export interface CTokenDisplay {
   nai: string;
   isStaked: boolean;
@@ -83,7 +85,8 @@ export const useTokensStore = defineStore('tokens', {
     isLoadingBalances: false,
     isLoadingTokens: false,
     isLoadingRegisteredTokens: false,
-    lastError: null as string | null
+    lastError: null as string | null,
+    ignoreLogIn: false
   }),
   getters: {
     wallet: () => cTokensProvider.value,
@@ -219,6 +222,30 @@ export const useTokensStore = defineStore('tokens', {
         this.isLoadingTokens = false;
       }
     },
+    async getCurrentUserMetadata () {
+      const wax = await getWax();
+
+      console.log(this.wallet);
+
+      if (this.wallet?.publicKey === undefined)
+        throw new Error('Could not load CTokens wallet');
+
+      const [ user ] = await wax.restApi.ctokensApi.registeredUsers({ user: this.wallet.publicKey });
+
+      if (!user)
+        throw new Error('CTokens user not found');
+
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      const metadata = user.metadata as Record<string, any>;
+
+      return {
+        displayName: metadata?.name || transformUserName(this.wallet.publicKey),
+        about: metadata?.about,
+        name: metadata?.name,
+        profileImage: metadata?.profile_image,
+        website: metadata?.website
+      };
+    },
     /**
      * Load registered tokens with pre-formatted display data
      */
@@ -352,7 +379,8 @@ export const useTokensStore = defineStore('tokens', {
       // Refresh token data after update
       await this.loadRegisteredTokens(nai, precision, 1, true);
     },
-    reset (cTokensWallet?: CTokensProvider | undefined) {
+    async reset (cTokensWallet?: CTokensProvider | undefined) {
+      await cTokensProvider.value?.destroy();
       cTokensProvider.value = cTokensWallet;
     }
   }

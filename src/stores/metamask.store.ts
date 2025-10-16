@@ -34,7 +34,6 @@ export const useMetamaskStore = defineStore('metamask', {
       try {
         this.performingOperation = true;
 
-        console.log('Connecting to Metamask with account index:', accountIndex, 'and role:', role);
         metamaskWallet.value = await MetamaskProvider.for(accountIndex, role, defaultSnapOrigin);
       } finally {
         this.performingOperation = false;

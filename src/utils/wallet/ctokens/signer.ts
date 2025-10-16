@@ -127,6 +127,14 @@ export class CTokensProvider extends AEncryptionProvider {
     }
   }
 
+  public static async hasWallet (): Promise<boolean> {
+    if (!CTokensProvider.#beekeeper)
+      await CTokensProvider.prepareBeekeeper();
+    const session = CTokensProvider.#beekeeper!.createSession(Math.random().toString());
+
+    return session.hasWallet(CTokensProvider.currentOperationalWalletName);
+  }
+
   public static async createWallet (userNewWalletPassword: string, operationalPrivateKey: TPublicKey, managementPrivateKey?: TPublicKey): Promise<{ management?: TPublicKey; operational: TPublicKey; }> {
     await CTokensProvider.prepareBeekeeper();
 

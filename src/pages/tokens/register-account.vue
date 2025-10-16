@@ -286,7 +286,7 @@ const registerHTMAccount = async () => {
       }
     });
 
-    tokensStore.reset(await CTokensProvider.for(wax, 'owner'));
+    await tokensStore.reset(await CTokensProvider.for(wax, 'owner'));
 
     await tokensStore.wallet?.signTransaction(l2Transaction);
 

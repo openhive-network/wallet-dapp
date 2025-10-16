@@ -2,9 +2,11 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+import HTMHeader from '@/components/HTMHeader.vue';
 import HTMLoginForm from '@/components/HTMLoginForm.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { useTokensStore } from '@/stores/tokens.store';
 
 const tokensStore = useTokensStore();
@@ -38,9 +40,18 @@ const goToRegistration = () => {
 
 <template>
   <div class="p-8">
+    <!-- Show account overview component -->
+    <div v-if="isAuthenticated">
+      <div class="w-full px-4 py-2 mb-2">
+        <HTMHeader />
+      </div>
+      <Separator />
+      <!-- Show slot content when authenticated -->
+      <slot />
+    </div>
     <!-- Show login/registration page when not authenticated -->
     <div
-      v-if="!isAuthenticated"
+      v-else
       class="container mx-auto py-12 px-4 max-w-2xl"
     >
       <!-- Show HTM Login Form -->
@@ -82,7 +93,7 @@ const goToRegistration = () => {
               class="w-full"
               @click="showHTMLogin"
             >
-              Access HTM Wallet
+              Login to HTM Wallet
             </Button>
 
             <!-- Or register new HTM account -->
@@ -114,11 +125,6 @@ const goToRegistration = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-
-    <!-- Show slot content when authenticated -->
-    <div v-else>
-      <slot />
     </div>
   </div>
 </template>
