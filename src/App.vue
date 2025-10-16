@@ -6,7 +6,8 @@ import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import HTMProvidePassword from '@/components/wallet/HTMProvidePassword.vue';
-import { UsedWallet , useSettingsStore } from '@/stores/settings.store';
+import type { UsedWallet } from '@/stores/settings.store';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 
@@ -73,7 +74,7 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
           v-if="walletStore.isProvideWalletPasswordModalOpen"
           class="fixed inset-0 flex items-center justify-center z-20"
         >
-          <HTMProvidePassword v-if="settingsStore.settings.wallet === UsedWallet.CTOKENS_IMPLEMENTATION" />
+          <HTMProvidePassword />
         </aside>
       </SidebarProvider>
       <Toaster

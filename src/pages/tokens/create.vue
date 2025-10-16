@@ -191,7 +191,7 @@ const createToken = async () => {
   try {
     const wax = await getWax();
 
-    tokensStore.reset(await CTokensProvider.for(wax, 'active'));
+    await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
 
     const identifier: asset = {
       amount: parseAssetAmount(initialSupply.value, parseInt(precision.value)),

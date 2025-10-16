@@ -53,7 +53,7 @@ const handleConditionalSiteLogin = async (operationalKey: string) => {
 
   if (walletStore.wallet !== undefined && !walletStore.isL2Wallet) {
     // Already logged in using L1 wallet, so just add another layer on top of that
-    tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
+    await tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
 
     return;
   }
