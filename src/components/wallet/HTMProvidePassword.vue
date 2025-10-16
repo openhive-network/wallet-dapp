@@ -8,18 +8,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const walletStore = useWalletStore();
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
+const tokensStore = useTokensStore();
 
 const isLoading = ref(false);
 
-const close = () => {
+const close = (ignoreLogIn = false) => {
+  if (ignoreLogIn) // Do not show log in dialog every time if user ignored it
+    tokensStore.ignoreLogIn = true;
+
   walletStore.isProvideWalletPasswordModalOpen = false;
 };
 
@@ -29,10 +35,16 @@ const connect = async () => {
   try {
     isLoading.value = true;
 
+    const wax = await getWax();
+
     await CTokensProvider.login(password.value);
 
     try {
+
       await walletStore.createWalletFor(settingsStore.settings, 'posting');
+
+      if (!walletStore.isL2Wallet)
+        await tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
 
       await userStore.parseUserData(settingsStore.settings.account!);
     } catch (error) {
@@ -41,7 +53,7 @@ const connect = async () => {
 
     toast.success('Logged in successfully!');
 
-    close();
+    close(false);
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   } finally {
@@ -68,7 +80,7 @@ const connect = async () => {
                 variant="ghost"
                 size="sm"
                 class="px-2"
-                @click="close"
+                @click="close(true)"
               >
                 <svg
                   width="24"
