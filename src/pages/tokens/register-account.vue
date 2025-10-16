@@ -8,7 +8,7 @@ import {
   mdiRefresh
 } from '@mdi/js';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
@@ -175,7 +175,7 @@ const downloadKeysFile = () => {
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `htm-keys-${new Date().toISOString()}.json`;
+  link.download = `htm-keys-${keysFile.display_name}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -252,7 +252,6 @@ const registerHTMAccount = async () => {
     if (registrationData.value.profile_image && !isValidUrl(registrationData.value.profile_image))
       throw new Error('Please enter a valid profile image URL');
 
-
     // Get wax instance
     const wax = await getWax();
 
@@ -326,6 +325,14 @@ const registerHTMAccount = async () => {
     isLoading.value = false;
   }
 };
+
+onMounted(() => {
+  if (walletStore.wallet) {
+    // If already logged in using L1 wallet,
+    // show the registration page in case someone wants to create another account
+    showRegistrationForm.value = true;
+  }
+});
 </script>
 
 <template>
