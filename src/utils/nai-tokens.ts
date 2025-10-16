@@ -1,4 +1,5 @@
 import { useSettingsStore } from '@/stores/settings.store';
+import { isVesting } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 
@@ -31,10 +32,7 @@ export interface TokenStakeParams {
   direction: 'stake' | 'unstake';
 }
 
-/**
- * Generate a unique NAI identifier for a token
- */
-export const generateNAI = (symbol: string): string => {
+const generateRandomNAI = (symbol: string): string => {
   const timestamp = Date.now();
   const symbolUpper = symbol.trim().toUpperCase();
 
@@ -77,6 +75,17 @@ export const generateNAI = (symbol: string): string => {
   };
 
   return `@@${naiNumber}${dammDigit(naiNumber)}`;
+};
+
+/**
+ * Generate a unique NAI identifier for a token
+ */
+export const generateNAI = (symbol: string, precision: number): string => {
+  let randomNAI: string;
+  do
+    randomNAI = generateRandomNAI(symbol);
+  while (!isVesting(randomNAI, precision));
+  return randomNAI;
 };
 
 /**
@@ -364,14 +373,6 @@ export const validateAccountName = (accountName: string): boolean => {
   // Hive account name validation rules
   const regex = /^[a-z][a-z0-9\-.]{2,15}$/;
   return regex.test(accountName);
-};
-
-/**
- * Format token amount with precision
- */
-export const formatTokenAmount = (amount: string | number, precision: number): string => {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return num.toFixed(precision);
 };
 
 /**
