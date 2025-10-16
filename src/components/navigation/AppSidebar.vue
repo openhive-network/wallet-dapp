@@ -70,7 +70,7 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
     {
       title: 'Register HTM Account',
       url: '/tokens/register-account',
-      icon: mdiAccountPlusOutline,
+      icon: mdiAccountPlusOutline
     }
   ]
 }, {

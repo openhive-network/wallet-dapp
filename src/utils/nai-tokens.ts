@@ -38,13 +38,19 @@ export const generateNAI = (symbol: string): string => {
   const timestamp = Date.now();
   const symbolUpper = symbol.trim().toUpperCase();
 
-  // Create a simple hash-like value for uniqueness
-  const hash = (symbolUpper + timestamp).split('').reduce((acc, char) => {
-    return acc + char.charCodeAt(0);
-  }, 0);
+  // Create a hash-like value for uniqueness using a safer approach
+  // Use modular arithmetic to prevent overflow
+  const input = symbolUpper + timestamp;
+  let hash = 0;
 
-  // NAI format: @@[8 digits]
-  const naiNumber = (hash % 100000000).toString().padStart(8, '0');
+  for (let i = 0; i < input.length; i++) {
+    const char = input.charCodeAt(i);
+    // Use bitwise operations and modular arithmetic to prevent overflow
+    hash = ((hash << 5) - hash + char) & 0x7fffffff; // Keep within 31-bit positive range
+  }
+
+  // Ensure we have a positive number and convert to 8-digit string
+  const naiNumber = Math.abs(hash % 100000000).toString().padStart(8, '0');
 
   const table = [
     [0, 3, 1, 7, 5, 9, 8, 6, 4, 2],

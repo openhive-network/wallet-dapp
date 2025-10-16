@@ -353,15 +353,6 @@ export async function updateHTMAssetMetadata (
 }
 
 /**
- * Generate a random NAI identifier for new tokens
- */
-export function generateNAI (): string {
-  // Generate a random number between 100000000 and 999999999
-  const randomNum = Math.floor(Math.random() * 900000000) + 100000000;
-  return `@@${randomNum}`;
-}
-
-/**
  * Validate public key format
  */
 export function isValidPublicKey (key: string): boolean {
