@@ -20,7 +20,6 @@ const walletStore = useWalletStore();
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 const hasHTMWallet = computed(() => !!tokensStore.wallet);
-const hasNoHTMWallet = computed(() => !tokensStore.wallet);
 
 const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
   title: 'Hive Account Management',
@@ -72,7 +71,6 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
       title: 'Register HTM Account',
       url: '/tokens/register-account',
       icon: mdiAccountPlusOutline,
-      visible: hasNoHTMWallet
     }
   ]
 }, {
