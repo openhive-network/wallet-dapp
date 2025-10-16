@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import type { IWaxBaseInterface } from '@hiveio/wax/vite';
+import { computed, onMounted, ref } from 'vue';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CTokenDisplay } from '@/stores/tokens.store';
+import { getWax } from '@/stores/wax.store';
 
 interface TokenPreviewData {
   name?: string;
@@ -64,33 +66,15 @@ const isFullToken = (token: TokenPreviewData | CTokenDisplay): token is CTokenDi
   return 'displayTotalSupply' in token && 'displayMaxSupply' in token;
 };
 
+const formatter = ref<IWaxBaseInterface['formatter'] | undefined>(undefined);
+
 // Format number with precision
 const formatTokenAmount = (amount: string | bigint | undefined, precision: number | string = 3): string => {
   if (!amount) return '0';
 
-  const precisionNum = typeof precision === 'string' ? parseInt(precision) : precision;
+  precision = typeof precision === 'string' ? parseInt(precision) : precision;
 
-  // If it's a bigint, convert to string first
-  if (typeof amount === 'bigint') {
-    const divisor = BigInt(10) ** BigInt(precisionNum);
-    const integerPart = amount / divisor;
-    const fractionalPart = amount % divisor;
-
-    if (fractionalPart === BigInt(0))
-      return integerPart.toLocaleString();
-
-    const fractionalStr = fractionalPart.toString().padStart(precisionNum, '0').replace(/0+$/, '');
-    return `${integerPart.toLocaleString()}.${fractionalStr}`;
-  }
-
-  const num = parseFloat(amount);
-
-  if (isNaN(num)) return amount;
-
-  return num.toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: precisionNum
-  });
+  return formatter.value?.formatNumber(amount, precision) || '0';
 };
 
 const displayTotalSupply = computed(() => {
@@ -109,6 +93,16 @@ const displayMaxSupply = computed(() => {
   const formatted = formatTokenAmount(props.token.maxSupply, props.token.precision);
   const symbol = props.token.symbol || props.token.name;
   return symbol ? `${formatted} ${symbol}` : formatted;
+});
+
+onMounted(async () => {
+  const wax = await getWax();
+
+  formatter.value = wax.formatter.extend({ asset: {
+    appendTokenName: false,
+    displayAsNai: false,
+    formatAmount: true
+  }});
 });
 </script>
 
