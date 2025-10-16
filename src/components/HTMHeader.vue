@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { mdiLogout } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import cTokensLogoUrl from '@/assets/icons/wallets/ctokens.svg';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+const router = useRouter();
+
+const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
 
@@ -49,15 +54,30 @@ const logout = async () => {
     toastError('Failed to logout', error);
   }
 };
-const goToLoginPage = () => {
-  walletStore.isProvideWalletPasswordModalOpen = true;
+const goToLoginPage = async () => {
+  try {
+    // If L1 logged in, show provide password modal, show the wallet select modal otherwise
+    if (settingsStore.settings?.account)
+      walletStore.isProvideWalletPasswordModalOpen = true;
+    else if (await CTokensProvider.hasWallet())
+      walletStore.isWalletSelectModalOpen = true;
+    else
+      router.push('/tokens/register-account');
+  } catch(error) {
+    toastError('Failed to log in', error);
+  }
 };
 onMounted(async () => {
   try {
-    if (await CTokensProvider.hasWallet() && CTokensProvider.isLoggedIn() && tokensStore.wallet !== undefined)
+    const hasWallet = await CTokensProvider.hasWallet();
+    if (!hasWallet)
+      return;
+
+    if (CTokensProvider.isLoggedIn() && tokensStore.wallet !== undefined)
       void refetchUserData();
     else if (!tokensStore.ignoreLogIn)
       walletStore.isProvideWalletPasswordModalOpen = true;
+
   } catch (error){
     toastError('Error checking cTokens wallet', error);
   }
