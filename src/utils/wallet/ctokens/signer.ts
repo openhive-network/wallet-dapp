@@ -159,7 +159,7 @@ export class CTokensProvider extends AEncryptionProvider {
     return { management, operational };
   }
 
-  public static async for (chain: IHiveChainInterface, role: TRole, ctokensUrl: string = (import.meta.env.VITE_CTOKENS_API_URL || DEFAULT_CTOKENS_API_URL)): Promise<CTokensProvider> {
+  public static async for (chain: IHiveChainInterface, role: TRole, onlineCheckKeys = true, ctokensUrl: string = (import.meta.env.VITE_CTOKENS_API_URL || DEFAULT_CTOKENS_API_URL)): Promise<CTokensProvider> {
     if (role === 'owner') {
       if (!CTokensProvider.#managementWallet)
         throw new WaxCTokensEncryptionProviderError('Owner wallet is not available. Make sure to login with the correct password and import the required key.');
@@ -173,8 +173,12 @@ export class CTokensProvider extends AEncryptionProvider {
 
     const instance = new CTokensProvider(chain, role, ctokensUrl);
 
-    if (!(await instance.publicKeyHasAccount()))
-      throw new WaxCTokensEncryptionProviderError(`The provided ${role} key is not registered in the ctokens system. Please use a different key.`);
+    if (onlineCheckKeys) {
+      const hasPublicKeyInSystem = await instance.publicKeyHasAccount();
+
+      if (!hasPublicKeyInSystem)
+        throw new WaxCTokensEncryptionProviderError(`The provided ${role} key is not registered in the ctokens system. Please use a different key.`);
+    }
 
     return instance;
   }
