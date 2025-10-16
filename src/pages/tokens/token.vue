@@ -108,6 +108,34 @@ const formattedTotalSupply = ref('0');
 const formattedMaxSupply = ref('0');
 const formattedUserBalance = ref('0.000');
 
+// Formatted top holders with proper balance display
+const formattedTopHolders = computed(() => {
+  if (!token.value || topHolders.value.length === 0) return [];
+
+  return topHolders.value.map(holder => {
+    return {
+      ...holder,
+      formattedAmount: formatAmount(holder.amount || '0', token.value!.precision || 0)
+    };
+  });
+});
+
+// Helper to format amount synchronously
+const formatAmount = (amount: string, precision: number): string => {
+  try {
+    // Simple formatter - convert to number with proper decimal places
+    const num = parseFloat(amount);
+    if (isNaN(num)) return amount;
+
+    // Format with precision and add thousand separators
+    const parts = num.toFixed(precision).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  } catch {
+    return amount;
+  }
+};
+
 // Update formatted values
 const updateFormattedValues = async () => {
   if (!token.value) return;
@@ -360,10 +388,9 @@ const copyNAI = () => {
 onMounted(async () => {
   isLoading.value = true;
 
-  await Promise.allSettled([
-    loadTokenDetails(),
-    loadTopHolders()
-  ]);
+  // First load token details, then load top holders
+  await loadTokenDetails();
+  await loadTopHolders();
 
   isLoading.value = false;
 });
@@ -871,7 +898,7 @@ onMounted(async () => {
                 class="space-y-2"
               >
                 <div
-                  v-for="(holder, index) in topHolders.slice(0, 10)"
+                  v-for="(holder, index) in formattedTopHolders.slice(0, 10)"
                   :key="holder.user"
                   class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors"
                 >
@@ -910,7 +937,7 @@ onMounted(async () => {
 
                   <div class="text-right flex-shrink-0">
                     <p class="font-bold text-foreground">
-                      {{ holder.amount }}
+                      {{ holder.formattedAmount }}
                     </p>
                     <p class="text-xs text-muted-foreground">
                       {{ tokenSymbol || 'tokens' }}
