@@ -43,7 +43,7 @@ export interface CTokenDisplay {
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
 
 // Helper functions for token transformation
-const isVesting = (nai: string, precision: number): boolean =>
+export const isVesting = (nai: string, precision: number): boolean =>
   (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) !== 0;
 
 const formatAsset = async (value: string | bigint, precision: number, name?: string): Promise<string> => {
