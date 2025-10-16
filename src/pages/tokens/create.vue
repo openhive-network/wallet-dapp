@@ -271,8 +271,8 @@ const resetForm = () => {
   tokenDescription.value = '';
   initialSupply.value = '1000000';
   precision.value = '3';
-  othersCanStake.value = false;
-  othersCanUnstake.value = false;
+  othersCanStake.value = true;
+  othersCanUnstake.value = true;
   agreedToDisclaimer.value = false;
   generatedNAI.value = '';
   naiGenerated.value = false;
@@ -293,7 +293,7 @@ const previewToken = computed(() => ({
   nai: generatedNAI.value || undefined,
   totalSupply: initialSupply.value,
   maxSupply: capped.value ? initialSupply.value : undefined,
-  precision: parseInt(precision.value) || 3,
+  precision: parseInt(precision.value) ?? 3,
   capped: capped.value,
   othersCanStake: othersCanStake.value,
   othersCanUnstake: othersCanUnstake.value,
