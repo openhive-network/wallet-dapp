@@ -25,7 +25,8 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { generateNAI as generateHTMNAI, parseAssetAmount } from '@/utils/htm-utils';
+import { parseAssetAmount } from '@/utils/htm-utils';
+import { generateNAI as generateHTMNAI } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -130,7 +131,8 @@ const generateNAI = (): string | undefined => {
     return;
 
   try {
-    generatedNAI.value = generateHTMNAI();
+    generatedNAI.value = generateHTMNAI(tokenSymbol.value);
+    console.log('Regenerating NAI', generatedNAI.value);
     naiGenerated.value = true;
 
     return generatedNAI.value;
