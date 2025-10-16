@@ -284,6 +284,18 @@ const registerHTMAccount = async () => {
         management_key: keys.management!,
         operational_key: keys.operational
       }
+    }).pushOperation({
+      user_metadata_update_operation: {
+        user: keys.operational,
+        metadata: {
+          items: [
+            { key: 'name', value: registrationData.value.name.trim() },
+            ...(registrationData.value.about.trim() ? [{ key: 'about', value: registrationData.value.about.trim() }] : []),
+            ...(registrationData.value.website.trim() ? [{ key: 'website', value: registrationData.value.website.trim() }] : []),
+            ...(registrationData.value.profile_image.trim() ? [{ key: 'profile_image', value: registrationData.value.profile_image.trim() }] : [])
+          ]
+        }
+      }
     });
 
     await tokensStore.reset(await CTokensProvider.for(wax, 'owner', false));
