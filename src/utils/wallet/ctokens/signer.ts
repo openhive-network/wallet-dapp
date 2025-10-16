@@ -168,6 +168,9 @@ export class CTokensProvider extends AEncryptionProvider {
         throw new WaxCTokensEncryptionProviderError('Management wallet is not available. Make sure to login with the correct password and import the required key.');
     }
 
+    if (!CTokensProvider.#beekeeper)
+      await CTokensProvider.prepareBeekeeper();
+
     const instance = new CTokensProvider(chain, role, ctokensUrl);
 
     if (!(await instance.publicKeyHasAccount()))
