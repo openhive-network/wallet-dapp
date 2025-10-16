@@ -301,17 +301,6 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
-    // For now, just show a placeholder message
-    // In a real implementation, this would use the transfer API
-    console.log('Transfer:', {
-      token: token.value.nai,
-      precision: token.value.precision,
-      to: transferForm.value.to,
-      amount: transferForm.value.amount,
-      amountInBaseUnits: validation.parsedAmount,
-      memo: transferForm.value.memo
-    });
-
     // TODO: Implement actual transfer functionality
     throw new Error('Transfer functionality not yet implemented');
 
