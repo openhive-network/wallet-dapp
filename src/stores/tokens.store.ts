@@ -90,14 +90,6 @@ export const useTokensStore = defineStore('tokens', {
   }),
   getters: {
     wallet: () => cTokensProvider.value,
-    totalValue: (state) => {
-      return state.balances.reduce((total, balance) => {
-        // Mock price of $0.01 per token for now
-        const price = 0.01;
-        const amount = parseFloat(balance.amount!);
-        return total + (amount * price);
-      }, 0);
-    },
     tokenCount: (state) => state.balances.length,
     hasBalances: (state) => state.balances.length > 0,
     hasTokenDefinitions: (state) => state.tokenDefinitions.length > 0,
@@ -148,26 +140,7 @@ export const useTokensStore = defineStore('tokens', {
       } catch (error) {
         console.error('Failed to load balances:', error);
         this.lastError = error instanceof Error ? error.message : 'Failed to load balances';
-
-        // Fallback to mock data for development
-        console.log('Using fallback mock data for development');
-        this.balances = [
-          {
-            nai: '@@000000021',
-            precision: 3,
-            amount: '150.500'
-          },
-          {
-            nai: '@@000000013',
-            precision: 3,
-            amount: '75.250'
-          },
-          {
-            nai: '@@123456789',
-            precision: 3,
-            amount: '0.000'
-          }
-        ];
+        this.balances = [];
       } finally {
         this.isLoadingBalances = false;
       }
@@ -194,30 +167,7 @@ export const useTokensStore = defineStore('tokens', {
       } catch (error) {
         console.error('Failed to load token definitions:', error);
         this.lastError = error instanceof Error ? error.message : 'Failed to load token definitions';
-
-        // Fallback to mock data for development
-        console.log('Using fallback mock data for token definitions');
-        this.tokenDefinitions = [
-          {
-            nai: '@@123456789',
-            owner: creator || 'testaccount',
-            precision: 3,
-            total_supply: '1000000',
-            max_supply: '0',
-            capped: false,
-            others_can_stake: true,
-            others_can_unstake: true,
-            is_nft: false,
-            metadata: {
-              symbol: 'MAT',
-              name: 'My Awesome Token',
-              description: 'A test token for demonstration purposes',
-              initial_supply: '1000000',
-              created_at: '2024-01-15T10:30:00Z',
-              active: true
-            }
-          }
-        ];
+        this.tokenDefinitions = [];
       } finally {
         this.isLoadingTokens = false;
       }
