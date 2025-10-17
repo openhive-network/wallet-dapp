@@ -2,11 +2,9 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMHeader from '@/components/HTMHeader.vue';
 import HTMLoginForm from '@/components/HTMLoginForm.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useTokensStore } from '@/stores/tokens.store';
 
 const tokensStore = useTokensStore();
@@ -42,10 +40,6 @@ const goToRegistration = () => {
   <div class="p-8">
     <!-- Show account overview component -->
     <div v-if="isAuthenticated">
-      <div class="w-full px-4 py-2 mb-2">
-        <HTMHeader />
-      </div>
-      <Separator />
       <!-- Show slot content when authenticated -->
       <slot />
     </div>
