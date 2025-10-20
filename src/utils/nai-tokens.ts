@@ -250,7 +250,7 @@ export const getTokenDefinitions = async (creator?: string): Promise<CtokensAppA
  */
 export const getAccountBalances = async (): Promise<CtokensAppArrayOfTokens> => {
   try {
-    const operationalKey = getUserOperationalKey();
+    const operationalKey = await getUserOperationalKey();
     if (!operationalKey)
       throw new Error('No operational key available');
 
