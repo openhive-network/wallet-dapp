@@ -78,13 +78,13 @@ const generateRandomNAI = (symbol: string): string => {
 };
 
 /**
- * Generate a unique NAI identifier for a token
+ * Generate a unique NAI identifier for a token (liquid, not vesting)
  */
 export const generateNAI = (symbol: string, precision: number): string => {
   let randomNAI: string;
   do
     randomNAI = generateRandomNAI(symbol);
-  while (!isVesting(randomNAI, precision));
+  while (isVesting(randomNAI, precision)); // Keep generating until we get a liquid (non-vesting) NAI
   return randomNAI;
 };
 
