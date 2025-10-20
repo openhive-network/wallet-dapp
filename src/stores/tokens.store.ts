@@ -113,7 +113,7 @@ export const useTokensStore = defineStore('tokens', {
   },
   actions: {
     async loadBalances (forceRefresh = false) {
-      const operationalKey = getUserOperationalKey();
+      const operationalKey = await getUserOperationalKey();
 
       if (!operationalKey) {
         this.lastError = 'No operational key available';
@@ -251,7 +251,7 @@ export const useTokensStore = defineStore('tokens', {
       );
     },
     async getBalanceHistory (nai: string, precision: number, page = 1): Promise<CtokensAppBalanceHistory[]> {
-      const operationalKey = getUserOperationalKey();
+      const operationalKey = await getUserOperationalKey();
       if (!operationalKey)
         throw new Error('No operational key available');
 
@@ -283,7 +283,7 @@ export const useTokensStore = defineStore('tokens', {
       precision: number,
       metadata: Record<string, string>
     ): Promise<void> {
-      const operationalKey = getUserOperationalKey();
+      const operationalKey = await getUserOperationalKey();
       if (!operationalKey)
         throw new Error('No operational key available');
 
