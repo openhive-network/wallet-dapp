@@ -159,7 +159,7 @@ watch(searchQuery, () => {
 const loadAccountStatistics = async () => {
   try {
     const wax = await getWax();
-    const operationalKey = getUserOperationalKey();
+    const operationalKey = await getUserOperationalKey();
 
     if (!operationalKey) {
       console.warn('No operational key available');

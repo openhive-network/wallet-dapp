@@ -1,6 +1,5 @@
 import type { TWaxRestExtended, IHiveChainInterface } from '@hiveio/wax';
 
-import { useSettingsStore } from '@/stores/settings.store';
 import { getWax } from '@/stores/wax.store';
 import type {
   CtokensAppBalance,
@@ -257,19 +256,20 @@ export const canTokenStake = (token: CToken): boolean => {
 
 /**
  * Get user's operational key (for API calls)
+ * Returns the operational public key from the user's wallet
  */
-export const getUserOperationalKey = (): string => {
-  const settingsStore = useSettingsStore();
-  // For now, use the connected account name as operational key
-  // In a real implementation, this would be derived from user's keys
-  const account = settingsStore.settings.account;
+export const getUserOperationalKey = async (): Promise<string> => {
+  // Import CTokensProvider to access the actual operational key from wallet
+  const { CTokensProvider } = await import('@/utils/wallet/ctokens/signer');
 
-  if (!account) {
-    console.warn('No account connected - using empty operational key');
+  const operationalKey = CTokensProvider.getOperationalPublicKey();
+
+  if (!operationalKey) {
+    console.warn('No operational key available - user may not be logged in');
     return '';
   }
 
-  return account;
+  return operationalKey;
 };
 
 /**
