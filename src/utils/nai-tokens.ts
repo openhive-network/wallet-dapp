@@ -1,5 +1,7 @@
+import { HtmTransaction } from '@mtyszczak-cargo/htm';
+
 import { useSettingsStore } from '@/stores/settings.store';
-import { isVesting } from '@/stores/tokens.store';
+import { isVesting, useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 
@@ -8,6 +10,7 @@ import {
   getUserOperationalKey
 } from './ctokens-api';
 import type { CtokensAppArrayOfTokens } from './wallet/ctokens/api';
+import CTokensProvider from './wallet/ctokens/signer';
 
 export interface TokenCreationParams {
   symbol: string;
@@ -22,14 +25,17 @@ export interface TokenCreationParams {
 export interface TokenTransferParams {
   to: string;
   amount: string;
-  symbol: string;
+  nai: string;
+  precision: number;
   memo?: string;
 }
 
 export interface TokenStakeParams {
   amount: string;
-  symbol: string;
+  nai: string;
+  precision: number;
   direction: 'stake' | 'unstake';
+  receiver?: string;
 }
 
 const generateRandomNAI = (symbol: string): string => {
@@ -117,16 +123,17 @@ export const createNAIToken = async (params: TokenCreationParams) => {
     custom_json_operation: {
       required_auths: [],
       required_posting_auths: [settingsStore.settings.account],
-      id: 'nai_token_create',
+      id: 'htm',
       json: JSON.stringify(tokenData)
     }
   });
 
   await walletStore.wallet!.signTransaction(tx);
 
-  // TODO: Here you would broadcast to the blockchain
-  // For now, return the transaction
-  return tx.toApi();
+  // Broadcast the transaction to the blockchain
+  await wax.broadcast(tx);
+
+  return tx.id.toString();
 };
 
 /**
@@ -136,38 +143,58 @@ export const transferNAIToken = async (params: TokenTransferParams) => {
   const wax = await getWax();
   const settingsStore = useSettingsStore();
   const walletStore = useWalletStore();
+  const tokensStore = useTokensStore();
 
   if (!settingsStore.settings.account)
     throw new Error('No account connected');
 
-
   if (!walletStore.hasWallet)
     throw new Error('No wallet available');
 
+  // Check if HTM wallet is connected
+  if (!tokensStore.wallet)
+    throw new Error('Please connect your HTM wallet first');
 
-  const tx = await wax.createTransaction();
+  // For fee payment
+  await walletStore.createWalletFor(settingsStore.settings, 'active');
 
-  // Create custom JSON operation for token transfer
-  const transferData = {
-    action: 'transfer_token',
-    data: {
-      ...params,
-      from: settingsStore.settings.account
-    }
-  };
+  // Reset tokens store with CTokens provider
+  await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
 
-  tx.pushOperation({
-    custom_json_operation: {
-      required_auths: [],
-      required_posting_auths: [settingsStore.settings.account],
-      id: 'nai_token_transfer',
-      json: JSON.stringify(transferData)
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = settingsStore.settings.account;
+
+  // Create Layer 2 HTM transaction for token transfer
+  const l2Transaction = new HtmTransaction(wax);
+
+  l2Transaction.pushOperation({
+    token_transfer_operation: {
+      sender: tokensStore.wallet.publicKey!,
+      receiver: params.to,
+      amount: {
+        amount: params.amount,
+        nai: params.nai,
+        precision: params.precision
+      },
+      memo: params.memo || ''
     }
   });
 
-  await walletStore.wallet!.signTransaction(tx);
+  await tokensStore.wallet!.signTransaction(l2Transaction);
 
-  return tx.toApi();
+  // Create Layer 1 transaction and broadcast
+  const l1Transaction = await wax.createTransaction();
+
+  // Add the L2 transaction as an operation in L1 transaction
+  l1Transaction.pushOperation(l2Transaction);
+
+  // Sign Layer 1 transaction with the Hive active key
+  await walletStore.wallet!.signTransaction(l1Transaction);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Transaction);
+
+  return l1Transaction.id.toString();
 };
 
 /**
@@ -177,38 +204,58 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
   const wax = await getWax();
   const settingsStore = useSettingsStore();
   const walletStore = useWalletStore();
+  const tokensStore = useTokensStore();
 
   if (!settingsStore.settings.account)
     throw new Error('No account connected');
 
-
   if (!walletStore.hasWallet)
     throw new Error('No wallet available');
 
+  // Check if HTM wallet is connected
+  if (!tokensStore.wallet)
+    throw new Error('Please connect your HTM wallet first');
 
-  const tx = await wax.createTransaction();
+  // For fee payment
+  await walletStore.createWalletFor(settingsStore.settings, 'active');
 
-  // Create custom JSON operation for token staking
-  const stakeData = {
-    action: 'stake_token',
-    data: {
-      ...params,
-      account: settingsStore.settings.account
-    }
-  };
+  // Reset tokens store with CTokens provider
+  await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
 
-  tx.pushOperation({
-    custom_json_operation: {
-      required_auths: [],
-      required_posting_auths: [settingsStore.settings.account],
-      id: 'nai_token_stake',
-      json: JSON.stringify(stakeData)
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = settingsStore.settings.account;
+
+  // Create Layer 2 HTM transaction for token transform (stake/unstake)
+  const l2Transaction = new HtmTransaction(wax);
+
+  l2Transaction.pushOperation({
+    // @ts-expect-error TODO: Interface issue to resolve
+    token_transform_operation: {
+      holder: tokensStore.wallet.publicKey,
+      receiver: params.receiver || undefined,
+      amount: {
+        amount: params.amount,
+        nai: params.nai,
+        precision: params.precision
+      }
     }
   });
 
-  await walletStore.wallet!.signTransaction(tx);
+  await tokensStore.wallet!.signTransaction(l2Transaction);
 
-  return tx.toApi();
+  // Create Layer 1 transaction and broadcast
+  const l1Transaction = await wax.createTransaction();
+
+  // Add the L2 transaction as an operation in L1 transaction
+  l1Transaction.pushOperation(l2Transaction);
+
+  // Sign Layer 1 transaction with the Hive active key
+  await walletStore.wallet!.signTransaction(l1Transaction);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Transaction);
+
+  return l1Transaction.id.toString();
 };
 
 /**
@@ -354,10 +401,14 @@ export const userSignup = async (account: string, email?: string, referrer?: str
 
     await walletStore.wallet!.signTransaction(tx);
 
+    // Broadcast the transaction to the blockchain
+    await wax.broadcast(tx);
+
     return {
       success: true,
       account_exists: false,
-      message: 'User signup completed successfully'
+      message: 'User signup completed successfully',
+      transaction_id: tx.id.toString()
     };
 
   } catch (error) {
