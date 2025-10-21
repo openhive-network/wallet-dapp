@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiPencilOutline, mdiContentCopy, mdiCheck } from '@mdi/js';
+import { HtmTransaction } from '@mtyszczak-cargo/htm';
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -17,6 +18,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
 import { isValidPublicKey } from '@/utils/htm';
+import { transferNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
 
@@ -35,6 +37,8 @@ const topHolders = ref<CtokensAppTopHolder[]>([]);
 const isLoading = ref(true);
 const isLoadingHolders = ref(false);
 const isTransferring = ref(false);
+const isStaking = ref(false);
+const isUnstaking = ref(false);
 const isCopied = ref(false);
 const isNaiCopied = ref(false);
 
@@ -43,6 +47,12 @@ const transferForm = ref({
   to: '',
   amount: '',
   memo: ''
+});
+
+// Stake/Unstake form
+const stakeForm = ref({
+  amount: '',
+  receiver: '' // Optional: can stake to another account
 });
 
 // Get NAI from route parameter
@@ -220,17 +230,13 @@ const loadTopHolders = async () => {
   }
 };
 
-// Set max amount with proper precision
+// Set max amount - use raw amount without precision formatting
 const setMaxAmount = async () => {
   if (!userBalance.value || !token.value) return;
 
   try {
-    const wax = await getWax();
-    const formattedAmount = wax.formatter.formatNumber(
-      userBalance.value.amount!,
-      token.value.precision || 0
-    );
-    transferForm.value.amount = formattedAmount;
+    // Use the raw amount directly from the balance
+    transferForm.value.amount = userBalance.value.amount!;
   } catch (error) {
     console.error('Failed to set max amount:', error);
   }
@@ -329,13 +335,217 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
-    // TODO: Implement actual transfer functionality
-    throw new Error('Transfer functionality not yet implemented');
+    // Get token symbol from metadata
+    const metadata = token.value.metadata as { symbol?: string } | undefined;
+    const symbol = metadata?.symbol || token.value.nai || '';
+
+    // Transfer the tokens using transferNAIToken
+    await transferNAIToken({
+      to: transferForm.value.to,
+      amount: transferForm.value.amount,
+      nai: token.value.nai!,
+      precision: token.value.precision || 0,
+      memo: transferForm.value.memo || undefined
+    });
+
+    toast.success(`Successfully transferred ${transferForm.value.amount} ${symbol} tokens`);
+
+    // Reset form
+    transferForm.value = {
+      to: '',
+      amount: '',
+      memo: ''
+    };
+
+    // Reload user balance
+    await tokensStore.loadBalances(true);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
 
   } catch (error) {
     toastError('Transfer failed', error);
   } finally {
     isTransferring.value = false;
+  }
+};
+
+// Handle stake tokens
+const handleStake = async () => {
+  if (!token.value || !isLoggedIn.value) {
+    toastError('You must be logged in to stake tokens', new Error('Not logged in'));
+    return;
+  }
+
+  if (!tokensStore.wallet?.publicKey) {
+    toastError('HTM wallet not available', new Error('No wallet'));
+    return;
+  }
+
+  if (!stakeForm.value.amount) {
+    toastError('Please enter amount to stake', new Error('Missing amount'));
+    return;
+  }
+
+  // Check if staking is allowed
+  if (!token.value.others_can_stake && !isTokenOwner.value) {
+    toastError('Staking is not allowed for this token', new Error('Staking disabled'));
+    return;
+  }
+
+  // Validate amount precision
+  const validation = validateAmountPrecision(stakeForm.value.amount, token.value.precision || 0);
+  if (!validation.isValid) {
+    toastError('Invalid amount', new Error(validation.error || 'Invalid amount format'));
+    return;
+  }
+
+  // Validate receiver if provided
+  if (stakeForm.value.receiver && !isValidPublicKey(stakeForm.value.receiver)) {
+    toastError('Invalid receiver address', new Error('Receiver must be a valid public key'));
+    return;
+  }
+
+  try {
+    isStaking.value = true;
+
+    const wax = await getWax();
+
+    // Set proxy account for HTM transactions
+    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
+
+    // Create Layer 2 HTM transaction for token transform (stake)
+    const l2Transaction = new HtmTransaction(wax);
+
+    l2Transaction.pushOperation({
+      token_transform: {
+        holder: tokensStore.wallet.publicKey,
+        receiver: stakeForm.value.receiver || undefined,
+        amount: {
+          amount: stakeForm.value.amount,
+          nai: token.value.nai!,
+          precision: token.value.precision || 0
+        }
+      }
+    });
+
+    await tokensStore.wallet.signTransaction(l2Transaction);
+
+    // Create Layer 1 transaction and broadcast
+    const l1Transaction = await wax.createTransaction();
+    l1Transaction.pushOperation(l2Transaction);
+
+    // Broadcast the transaction
+    await wax.broadcast(l1Transaction);
+
+    const metadata = token.value.metadata as { symbol?: string } | undefined;
+    const symbol = metadata?.symbol || token.value.nai || '';
+
+    toast.success(`Successfully staked ${stakeForm.value.amount} ${symbol} tokens`);
+
+    // Reset form
+    stakeForm.value = {
+      amount: '',
+      receiver: ''
+    };
+
+    // Reload user balance
+    await tokensStore.loadBalances(true);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+
+  } catch (error) {
+    toastError('Staking failed', error);
+  } finally {
+    isStaking.value = false;
+  }
+};
+
+// Handle unstake tokens
+const handleUnstake = async () => {
+  if (!token.value || !isLoggedIn.value) {
+    toastError('You must be logged in to unstake tokens', new Error('Not logged in'));
+    return;
+  }
+
+  if (!tokensStore.wallet?.publicKey) {
+    toastError('HTM wallet not available', new Error('No wallet'));
+    return;
+  }
+
+  if (!stakeForm.value.amount) {
+    toastError('Please enter amount to unstake', new Error('Missing amount'));
+    return;
+  }
+
+  // Check if unstaking is allowed
+  if (!token.value.others_can_unstake && !isTokenOwner.value) {
+    toastError('Unstaking is not allowed for this token', new Error('Unstaking disabled'));
+    return;
+  }
+
+  // Validate amount precision
+  const validation = validateAmountPrecision(stakeForm.value.amount, token.value.precision || 0);
+  if (!validation.isValid) {
+    toastError('Invalid amount', new Error(validation.error || 'Invalid amount format'));
+    return;
+  }
+
+  // Validate receiver if provided
+  if (stakeForm.value.receiver && !isValidPublicKey(stakeForm.value.receiver)) {
+    toastError('Invalid receiver address', new Error('Receiver must be a valid public key'));
+    return;
+  }
+
+  try {
+    isUnstaking.value = true;
+
+    const wax = await getWax();
+
+    // Set proxy account for HTM transactions
+    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
+
+    // Create Layer 2 HTM transaction for token transform (unstake)
+    const l2Transaction = new HtmTransaction(wax);
+
+    l2Transaction.pushOperation({
+      // @ts-expect-error TODO: Interface issue to resolve
+      token_transform_operation: {
+        holder: tokensStore.wallet.publicKey,
+        receiver: stakeForm.value.receiver || undefined,
+        amount: {
+          amount: stakeForm.value.amount,
+          nai: token.value.nai!,
+          precision: token.value.precision || 0
+        }
+      }
+    });
+
+    await tokensStore.wallet.signTransaction(l2Transaction);
+
+    // Create Layer 1 transaction and broadcast
+    const l1Transaction = await wax.createTransaction();
+    l1Transaction.pushOperation(l2Transaction);
+
+    // Broadcast the transaction
+    await wax.broadcast(l1Transaction);
+
+    const metadata = token.value.metadata as { symbol?: string } | undefined;
+    const symbol = metadata?.symbol || token.value.nai || '';
+
+    toast.success(`Successfully unstaked ${stakeForm.value.amount} ${symbol} tokens`);
+
+    // Reset form
+    stakeForm.value = {
+      amount: '',
+      receiver: ''
+    };
+
+    // Reload user balance
+    await tokensStore.loadBalances(true);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+
+  } catch (error) {
+    toastError('Unstaking failed', error);
+  } finally {
+    isUnstaking.value = false;
   }
 };
 
@@ -876,6 +1086,238 @@ onMounted(async () => {
                   </svg>
                   {{ isTransferring ? 'Processing Transfer...' : 'Send Transfer' }}
                 </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Stake/Unstake Section -->
+          <Card
+            v-if="token && (token.others_can_stake || token.others_can_unstake || isTokenOwner)"
+            class="flex flex-col h-full"
+          >
+            <CardHeader>
+              <CardTitle class="flex items-center gap-2">
+                <svg
+                  width="20"
+                  height="20"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="text-primary"
+                >
+                  <path
+                    style="fill: currentColor"
+                    d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z"
+                  />
+                </svg>
+                Stake / Unstake Tokens
+              </CardTitle>
+              <CardDescription>
+                Transform between liquid and staked tokens
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="space-y-6 flex-1">
+              <!-- Not logged in state -->
+              <div
+                v-if="!isLoggedIn"
+                class="text-center py-12 space-y-4"
+              >
+                <div class="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+                  <svg
+                    width="24"
+                    height="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="text-muted-foreground"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
+                    />
+                  </svg>
+                </div>
+                <p class="text-muted-foreground font-medium">
+                  Connect your wallet to stake/unstake tokens
+                </p>
+                <Button
+                  size="lg"
+                  @click="$router.push('/')"
+                >
+                  Connect Wallet
+                </Button>
+              </div>
+
+              <!-- No balance state -->
+              <div
+                v-else-if="!userBalance || Number(userBalance.amount) === 0"
+                class="text-center py-12 space-y-4"
+              >
+                <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
+                  <svg
+                    width="24"
+                    height="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="text-amber-600 dark:text-amber-400"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-foreground font-semibold mb-2">
+                    You don't own this token
+                  </p>
+                  <p class="text-sm text-muted-foreground">
+                    Your account doesn't have any {{ tokenSymbol || tokenName }} tokens to stake/unstake.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Stake/Unstake form -->
+              <div
+                v-else
+                class="space-y-5"
+              >
+                <div class="space-y-2">
+                  <Label
+                    for="stake-amount"
+                    class="text-sm font-medium text-foreground"
+                  >
+                    Amount
+                  </Label>
+                  <div class="relative">
+                    <Input
+                      id="stake-amount"
+                      v-model="stakeForm.amount"
+                      type="text"
+                      inputmode="decimal"
+                      :placeholder="`Amount in ${tokenSymbol || tokenName}`"
+                      :disabled="isStaking || isUnstaking"
+                      class="pr-20 transition-colors"
+                    />
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                      {{ tokenSymbol }}
+                    </span>
+                  </div>
+                  <p
+                    v-if="token"
+                    class="text-xs text-muted-foreground"
+                  >
+                    Precision: {{ token.precision }} decimal places
+                  </p>
+                </div>
+
+                <div class="space-y-2">
+                  <Label
+                    for="stake-receiver"
+                    class="text-sm font-medium text-foreground"
+                  >
+                    Receiver (Optional)
+                  </Label>
+                  <Input
+                    id="stake-receiver"
+                    v-model="stakeForm.receiver"
+                    placeholder="Receiver public key (defaults to you)"
+                    :disabled="isStaking || isUnstaking"
+                    class="transition-colors font-mono text-sm"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    Leave empty to stake/unstake to yourself
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <Button
+                    v-if="token.others_can_stake || isTokenOwner"
+                    size="lg"
+                    :disabled="isStaking || isUnstaking || !stakeForm.amount"
+                    @click="handleStake"
+                  >
+                    <svg
+                      v-if="isStaking"
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-2 animate-spin"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"
+                      />
+                    </svg>
+                    <svg
+                      v-else
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-2"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2Z"
+                      />
+                    </svg>
+                    {{ isStaking ? 'Staking...' : 'Stake' }}
+                  </Button>
+
+                  <Button
+                    v-if="token.others_can_unstake || isTokenOwner"
+                    variant="outline"
+                    size="lg"
+                    :disabled="isStaking || isUnstaking || !stakeForm.amount"
+                    @click="handleUnstake"
+                  >
+                    <svg
+                      v-if="isUnstaking"
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-2 animate-spin"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"
+                      />
+                    </svg>
+                    <svg
+                      v-else
+                      width="16"
+                      height="16"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="mr-2"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z"
+                      />
+                    </svg>
+                    {{ isUnstaking ? 'Unstaking...' : 'Unstake' }}
+                  </Button>
+                </div>
+
+                <Alert
+                  v-if="!token.others_can_stake && !isTokenOwner"
+                  class="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                >
+                  <AlertDescription class="text-amber-800 dark:text-amber-200 text-sm">
+                    ⚠️ Staking is disabled for this token (only owner can stake)
+                  </AlertDescription>
+                </Alert>
+
+                <Alert
+                  v-if="!token.others_can_unstake && !isTokenOwner"
+                  class="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                >
+                  <AlertDescription class="text-amber-800 dark:text-amber-200 text-sm">
+                    ⚠️ Unstaking is disabled for this token (only owner can unstake)
+                  </AlertDescription>
+                </Alert>
               </div>
             </CardContent>
           </Card>

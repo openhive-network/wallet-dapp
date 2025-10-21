@@ -222,7 +222,8 @@ const transferTokens = async () => {
     await transferNAIToken({
       to: transferRecipient.value,
       amount: transferAmount.value,
-      symbol: getTokenSymbol(selectedTokenForTransfer.value),
+      nai: selectedTokenForTransfer.value.nai || '',
+      precision: selectedTokenForTransfer.value.precision || 0,
       memo: transferMemo.value || undefined
     });
 
@@ -258,7 +259,8 @@ const transformTokens = async () => {
 
     await stakeNAIToken({
       amount: transformAmount.value,
-      symbol: getTokenSymbol(selectedToken.value),
+      nai: selectedToken.value.nai || '',
+      precision: selectedToken.value.precision || 0,
       direction: transformDirection.value === 'liquid-to-staked' ? 'stake' : 'unstake'
     });
 
@@ -299,37 +301,29 @@ const navigateToToken = (balance: CtokensAppBalance) => {
   });
 };
 
-// Set max transfer amount with proper precision
+// Set max transfer amount - use raw amount without precision formatting
 const setMaxTransferAmount = async () => {
   if (!selectedTokenForTransfer.value) return;
 
   try {
-    const wax = await getWax();
-    const formattedAmount = wax.formatter.formatNumber(
-      selectedTokenForTransfer.value.amount || '0',
-      selectedTokenForTransfer.value.precision || 0
-    );
-    transferAmount.value = formattedAmount;
+    // Use the raw amount directly from the balance
+    transferAmount.value = selectedTokenForTransfer.value.amount || '0';
   } catch (error) {
     console.error('Failed to set max transfer amount:', error);
   }
 };
 
-// Set max transform amount with proper precision
+// Set max transform amount - use raw amount without precision formatting
 const setMaxTransformAmount = async () => {
   if (!selectedToken.value) return;
 
   try {
-    const wax = await getWax();
     const amount = transformDirection.value === 'liquid-to-staked'
       ? (selectedToken.value.amount || '0')
       : getStakedBalance(selectedToken.value);
 
-    const formattedAmount = wax.formatter.formatNumber(
-      amount,
-      selectedToken.value.precision || 0
-    );
-    transformAmount.value = formattedAmount;
+    // Use the raw amount directly without formatting
+    transformAmount.value = amount;
   } catch (error) {
     console.error('Failed to set max transform amount:', error);
   }

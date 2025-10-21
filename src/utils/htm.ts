@@ -54,6 +54,16 @@ export interface HTMAssetMetadataUpdateData {
   }[];
 }
 
+export interface HTMTokenTransformData {
+  holder: TPublicKey;
+  receiver?: TPublicKey;
+  amount: {
+    amount: string;
+    nai: string;
+    precision: number;
+  };
+}
+
 /**
  * HTM Transaction Builder - Utility class for creating and managing HTM transactions
  */
@@ -137,6 +147,21 @@ export class HTMTransactionBuilder {
         metadata: {
           items: data.metadata
         }
+      }
+    });
+    return this;
+  }
+
+  /**
+   * Add token transform operation (stake/unstake) to the transaction
+   * The operation automatically detects whether to stake or unstake based on the asset type
+   */
+  addTokenTransform (data: HTMTokenTransformData): this {
+    this.transaction.pushOperation({
+      token_transform: {
+        holder: data.holder,
+        receiver: data.receiver,
+        amount: data.amount
       }
     });
     return this;
@@ -346,6 +371,62 @@ export async function updateHTMAssetMetadata (
 
   // Sign with owner key (management key)
   l1Tx.sign(wallet, metadataData.owner);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Tx);
+  return l1Tx.id.toString();
+}
+
+/**
+ * Stake HTM tokens (transform liquid tokens to staked/vesting)
+ */
+export async function stakeHTMToken (
+  transformData: HTMTokenTransformData,
+  wallet: IBeekeeperUnlockedWallet,
+  operationalAccount: string
+): Promise<string> {
+  const wax = await getWax();
+
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = operationalAccount;
+
+  // Create L2 transaction for token transform (stake)
+  const htmBuilder = await HTMTransactionBuilder.create();
+  htmBuilder.addTokenTransform(transformData);
+  await htmBuilder.sign(wallet);
+
+  // Create L1 transaction to broadcast the HTM transaction
+  const l1Tx = await wax.createTransaction();
+  l1Tx.pushOperation(htmBuilder.getTransaction());
+  l1Tx.sign(wallet, transformData.holder);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Tx);
+  return l1Tx.id.toString();
+}
+
+/**
+ * Unstake HTM tokens (transform staked/vesting tokens to liquid)
+ */
+export async function unstakeHTMToken (
+  transformData: HTMTokenTransformData,
+  wallet: IBeekeeperUnlockedWallet,
+  operationalAccount: string
+): Promise<string> {
+  const wax = await getWax();
+
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = operationalAccount;
+
+  // Create L2 transaction for token transform (unstake)
+  const htmBuilder = await HTMTransactionBuilder.create();
+  htmBuilder.addTokenTransform(transformData);
+  await htmBuilder.sign(wallet);
+
+  // Create L1 transaction to broadcast the HTM transaction
+  const l1Tx = await wax.createTransaction();
+  l1Tx.pushOperation(htmBuilder.getTransaction());
+  l1Tx.sign(wallet, transformData.holder);
 
   // Broadcast the transaction
   await wax.broadcast(l1Tx);
