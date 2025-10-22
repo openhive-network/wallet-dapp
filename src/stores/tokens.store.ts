@@ -322,8 +322,7 @@ export const useTokensStore = defineStore('tokens', {
       const txId = await updateHTMAssetMetadata(
         metadataUpdateData,
         managementWallet,
-        operationalAccount,
-        0.001 // Fee amount in HIVE
+        operationalAccount
       );
 
       return txId;
