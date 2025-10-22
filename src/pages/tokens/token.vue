@@ -20,6 +20,7 @@ import { copyText } from '@/utils/copy';
 import { isValidPublicKey } from '@/utils/htm';
 import { transferNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
 
 // Router
@@ -335,12 +336,8 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
-    // Get token symbol from metadata
-    const metadata = token.value.metadata as { symbol?: string } | undefined;
-    const symbol = metadata?.symbol || token.value.nai || '';
-
     // Transfer the tokens using transferNAIToken
-    await transferNAIToken({
+    const txId = await transferNAIToken({
       to: transferForm.value.to,
       amount: transferForm.value.amount,
       nai: token.value.nai!,
@@ -348,18 +345,23 @@ const handleTransfer = async () => {
       memo: transferForm.value.memo || undefined
     });
 
-    toast.success(`Successfully transferred ${transferForm.value.amount} ${symbol} tokens`);
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Transfer',
+      async () => {
+        // Reset form on success
+        transferForm.value = {
+          to: '',
+          amount: '',
+          memo: ''
+        };
 
-    // Reset form
-    transferForm.value = {
-      to: '',
-      amount: '',
-      memo: ''
-    };
-
-    // Reload user balance
-    await tokensStore.loadBalances(true);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+        // Reload user balance
+        await tokensStore.loadBalances(true);
+        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+      }
+    );
 
   } catch (error) {
     toastError('Transfer failed', error);
@@ -436,20 +438,24 @@ const handleStake = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const metadata = token.value.metadata as { symbol?: string } | undefined;
-    const symbol = metadata?.symbol || token.value.nai || '';
+    const txId = l1Transaction.id.toString();
 
-    toast.success(`Successfully staked ${stakeForm.value.amount} ${symbol} tokens`);
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Stake',
+      async () => {
+        // Reset form on success
+        stakeForm.value = {
+          amount: '',
+          receiver: ''
+        };
 
-    // Reset form
-    stakeForm.value = {
-      amount: '',
-      receiver: ''
-    };
-
-    // Reload user balance
-    await tokensStore.loadBalances(true);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+        // Reload user balance
+        await tokensStore.loadBalances(true);
+        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+      }
+    );
 
   } catch (error) {
     toastError('Staking failed', error);
@@ -527,21 +533,24 @@ const handleUnstake = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const metadata = token.value.metadata as { symbol?: string } | undefined;
-    const symbol = metadata?.symbol || token.value.nai || '';
+    const txId = l1Transaction.id.toString();
 
-    toast.success(`Successfully unstaked ${stakeForm.value.amount} ${symbol} tokens`);
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Unstake',
+      async () => {
+        // Reset form on success
+        stakeForm.value = {
+          amount: '',
+          receiver: ''
+        };
 
-    // Reset form
-    stakeForm.value = {
-      amount: '',
-      receiver: ''
-    };
-
-    // Reload user balance
-    await tokensStore.loadBalances(true);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
-
+        // Reload user balance
+        await tokensStore.loadBalances(true);
+        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+      }
+    );
   } catch (error) {
     toastError('Unstaking failed', error);
   } finally {

@@ -282,7 +282,7 @@ export const useTokensStore = defineStore('tokens', {
       nai: string,
       precision: number,
       metadata: Record<string, string>
-    ): Promise<void> {
+    ): Promise<string> {
       const operationalKey = await getUserOperationalKey();
       if (!operationalKey)
         throw new Error('No operational key available');
@@ -318,16 +318,15 @@ export const useTokensStore = defineStore('tokens', {
       if (!operationalAccount)
         throw new Error('No operational account configured');
 
-      // Broadcast the metadata update transaction
-      await updateHTMAssetMetadata(
+      // Broadcast the metadata update transaction and return transaction ID
+      const txId = await updateHTMAssetMetadata(
         metadataUpdateData,
         managementWallet,
         operationalAccount,
         0.001 // Fee amount in HIVE
       );
 
-      // Refresh token data after update
-      await this.loadRegisteredTokens(nai, precision, 1, true);
+      return txId;
     },
     async reset (cTokensWallet?: CTokensProvider | undefined) {
       // Cleanup only if we don't want to use any other L2 wallet
