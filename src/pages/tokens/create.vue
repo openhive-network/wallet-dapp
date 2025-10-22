@@ -201,7 +201,7 @@ const createToken = async () => {
       nai: generatedNAI.value,
       precision: parseInt(precision.value)
     };
-    const owner = tokensStore.wallet.publicKey!;
+    const owner = CTokensProvider.getOperationalPublicKey()!;
     const assetTokenName = tokenName.value.trim();
 
     // Prepare HTM asset definition data
@@ -304,7 +304,7 @@ const previewToken = computed(() => ({
   capped: capped.value,
   othersCanStake: othersCanStake.value,
   othersCanUnstake: othersCanUnstake.value,
-  ownerPublicKey: tokensStore.wallet?.publicKey
+  ownerPublicKey: CTokensProvider.getOperationalPublicKey()
 }));
 </script>
 
