@@ -23,6 +23,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const walletStore = useWalletStore();
@@ -312,13 +313,18 @@ const registerHTMAccount = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    // Success!
-    toast.success('HTM Account registered successfully!');
+    const txId = l1Transaction.id.toString();
 
-    // After successful registration, redirect to login
-    showRegistrationForm.value = false;
-    showHTMLogin();
-
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'HTM account registration',
+      async () => {
+        // After successful registration, redirect to login
+        showRegistrationForm.value = false;
+        showHTMLogin();
+      }
+    );
   } catch (error) {
     toastError('Failed to create HTM account', error);
   } finally {

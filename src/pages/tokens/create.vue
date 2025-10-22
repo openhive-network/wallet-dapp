@@ -28,6 +28,7 @@ import { copyText } from '@/utils/copy';
 import { parseAssetAmount } from '@/utils/htm-utils';
 import { generateNAI as generateHTMNAI } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const tokensStore = useTokensStore();
@@ -252,13 +253,17 @@ const createToken = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    // Success!
-    toast.success('Token created successfully!', {
-      description: `Token ${assetTokenName} has been created and deployed to the Hive Token Machine.`
-    });
+    const txId = l1Transaction.id.toString();
 
-    // Reset form
-    resetForm();
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Token creation',
+      async () => {
+        // Success, reset form
+        resetForm();
+      }
+    );
   } catch (error) {
     toastError('Failed to create token', error);
   } finally {

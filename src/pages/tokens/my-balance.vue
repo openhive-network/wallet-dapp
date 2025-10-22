@@ -27,6 +27,7 @@ import { getWax } from '@/stores/wax.store';
 import { getUserOperationalKey } from '@/utils/ctokens-api';
 import { transferNAIToken, stakeNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 
 const router = useRouter();
@@ -219,7 +220,7 @@ const transferTokens = async () => {
   try {
     isTransferLoading.value = true;
 
-    await transferNAIToken({
+    const txId = await transferNAIToken({
       to: transferRecipient.value,
       amount: transferAmount.value,
       nai: selectedTokenForTransfer.value.nai || '',
@@ -227,13 +228,17 @@ const transferTokens = async () => {
       memo: transferMemo.value || undefined
     });
 
-    const symbol = getTokenSymbol(selectedTokenForTransfer.value);
-    toast.success(`Successfully transferred ${transferAmount.value} ${symbol} to ${transferRecipient.value}`);
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Transfer',
+      async () => {
+        // Refresh balances on success
+        await loadAccountBalances();
+        isTransferDialogOpen.value = false;
+      }
+    );
 
-    // Refresh balances
-    await loadAccountBalances();
-
-    isTransferDialogOpen.value = false;
   } catch (error) {
     toastError('Failed to transfer tokens', error);
   } finally {
@@ -257,21 +262,25 @@ const transformTokens = async () => {
   try {
     isTransformLoading.value = true;
 
-    await stakeNAIToken({
+    const txId = await stakeNAIToken({
       amount: transformAmount.value,
       nai: selectedToken.value.nai || '',
       precision: selectedToken.value.precision || 0,
       direction: transformDirection.value === 'liquid-to-staked' ? 'stake' : 'unstake'
     });
 
-    const action = transformDirection.value === 'liquid-to-staked' ? 'staked' : 'unstaked';
-    const symbol = getTokenSymbol(selectedToken.value);
-    toast.success(`Successfully ${action} ${transformAmount.value} ${symbol}`);
+    const action = transformDirection.value === 'liquid-to-staked' ? 'Stake' : 'Unstake';
 
-    // Refresh balances
-    await loadAccountBalances();
-
-    isTransformDialogOpen.value = false;
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      action,
+      async () => {
+        // Refresh balances on success
+        await loadAccountBalances();
+        isTransformDialogOpen.value = false;
+      }
+    );
   } catch (error) {
     toastError('Failed to transform tokens', error);
   } finally {
