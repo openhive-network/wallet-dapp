@@ -18,6 +18,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 
 // Router
@@ -149,25 +150,32 @@ const handleUpdateToken = async () => {
     };
 
     // Call store method to update token metadata
-    await tokensStore.updateTokenMetadata(
+    const txId = await tokensStore.updateTokenMetadata(
       token.value.nai!,
       token.value.precision!,
       metadata
     );
 
-    toast.success('Token metadata updated successfully!');
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      txId,
+      'Token metadata update',
+      async () => {
+        // Refresh token data after update
+        await tokensStore.loadRegisteredTokens(token.value!.nai, token.value!.precision, 1, true);
 
-    // Navigate back to token detail page
-    setTimeout(() => {
-      router.push({
-        path: '/tokens/token',
-        query: {
-          nai: token.value!.nai,
-          precision: token.value!.precision
-        }
-      });
-    }, 1000);
-
+        // Navigate back to token detail page
+        setTimeout(() => {
+          router.push({
+            path: '/tokens/token',
+            query: {
+              nai: token.value!.nai,
+              precision: token.value!.precision
+            }
+          });
+        }, 1000);
+      }
+    );
   } catch (error) {
     toastError('Failed to update token metadata', error);
   } finally {
