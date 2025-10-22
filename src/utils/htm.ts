@@ -334,12 +334,12 @@ export async function updateHTMUserMetadata (
 
 /**
  * Update HTM asset metadata
+ * This operation is free (no fee required)
  */
 export async function updateHTMAssetMetadata (
   metadataData: HTMAssetMetadataUpdateData,
   wallet: IBeekeeperUnlockedWallet,
-  operationalAccount: string,
-  feeAmount = 0.001
+  operationalAccount: string
 ): Promise<string> {
   const wax = await getWax();
 
@@ -351,22 +351,8 @@ export async function updateHTMAssetMetadata (
   htmBuilder.addAssetMetadataUpdate(metadataData);
   await htmBuilder.sign(wallet);
 
-  // Create L1 transaction with optional fee transfer and HTM operation
+  // Create L1 transaction to broadcast the HTM transaction
   const l1Tx = await wax.createTransaction();
-
-  // Add fee transfer operation if fee > 0
-  if (feeAmount > 0) {
-    l1Tx.pushOperation({
-      transfer_operation: {
-        from: operationalAccount,
-        to: 'fee.htm',
-        amount: wax.hiveCoins(feeAmount),
-        memo: 'L2 asset metadata update fee'
-      }
-    });
-  }
-
-  // Add HTM asset metadata update operation
   l1Tx.pushOperation(htmBuilder.getTransaction());
 
   // Sign with owner key (management key)
