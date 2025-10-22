@@ -287,30 +287,6 @@ export const useTokensStore = defineStore('tokens', {
       if (!operationalKey)
         throw new Error('No operational key available');
 
-      // Get management wallet from CTokensProvider
-      const managementWallet = CTokensProvider.getManagementWallet();
-      if (!managementWallet)
-        throw new Error('No management wallet available');
-
-      const { updateHTMAssetMetadata } = await import('@/utils/htm-utils');
-
-      // Convert metadata object to array of key-value pairs
-      const metadataItems = Object.entries(metadata).map(([key, value]) => ({
-        key,
-        value
-      }));
-
-      // Prepare metadata update data
-      const metadataUpdateData = {
-        owner: operationalKey,
-        identifier: {
-          amount: '0',
-          nai,
-          precision
-        },
-        metadata: metadataItems
-      };
-
       // Get operational account from settings
       const settingsStore = await import('@/stores/settings.store').then(m => m.useSettingsStore());
       const operationalAccount = settingsStore.settings.account;
@@ -318,14 +294,58 @@ export const useTokensStore = defineStore('tokens', {
       if (!operationalAccount)
         throw new Error('No operational account configured');
 
-      // Broadcast the metadata update transaction and return transaction ID
-      const txId = await updateHTMAssetMetadata(
-        metadataUpdateData,
-        managementWallet,
-        operationalAccount
-      );
+      // Get L1 wallet for signing the transaction
+      const walletStore = await import('@/stores/wallet.store').then(m => m.useWalletStore());
+      await walletStore.createWalletFor(settingsStore.settings, 'active');
 
-      return txId;
+      if (!walletStore.wallet)
+        throw new Error('No L1 wallet available');
+
+      const wax = await getWax();
+      const { HtmTransaction } = await import('@mtyszczak-cargo/htm');
+
+      // Create CTokensProvider instance for L2 signing (owner role for metadata updates)
+      const l2Wallet = await CTokensProvider.for(wax, 'owner');
+
+      // Convert metadata object to array of key-value pairs
+      const metadataItems = Object.entries(metadata).map(([key, value]) => ({
+        key,
+        value
+      }));
+
+      // Set proxy account for HTM transactions
+      HtmTransaction.HiveProxyAccount = operationalAccount;
+
+      // Create L2 HTM transaction for asset metadata update
+      const l2Transaction = new HtmTransaction(wax);
+      l2Transaction.pushOperation({
+        asset_metadata_update_operation: {
+          owner: operationalKey,
+          identifier: {
+            amount: '0',
+            nai,
+            precision
+          },
+          metadata: {
+            items: metadataItems
+          }
+        }
+      });
+
+      // Sign L2 transaction with management wallet (owner role)
+      await l2Wallet.signTransaction(l2Transaction);
+
+      // Create L1 transaction to broadcast the HTM transaction
+      const l1Transaction = await wax.createTransaction();
+      l1Transaction.pushOperation(l2Transaction);
+
+      // Sign L1 transaction with active wallet
+      await walletStore.wallet.signTransaction(l1Transaction);
+
+      // Broadcast the transaction
+      await wax.broadcast(l1Transaction);
+
+      return l1Transaction.id.toString();
     },
     async reset (cTokensWallet?: CTokensProvider | undefined) {
       // Cleanup only if we don't want to use any other L2 wallet

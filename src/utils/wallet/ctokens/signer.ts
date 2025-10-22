@@ -34,7 +34,7 @@ export class CTokensProvider extends AEncryptionProvider {
   }
 
   public static getOperationalPublicKey (): string | undefined {
-    return CTokensProvider.#operationalWallet?.getPublicKeys()[0];
+    return CTokensProvider.#operationalWallet?.getPublicKeys()[1] ?? CTokensProvider.#operationalWallet?.getPublicKeys()[0];
   }
 
   public static getOperationalWallet (): IBeekeeperUnlockedWallet | undefined {

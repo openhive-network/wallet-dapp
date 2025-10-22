@@ -20,6 +20,7 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
@@ -52,8 +53,8 @@ const isLoggedIn = computed(() => !!settingsStore.settings.account);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.owner || !tokensStore.wallet?.publicKey) return false;
-  return token.value.owner === tokensStore.wallet.publicKey;
+  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
+  return token.value.owner === CTokensProvider.getOperationalPublicKey();
 });
 
 // Computed properties for display

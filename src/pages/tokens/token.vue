@@ -22,6 +22,7 @@ import { transferNAIToken } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
@@ -65,8 +66,8 @@ const isLoggedIn = computed(() => !!settingsStore.settings.account);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.owner || !tokensStore.wallet?.publicKey) return false;
-  return token.value.owner === tokensStore.wallet.publicKey;
+  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
+  return token.value.owner === CTokensProvider.getOperationalPublicKey();
 });
 
 // Validate recipient address (must be a public key)
