@@ -40,12 +40,14 @@ const connect = async () => {
     await CTokensProvider.login(password.value);
 
     try {
-      await walletStore.createWalletFor(settingsStore.settings, 'posting');
+      if (walletStore.hasWallet) {
+        const ctokensWallet = await CTokensProvider.for(wax, 'posting');
 
-      if (!walletStore.isL2Wallet)
-        await tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
-
-      await userStore.parseUserData(settingsStore.settings!.account!);
+        await tokensStore.reset(ctokensWallet);
+      } else {
+        await walletStore.createWalletFor(settingsStore.settings, 'posting');
+        await userStore.parseUserData(settingsStore.settings!.account!);
+      }
     } catch (error) {
       toastError('Failed to create wallet', error);
     }

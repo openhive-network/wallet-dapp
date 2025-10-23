@@ -38,6 +38,34 @@ export interface TokenStakeParams {
   receiver?: string;
 }
 
+const table = [
+  [0, 3, 1, 7, 5, 9, 8, 6, 4, 2],
+  [7, 0, 9, 2, 1, 5, 4, 8, 6, 3],
+  [4, 2, 0, 6, 8, 7, 1, 3, 5, 9],
+  [1, 7, 5, 0, 9, 8, 3, 4, 2, 6],
+  [6, 1, 2, 3, 0, 4, 5, 9, 7, 8],
+  [3, 6, 7, 4, 2, 0, 9, 5, 8, 1],
+  [5, 8, 6, 9, 7, 2, 0, 1, 3, 4],
+  [8, 9, 4, 5, 3, 6, 2, 0, 1, 7],
+  [9, 4, 3, 8, 6, 1, 7, 2, 0, 5],
+  [2, 5, 8, 1, 4, 3, 6, 7, 9, 0]
+];
+
+const dammDigit = (str: string) => {
+  let row = 0;
+
+  for(let i = 0; i < str.length; i++) {
+    const col = str.charAt(i) as unknown as number;
+    row = table[row][col];
+  }
+
+  return row.toString();
+};
+
+const assetNumFromNAI = (nai: string, precision: number): number => {
+  return (Number.parseInt(nai.slice(2, -1)) << 5) | 0x10 | precision;
+};
+
 const generateRandomNAI = (symbol: string): string => {
   const timestamp = Date.now();
   const symbolUpper = symbol.trim().toUpperCase();
@@ -56,31 +84,15 @@ const generateRandomNAI = (symbol: string): string => {
   // Ensure we have a positive number and convert to 8-digit string
   const naiNumber = Math.abs(hash % 100000000).toString().padStart(8, '0');
 
-  const table = [
-    [0, 3, 1, 7, 5, 9, 8, 6, 4, 2],
-    [7, 0, 9, 2, 1, 5, 4, 8, 6, 3],
-    [4, 2, 0, 6, 8, 7, 1, 3, 5, 9],
-    [1, 7, 5, 0, 9, 8, 3, 4, 2, 6],
-    [6, 1, 2, 3, 0, 4, 5, 9, 7, 8],
-    [3, 6, 7, 4, 2, 0, 9, 5, 8, 1],
-    [5, 8, 6, 9, 7, 2, 0, 1, 3, 4],
-    [8, 9, 4, 5, 3, 6, 2, 0, 1, 7],
-    [9, 4, 3, 8, 6, 1, 7, 2, 0, 5],
-    [2, 5, 8, 1, 4, 3, 6, 7, 9, 0]
-  ];
-
-  const dammDigit = (str: string) => {
-    let row = 0;
-
-    for(let i = 0; i < str.length; i++) {
-      const col = str.charAt(i) as unknown as number;
-      row = table[row][col];
-    }
-
-    return row.toString();
-  };
-
   return `@@${naiNumber}${dammDigit(naiNumber)}`;
+};
+
+export const toVesting = (nai: string, precision: number): string => {
+  const vestingNum = assetNumFromNAI(nai, precision) ^ 0x20;
+
+  const naiVesting = (vestingNum >> 5).toString().padStart(8, '0');
+
+  return `@@${naiVesting}${dammDigit(naiVesting)}`;
 };
 
 /**
@@ -194,7 +206,7 @@ export const transferNAIToken = async (params: TokenTransferParams) => {
   // Broadcast the transaction
   await wax.broadcast(l1Transaction);
 
-  return l1Transaction.id.toString();
+  return l1Transaction.legacy_id;
 };
 
 /**
@@ -255,7 +267,7 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
   // Broadcast the transaction
   await wax.broadcast(l1Transaction);
 
-  return l1Transaction.id.toString();
+  return l1Transaction.legacy_id;
 };
 
 /**
