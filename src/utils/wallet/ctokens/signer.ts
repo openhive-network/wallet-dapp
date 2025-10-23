@@ -33,8 +33,11 @@ export class CTokensProvider extends AEncryptionProvider {
     return !!CTokensProvider.#operationalWallet;
   }
 
+  // TODO: Remove this code after @hiveio/beekeeper bugfix - bump deps
+  private static lastOperationalPk: string | undefined = undefined;
+  // TODO: Remove this method !!!
   public static getOperationalPublicKey (): string | undefined {
-    return CTokensProvider.#operationalWallet?.getPublicKeys()[1] ?? CTokensProvider.#operationalWallet?.getPublicKeys()[0];
+    return CTokensProvider.lastOperationalPk;
   }
 
   public static getOperationalWallet (): IBeekeeperUnlockedWallet | undefined {
@@ -60,8 +63,9 @@ export class CTokensProvider extends AEncryptionProvider {
     if (!publicKey)
       throw new WaxCTokensEncryptionProviderError('The requested wallet does not have a public key.');
 
-
     this.publicKey = publicKey;
+    if (role !== 'owner')
+      CTokensProvider.lastOperationalPk = this.publicKey;
   }
 
   private async publicKeyHasAccount (): Promise<boolean> {

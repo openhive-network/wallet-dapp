@@ -231,6 +231,7 @@ const transferTokens = async () => {
     // Wait for transaction status
     await waitForTransactionStatus(
       txId,
+      0,
       'Transfer',
       async () => {
         // Refresh balances on success
@@ -274,6 +275,7 @@ const transformTokens = async () => {
     // Wait for transaction status
     await waitForTransactionStatus(
       txId,
+      0,
       action,
       async () => {
         // Refresh balances on success

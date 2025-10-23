@@ -26,7 +26,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
 import { parseAssetAmount } from '@/utils/htm-utils';
-import { generateNAI as generateHTMNAI } from '@/utils/nai-tokens';
+import { generateNAI as generateHTMNAI, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -133,7 +133,6 @@ const generateNAI = (): string | undefined => {
 
   try {
     generatedNAI.value = generateHTMNAI(tokenSymbol.value, Number(precision.value));
-    console.log('Regenerating NAI', generatedNAI.value);
     naiGenerated.value = true;
 
     return generatedNAI.value;
@@ -195,11 +194,17 @@ const createToken = async () => {
     const wax = await getWax();
 
     await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
+    const identifierPrecision = parseInt(precision.value);
 
     const identifier: asset = {
-      amount: parseAssetAmount(initialSupply.value, parseInt(precision.value)),
+      amount: parseAssetAmount(initialSupply.value, identifierPrecision),
       nai: generatedNAI.value,
-      precision: parseInt(precision.value)
+      precision: identifierPrecision
+    };
+    const identifierVesting: asset = {
+      amount: '0',
+      nai: toVesting(generatedNAI.value, identifierPrecision),
+      precision: identifierPrecision
     };
     const owner = CTokensProvider.getOperationalPublicKey()!;
     const assetTokenName = tokenName.value.trim();
@@ -232,6 +237,20 @@ const createToken = async () => {
       asset_definition_operation: assetDefinition
     });
 
+    l2Transaction.pushOperation({
+      asset_metadata_update_operation: {
+        identifier: identifierVesting,
+        owner,
+        metadata: {
+          items: [
+            { key: 'name', value: assetTokenName },
+            { key: 'symbol', value: tokenSymbol.value.trim() },
+            { key: 'description', value: tokenDescription.value.trim() }
+          ]
+        }
+      }
+    });
+
     await tokensStore.wallet!.signTransaction(l2Transaction);
 
     // Create Layer 1 transaction and broadcast
@@ -253,11 +272,10 @@ const createToken = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const txId = l1Transaction.id.toString();
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
+      l1Transaction.legacy_id,
+      1, // First we have transfer, than HTM operation
       'Token creation',
       async () => {
         // Success, reset form
