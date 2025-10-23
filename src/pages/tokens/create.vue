@@ -213,7 +213,7 @@ const createToken = async () => {
     const assetDefinition: asset_definition = {
       identifier,
       capped: capped.value,
-      maxSupply: capped.value ? parseAssetAmount(initialSupply.value, parseInt(precision.value)) : '0',
+      max_supply: capped.value ? parseAssetAmount(initialSupply.value, parseInt(precision.value)) : '0',
       owner,
       metadata: {
         items: [
@@ -222,9 +222,9 @@ const createToken = async () => {
           { key: 'description', value: tokenDescription.value.trim() }
         ]
       },
-      isNft: false,
-      othersCanStake: othersCanStake.value,
-      othersCanUnstake: othersCanUnstake.value
+      is_nft: false,
+      others_can_stake: othersCanStake.value,
+      others_can_unstake: othersCanUnstake.value
     };
 
     // Set proxy account for HTM transactions
@@ -266,7 +266,6 @@ const createToken = async () => {
     l1Transaction.pushOperation(l2Transaction);
 
     // Sign Layer 1 transaction with the Hive active key
-    await walletStore.createWalletFor(settingsStore.settings, 'active');
     await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction

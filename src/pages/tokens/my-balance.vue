@@ -574,9 +574,6 @@ onMounted(() => {
                       Asset
                     </th>
                     <th class="text-right p-4 font-medium text-muted-foreground">
-                      Price
-                    </th>
-                    <th class="text-right p-4 font-medium text-muted-foreground">
                       Liquid
                     </th>
                     <th class="text-right p-4 font-medium text-muted-foreground">
@@ -648,23 +645,10 @@ onMounted(() => {
                       </div>
                     </td>
 
-                    <!-- Price -->
-                    <td class="p-4 text-right">
-                      <div class="font-medium">
-                        $0.01
-                      </div>
-                      <div class="text-sm text-green-600">
-                        +0.00%
-                      </div>
-                    </td>
-
                     <!-- Liquid Balance -->
                     <td class="p-4 text-right">
                       <div class="font-medium">
                         {{ getLiquidBalance(balance) }}
-                      </div>
-                      <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(getLiquidBalance(balance)) * 0.01).toFixed(2) }}
                       </div>
                     </td>
 
@@ -673,18 +657,12 @@ onMounted(() => {
                       <div class="font-medium">
                         {{ getStakedBalance(balance) }}
                       </div>
-                      <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(getStakedBalance(balance)) * 0.01).toFixed(2) }}
-                      </div>
                     </td>
 
                     <!-- Total Balance -->
                     <td class="p-4 text-right">
                       <div class="font-medium">
                         {{ getTotalBalance(balance) }}
-                      </div>
-                      <div class="text-sm text-muted-foreground">
-                        ${{ (parseFloat(getTotalBalance(balance)) * 0.01).toFixed(2) }}
                       </div>
                     </td>
 
