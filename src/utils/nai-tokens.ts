@@ -168,7 +168,7 @@ export const transferNAIToken = async (params: TokenTransferParams) => {
     throw new Error('Please connect your HTM wallet first');
 
   // For fee payment
-  await walletStore.createWalletFor(settingsStore.settings, 'active');
+  await walletStore.createWalletFor(settingsStore.settings, 'posting');
 
   // Reset tokens store with CTokens provider
   await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
@@ -229,7 +229,7 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
     throw new Error('Please connect your HTM wallet first');
 
   // For fee payment
-  await walletStore.createWalletFor(settingsStore.settings, 'active');
+  await walletStore.createWalletFor(settingsStore.settings, 'posting');
 
   // Reset tokens store with CTokens provider
   await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
@@ -241,7 +241,6 @@ export const stakeNAIToken = async (params: TokenStakeParams) => {
   const l2Transaction = new HtmTransaction(wax);
 
   l2Transaction.pushOperation({
-    // @ts-expect-error TODO: Interface issue to resolve
     token_transform_operation: {
       holder: tokensStore.wallet.publicKey,
       receiver: params.receiver || undefined,

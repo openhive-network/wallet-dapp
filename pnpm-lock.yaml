@@ -39,8 +39,8 @@ importers:
         specifier: ^16.0.0
         version: 16.1.0
       '@mtyszczak-cargo/htm':
-        specifier: ^1.0.0
-        version: 1.0.0(@hiveio/wax@1.27.12-rc1-251007115925)
+        specifier: ^1.0.1
+        version: 1.0.1(@hiveio/wax@1.27.12-rc1-251007115925)
       '@nabla/vite-plugin-eslint':
         specifier: ^2.0.6
         version: 2.0.6(eslint@9.32.0(jiti@1.21.7))(vite@6.2.0(@types/node@22.13.9)(jiti@1.21.7)(terser@5.39.0)(tsx@4.19.3)(yaml@2.7.0))
@@ -516,8 +516,8 @@ packages:
     resolution: {integrity: sha512-w8CVbdkDrVXFJbfBSlDfafDR6BAkpDmv1bC1UJVCoVny5tW2RKAdn9i68Xf7asYT4TnUhl/hN4zfUiKQq9II4g==}
     engines: {node: '>=16.0.0'}
 
-  '@mtyszczak-cargo/htm@1.0.0':
-    resolution: {integrity: sha1-uE1bZ+x6nb7j8hpb/AvpQUZUbFA=, tarball: https://gitlab.syncad.com/api/v4/projects/541/packages/npm/@mtyszczak-cargo/htm/-/@mtyszczak-cargo/htm-1.0.0.tgz}
+  '@mtyszczak-cargo/htm@1.0.1':
+    resolution: {integrity: sha1-GGCQ3iWyOR6r5/2sr3jY44fwQTY=, tarball: https://gitlab.syncad.com/api/v4/projects/541/packages/npm/@mtyszczak-cargo/htm/-/@mtyszczak-cargo/htm-1.0.1.tgz}
     engines: {node: ^20.11 || >= 21.2}
     peerDependencies:
       '@hiveio/wax': '>=1.27.12-rc1-251007115925'
@@ -2887,7 +2887,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mtyszczak-cargo/htm@1.0.0(@hiveio/wax@1.27.12-rc1-251007115925)':
+  '@mtyszczak-cargo/htm@1.0.1(@hiveio/wax@1.27.12-rc1-251007115925)':
     dependencies:
       '@hiveio/wax': 1.27.12-rc1-251007115925
       protobufjs: 7.2.5
