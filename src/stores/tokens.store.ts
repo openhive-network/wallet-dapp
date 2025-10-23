@@ -175,8 +175,6 @@ export const useTokensStore = defineStore('tokens', {
     async getCurrentUserMetadata () {
       const wax = await getWax();
 
-      console.log(this.wallet);
-
       if (this.wallet?.publicKey === undefined)
         throw new Error('Could not load CTokens wallet');
 
@@ -210,8 +208,6 @@ export const useTokensStore = defineStore('tokens', {
 
         // Get raw tokens from API
         const tokens = await cTokensApi.getRegisteredTokens(nai, precision) as Required<CtokensAppToken>[];
-
-        console.log(tokens);
 
         // Transform tokens to display format
         const transformedTokens = await Promise.all(
@@ -345,7 +341,7 @@ export const useTokensStore = defineStore('tokens', {
       // Broadcast the transaction
       await wax.broadcast(l1Transaction);
 
-      return l1Transaction.id.toString();
+      return l1Transaction.legacy_id;
     },
     async reset (cTokensWallet?: CTokensProvider | undefined) {
       // Cleanup only if we don't want to use any other L2 wallet

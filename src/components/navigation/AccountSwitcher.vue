@@ -56,8 +56,8 @@ const fetchHTMUserData = async () => {
   try {
     if (hasHTMAccount.value)
       htmUserMetadata.value = await tokensStore.getCurrentUserMetadata();
-  } catch (error) {
-    toastError('Error fetching HTM user data', error);
+  } catch (_error) {
+    // toastError('Error fetching HTM user data', error); // TODO: Reformat this code to better handle edge cases...
   }
 };
 

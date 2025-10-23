@@ -313,11 +313,10 @@ const registerHTMAccount = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const txId = l1Transaction.id.toString();
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
+      l1Transaction.legacy_id,
+      0,
       'HTM account registration',
       async () => {
         // After successful registration, redirect to login
