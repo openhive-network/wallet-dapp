@@ -349,6 +349,7 @@ const handleTransfer = async () => {
     // Wait for transaction status
     await waitForTransactionStatus(
       txId,
+      0,
       'Transfer',
       async () => {
         // Reset form on success
@@ -439,11 +440,10 @@ const handleStake = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const txId = l1Transaction.id.toString();
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
+      l1Transaction.legacy_id,
+      0,
       'Stake',
       async () => {
         // Reset form on success
@@ -534,11 +534,10 @@ const handleUnstake = async () => {
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
 
-    const txId = l1Transaction.id.toString();
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
+      l1Transaction.legacy_id,
+      0,
       'Unstake',
       async () => {
         // Reset form on success

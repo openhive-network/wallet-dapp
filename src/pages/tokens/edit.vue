@@ -160,6 +160,7 @@ const handleUpdateToken = async () => {
     // Wait for transaction status
     await waitForTransactionStatus(
       txId,
+      0,
       'Token metadata update',
       async () => {
         // Refresh token data after update

@@ -71,13 +71,15 @@ export async function pollTransactionStatus (
 
 /**
  * Wait for transaction status and show appropriate toast
- * @param refId - Transaction reference ID (transaction hash)
+ * @param txId - Transaction reference ID (transaction hash)
+ * @param opSeq - Operation sequence number (e.g., for tracking specific operations)
  * @param operationName - Name of the operation for toast messages (e.g., "Transfer", "Stake")
  * @param onSuccess - Optional callback to execute on success
  * @param onFailure - Optional callback to execute on failure
  */
 export async function waitForTransactionStatus (
-  refId: string,
+  txId: string,
+  opSeq: number,
   operationName: string,
   onSuccess?: () => void | Promise<void>,
   onFailure?: (error: Error) => void | Promise<void>
@@ -88,7 +90,7 @@ export async function waitForTransactionStatus (
   });
 
   try {
-    const result = await pollTransactionStatus(refId);
+    const result = await pollTransactionStatus(`${txId}_${opSeq}`);
 
     // Dismiss loading toast
     toast.dismiss(loadingToast);
