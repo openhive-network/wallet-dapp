@@ -292,7 +292,7 @@ export const useTokensStore = defineStore('tokens', {
 
       // Get L1 wallet for signing the transaction
       const walletStore = await import('@/stores/wallet.store').then(m => m.useWalletStore());
-      await walletStore.createWalletFor(settingsStore.settings, 'active');
+      await walletStore.createWalletFor(settingsStore.settings, 'posting');
 
       if (!walletStore.wallet)
         throw new Error('No L1 wallet available');

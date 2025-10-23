@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { mdiPencilOutline, mdiContentCopy, mdiCheck } from '@mdi/js';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
 import { isValidPublicKey } from '@/utils/htm';
@@ -31,6 +32,7 @@ const router = useRouter();
 // Stores
 const tokensStore = useTokensStore();
 const settingsStore = useSettingsStore();
+const walletStore = useWalletStore();
 
 // State
 const token = ref<CtokensAppToken | null>(null);
@@ -62,7 +64,7 @@ const nai = computed(() => route.query.nai as string);
 const precision = computed(() => route.query.precision);
 
 // Check if user is logged in
-const isLoggedIn = computed(() => !!settingsStore.settings.account);
+const isLoggedIn = computed(() => !!tokensStore.wallet);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
@@ -334,6 +336,9 @@ const handleTransfer = async () => {
     return;
   }
 
+  if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
+    throw new Error('Transferring via proxy is not supported yet. Please log in using your L1 wallet first.');
+
   try {
     isTransferring.value = true;
 
@@ -420,7 +425,7 @@ const handleStake = async () => {
     const l2Transaction = new HtmTransaction(wax);
 
     l2Transaction.pushOperation({
-      token_transform: {
+      token_transform_operation: {
         holder: tokensStore.wallet.publicKey,
         receiver: stakeForm.value.receiver || undefined,
         amount: {
@@ -431,11 +436,16 @@ const handleStake = async () => {
       }
     });
 
+    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
+      throw new Error('Staking via proxy is not supported yet. Please log in using your L1 wallet first.');
+
     await tokensStore.wallet.signTransaction(l2Transaction);
 
     // Create Layer 1 transaction and broadcast
     const l1Transaction = await wax.createTransaction();
     l1Transaction.pushOperation(l2Transaction);
+
+    await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
@@ -509,11 +519,13 @@ const handleUnstake = async () => {
     // Set proxy account for HTM transactions
     HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
 
+    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
+      throw new Error('Unstaking via proxy is not supported yet. Please log in using your L1 wallet first.');
+
     // Create Layer 2 HTM transaction for token transform (unstake)
     const l2Transaction = new HtmTransaction(wax);
 
     l2Transaction.pushOperation({
-      // @ts-expect-error TODO: Interface issue to resolve
       token_transform_operation: {
         holder: tokensStore.wallet.publicKey,
         receiver: stakeForm.value.receiver || undefined,
@@ -530,6 +542,8 @@ const handleUnstake = async () => {
     // Create Layer 1 transaction and broadcast
     const l1Transaction = await wax.createTransaction();
     l1Transaction.pushOperation(l2Transaction);
+
+    await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction
     await wax.broadcast(l1Transaction);
@@ -602,6 +616,12 @@ const copyNAI = () => {
     toast.error('Failed to copy NAI');
   }
 };
+
+watch(isLoggedIn, (newValue) => {
+  if (newValue)
+    void loadTokenDetails();
+
+});
 
 // Initialize
 onMounted(async () => {

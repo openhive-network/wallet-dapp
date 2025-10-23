@@ -158,7 +158,7 @@ export class HTMTransactionBuilder {
    */
   addTokenTransform (data: HTMTokenTransformData): this {
     this.transaction.pushOperation({
-      token_transform: {
+      token_transform_operation: {
         holder: data.holder,
         receiver: data.receiver,
         amount: data.amount
