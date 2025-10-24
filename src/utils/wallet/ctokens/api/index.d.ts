@@ -11,6 +11,13 @@ export interface CtokensAppBalance {
 
 export type CtokensAppArrayOfBalances = CtokensAppBalance[];
 
+export interface CtokensAppAccountBalance {
+  liquid?: CtokensAppBalance | null;
+  vesting?: CtokensAppBalance | null;
+}
+
+export type CtokensAppArrayOfAccountBalances = CtokensAppAccountBalance[];
+
 export interface CtokensAppToken {
   /** Currency NAI */
   nai?: string;
@@ -151,7 +158,7 @@ type TWaxExtended = {
       }
     },
     balances: {
-      result: CtokensAppArrayOfBalances,
+      result: CtokensAppArrayOfAccountBalances,
       params: CtokensEndpointsGetAccountBalancesParams & TEmptyReq & {
       }
     },

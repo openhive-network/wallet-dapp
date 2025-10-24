@@ -166,16 +166,13 @@ const handleUpdateToken = async () => {
         // Refresh token data after update
         await tokensStore.loadRegisteredTokens(token.value!.nai, token.value!.precision, 1, true);
 
-        // Navigate back to token detail page
-        setTimeout(() => {
-          router.push({
-            path: '/tokens/token',
-            query: {
-              nai: token.value!.nai,
-              precision: token.value!.precision
-            }
-          });
-        }, 1000);
+        router.push({
+          path: '/tokens/token',
+          query: {
+            nai: token.value!.nai,
+            precision: token.value!.precision
+          }
+        });
       }
     );
   } catch (error) {
