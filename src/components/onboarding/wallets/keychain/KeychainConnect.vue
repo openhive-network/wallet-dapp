@@ -18,7 +18,7 @@ const close = () => {
 };
 
 const isLoading = ref(false);
-const selectedLevel = ref<string | null>('posting');
+const selectedLevel = ref<string | null>('Posting');
 
 const connect = async () => {
   try {
@@ -106,13 +106,13 @@ const connect = async () => {
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
-              <SelectItem value="memo">
+              <SelectItem value="Memo">
                 Memo
               </SelectItem>
-              <SelectItem value="posting">
+              <SelectItem value="Posting">
                 Posting
               </SelectItem>
-              <SelectItem value="active">
+              <SelectItem value="Active">
                 Active
               </SelectItem>
             </SelectGroup>
