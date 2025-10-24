@@ -265,6 +265,8 @@ const registerHTMAccount = async () => {
       generatedKeys.value.managementPrivateKey
     );
 
+    console.log(keys);
+
     await CTokensProvider.login(
       registrationData.value.walletPassword
     );
@@ -299,6 +301,8 @@ const registerHTMAccount = async () => {
     });
 
     await tokensStore.reset(await CTokensProvider.for(wax, 'owner', false));
+
+    console.log(CTokensProvider.getOperationalPublicKey());
 
     await tokensStore.wallet?.signTransaction(l2Transaction);
 

@@ -8,6 +8,7 @@ import {
 } from '@mdi/js';
 import { HtmTransaction, type asset, type asset_definition } from '@mtyszczak-cargo/htm';
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMTokenPreview from '@/components/HTMTokenPreview.vue';
@@ -30,6 +31,8 @@ import { generateNAI as generateHTMNAI, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+const router = useRouter();
 
 const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
@@ -278,6 +281,7 @@ const createToken = async () => {
       'Token creation',
       async () => {
         // Success, reset form
+        await router.push(`/tokens/token?nai=${generatedNAI.value}&precision=${precision.value}`);
         resetForm();
       }
     );
