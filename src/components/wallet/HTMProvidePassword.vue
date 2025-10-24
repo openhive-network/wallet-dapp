@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+const router = useRouter();
 const walletStore = useWalletStore();
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
@@ -60,6 +62,11 @@ const connect = async () => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const openRegistration = () => {
+  close();
+  router.push('/tokens/register-account');
 };
 </script>
 
@@ -124,6 +131,13 @@ const connect = async () => {
                 <span class="text-md font-bold">Connect</span>
               </Button>
             </div>
+            <Button
+              variant="link"
+              class="w-full justify-center text-sm"
+              @click="openRegistration"
+            >
+              Create a new HTM wallet instead
+            </Button>
           </div>
         </CardContent>
         <CardFooter />

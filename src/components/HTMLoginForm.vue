@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
-import { computed, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 import HTMLoginContent from '@/components/HTMLoginContent.vue';
@@ -35,17 +35,50 @@ const userStore = useUserStore();
 const settingsStore = useSettingsStore();
 
 const isLoading = ref(false);
+const isCheckingWalletStatus = ref(true);
 
 // Existing account login
 const password = ref('');
 
 const tokensStore = useTokensStore();
 
-// Check if user already has HTM wallet configured (only needs password)
-const hasHTMWallet = computed(() => CTokensProvider.isLoggedIn());
+const hasStoredHTMWallet = ref(false);
+const mode = ref<'login' | 'create'>('create');
 
 const close = () => {
   emit('close');
+};
+
+onMounted(async () => {
+  try {
+    const alreadyUnlocked = CTokensProvider.isLoggedIn();
+    let walletExists = alreadyUnlocked;
+
+    if (!walletExists)
+      walletExists = await CTokensProvider.hasWallet();
+
+    hasStoredHTMWallet.value = walletExists;
+    mode.value = walletExists ? 'login' : 'create';
+  } catch (error) {
+    toastError('Failed to verify existing HTM wallet', error);
+    hasStoredHTMWallet.value = false;
+    mode.value = 'create';
+  } finally {
+    isCheckingWalletStatus.value = false;
+  }
+});
+
+const switchToCreateWallet = () => {
+  mode.value = 'create';
+  password.value = '';
+};
+
+const switchToLoginMode = () => {
+  if (!hasStoredHTMWallet.value)
+    return;
+
+  mode.value = 'login';
+  password.value = '';
 };
 
 const handleConditionalSiteLogin = async (operationalKey: string) => {
@@ -77,6 +110,8 @@ const handleSetAccount = async (account: string) => {
     await handleConditionalSiteLogin(account);
 
     toast.success('HTM wallet created successfully!');
+    hasStoredHTMWallet.value = true;
+    switchToLoginMode();
     emit('success');
     emit('setaccount', account);
   } catch (error) {
@@ -145,9 +180,15 @@ const loginExisting = async () => {
       <CardDescription>{{ description }}</CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
-      <!-- Simple password login for existing HTM wallet -->
       <div
-        v-if="hasHTMWallet"
+        v-if="isCheckingWalletStatus"
+        class="text-sm text-muted-foreground text-center py-6"
+      >
+        Checking for existing HTM wallet...
+      </div>
+
+      <div
+        v-else-if="mode === 'login'"
         class="space-y-4"
       >
         <div class="space-y-2">
@@ -175,9 +216,17 @@ const loginExisting = async () => {
           <span v-if="isLoading">Logging in...</span>
           <span v-else>Login to HTM</span>
         </Button>
+
+        <Button
+          v-if="hasStoredHTMWallet"
+          variant="link"
+          class="w-full justify-center text-sm"
+          @click="switchToCreateWallet"
+        >
+          Create a new HTM wallet instead
+        </Button>
       </div>
 
-      <!-- Wallet creation form for new users -->
       <div
         v-else
         class="space-y-4"
@@ -186,6 +235,15 @@ const loginExisting = async () => {
           :show-steps="false"
           @setaccount="handleSetAccount"
         />
+
+        <Button
+          v-if="hasStoredHTMWallet"
+          variant="link"
+          class="w-full justify-center text-sm"
+          @click="switchToLoginMode"
+        >
+          Use my existing HTM wallet
+        </Button>
       </div>
     </CardContent>
   </Card>

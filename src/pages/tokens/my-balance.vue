@@ -23,15 +23,25 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTokensStore } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
-import { getUserOperationalKey } from '@/utils/ctokens-api';
-import { transferNAIToken, stakeNAIToken } from '@/utils/nai-tokens';
+import { getCTokensApi, getUserOperationalKey, formatCTokenAmount } from '@/utils/ctokens-api';
+import { transferNAIToken, stakeNAIToken, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 
 const router = useRouter();
 const tokensStore = useTokensStore();
+
+interface AggregatedBalance {
+  key: string;
+  nai: string;
+  precision: number;
+  liquid: CtokensAppBalance | null;
+  vesting: CtokensAppBalance | null;
+  metadata?: Record<string, unknown>;
+}
+
+type BalanceLike = AggregatedBalance | CtokensAppBalance | null | undefined;
 
 // State
 const isLoading = ref(false);
@@ -73,52 +83,140 @@ const formatCount = (count: number): string => {
 };
 
 // Helper functions for extracting data from metadata
-const getTokenSymbol = (balance: CtokensAppBalance): string => {
-  const metadata = balance.metadata as { symbol?: string; name?: string } | undefined;
-  return metadata?.symbol || balance.nai?.replace('@@', '') || 'Unknown';
+const isVesting = (nai: string, precision: number): boolean => {
+  return (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) !== 0;
 };
 
-const getTokenName = (balance: CtokensAppBalance): string => {
-  const metadata = balance.metadata as { name?: string; display_name?: string } | undefined;
+const isAggregatedBalance = (balance: BalanceLike): balance is AggregatedBalance => {
+  return Boolean(balance && typeof (balance as AggregatedBalance).key === 'string');
+};
+
+const getBalanceMetadata = (balance: BalanceLike): Record<string, string> | undefined => {
+  if (!balance) return undefined;
+
+  if (isAggregatedBalance(balance)) {
+    const metadata = balance.metadata as Record<string, string> | undefined;
+    if (metadata) return metadata;
+
+    const liquidMetadata = balance.liquid?.metadata as Record<string, string> | undefined;
+    if (liquidMetadata) return liquidMetadata;
+
+    return balance.vesting?.metadata as Record<string, string> | undefined;
+  }
+
+  return balance.metadata as Record<string, string> | undefined;
+};
+
+const getBalanceNai = (balance: BalanceLike): string => {
+  if (!balance) return '';
+  if (isAggregatedBalance(balance)) return balance.nai;
+  return balance.nai || '';
+};
+
+const getTokenSymbol = (balance: BalanceLike): string => {
+  const metadata = getBalanceMetadata(balance);
+  const nai = getBalanceNai(balance);
+  return metadata?.symbol || metadata?.name || nai.replace('@@', '') || 'Unknown';
+};
+
+const getTokenName = (balance: BalanceLike): string => {
+  const metadata = getBalanceMetadata(balance);
   return metadata?.display_name || metadata?.name || getTokenSymbol(balance);
 };
 
-const getTokenLogoUrl = (balance: CtokensAppBalance): string | undefined => {
-  const metadata = balance.metadata as { logo_url?: string; image?: string } | undefined;
+const getTokenLogoUrl = (balance: BalanceLike): string | undefined => {
+  const metadata = getBalanceMetadata(balance);
   return metadata?.logo_url || metadata?.image;
 };
 
-// Check if a token is staked (vesting) based on NAI
-const isVesting = (nai: string, precision: number): boolean => {
-  // The vesting bit is bit 5 (0x20) in the NAI encoding
-  return (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) != 0;
+const aggregatedBalances = computed<AggregatedBalance[]>(() => {
+  const map = new Map<string, AggregatedBalance>();
+  const order: string[] = [];
+
+  tokensStore.balances.forEach((balance) => {
+    if (!balance.nai)
+      return;
+
+    const precision = balance.precision ?? 0;
+    const isBalanceVesting = isVesting(balance.nai, precision);
+    const baseNai = isBalanceVesting ? toVesting(balance.nai, precision) : balance.nai;
+    const key = `${baseNai}:${precision}`;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        nai: baseNai,
+        precision,
+        liquid: null,
+        vesting: null,
+        metadata: balance.metadata as Record<string, unknown> | undefined
+      });
+      order.push(key);
+    }
+
+    const entry = map.get(key)!;
+
+    if (isBalanceVesting)
+      entry.vesting = balance;
+    else
+      entry.liquid = balance;
+
+    if (!entry.metadata && balance.metadata)
+      entry.metadata = balance.metadata as Record<string, unknown>;
+  });
+
+  return order.map(key => map.get(key)!);
+});
+
+const formatBalanceAmount = (amount: string | undefined, precision: number | undefined): string => {
+  if (!amount || amount === '0') return '0';
+  return formatCTokenAmount(amount, precision ?? 0);
 };
 
-// Get liquid balance - if the NAI indicates vesting (staked), return 0
-const getLiquidBalance = (balance: CtokensAppBalance): string => {
+const getLiquidBalance = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance))
+    return formatBalanceAmount(balance.liquid?.amount, balance.liquid?.precision ?? balance.precision);
+
   if (isVesting(balance.nai || '', balance.precision || 0))
     return '0';
 
-  return balance.amount || '0';
+  return formatBalanceAmount(balance.amount, balance.precision);
 };
 
-// Get staked balance - if the NAI indicates vesting (staked), return the amount
-const getStakedBalance = (balance: CtokensAppBalance): string => {
+const getStakedBalance = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance))
+    return formatBalanceAmount(balance.vesting?.amount, balance.vesting?.precision ?? balance.precision);
+
   if (isVesting(balance.nai || '', balance.precision || 0))
-    return balance.amount || '0';
+    return formatBalanceAmount(balance.amount, balance.precision);
 
   return '0';
 };
 
-const getTotalBalance = (balance: CtokensAppBalance): string => {
-  const liquid = parseFloat(getLiquidBalance(balance));
-  const staked = parseFloat(getStakedBalance(balance));
-  return (liquid + staked).toString();
+const getTotalBalance = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance)) {
+    const precision = balance.precision;
+    const liquidAmount = balance.liquid?.amount ? BigInt(balance.liquid.amount) : 0n;
+    const stakedAmount = balance.vesting?.amount ? BigInt(balance.vesting.amount) : 0n;
+    return formatBalanceAmount((liquidAmount + stakedAmount).toString(), precision);
+  }
+
+  if (isVesting(balance.nai || '', balance.precision || 0))
+    return getStakedBalance(balance);
+
+  return getLiquidBalance(balance);
 };
+
 
 // Filter balances based on search query
 const filteredBalancesAll = computed(() => {
-  const balances = tokensStore.balances;
+  const balances = aggregatedBalances.value;
 
   if (!searchQuery.value) return balances;
 
@@ -126,10 +224,14 @@ const filteredBalancesAll = computed(() => {
     const symbol = getTokenSymbol(balance);
     const name = getTokenName(balance);
     const nai = balance.nai || '';
+    const liquidNai = isAggregatedBalance(balance) ? balance.liquid?.nai || '' : '';
+    const vestingNai = isAggregatedBalance(balance) ? balance.vesting?.nai || '' : '';
 
     return symbol.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      nai.includes(searchQuery.value);
+      nai.includes(searchQuery.value) ||
+      liquidNai.includes(searchQuery.value) ||
+      vestingNai.includes(searchQuery.value);
   });
 });
 
@@ -159,7 +261,7 @@ watch(searchQuery, () => {
 // Methods
 const loadAccountStatistics = async () => {
   try {
-    const wax = await getWax();
+    const cTokensApi = await getCTokensApi();
     const operationalKey = await getUserOperationalKey();
 
     if (!operationalKey) {
@@ -168,21 +270,34 @@ const loadAccountStatistics = async () => {
     }
 
     // Get all tokens created by this user (owner field matches operational key)
-    const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
+    const allTokens = await cTokensApi.getRegisteredTokens();
     const createdTokens = allTokens.filter(token => token.owner === operationalKey);
     createdTokensCount.value = createdTokens.length;
 
     // Get owned tokens (tokens with balance)
-    const balances = await wax.restApi.ctokensApi.balances({ user: operationalKey });
-    ownedTokensCount.value = balances.length;
+    const balances = await cTokensApi.getAccountBalances(operationalKey);
+    const uniqueBalanceKeys = new Set<string>();
+    const stakedTokenKeys = new Set<string>();
+
+    balances.forEach((balance) => {
+      if (!balance.nai) return;
+      const precision = balance.precision ?? 0;
+      const baseNai = isVesting(balance.nai, precision) ? toVesting(balance.nai, precision) : balance.nai;
+      const key = `${baseNai}:${precision}`;
+      uniqueBalanceKeys.add(key);
+
+      if (isVesting(balance.nai, precision))
+        stakedTokenKeys.add(key);
+    });
+
+    ownedTokensCount.value = uniqueBalanceKeys.size;
 
     // Get NFT collections (created NFT tokens)
     const nftTokens = createdTokens.filter(token => token.is_nft);
     nftCollectionsCount.value = nftTokens.length;
 
     // Get staked tokens (tokens with vesting bit set)
-    const stakedBalances = balances.filter(b => isVesting(b.nai || '', b.precision || 0));
-    stakedTokensCount.value = stakedBalances.length;
+    stakedTokensCount.value = stakedTokenKeys.size;
   } catch (error) {
     console.error('Failed to load account statistics:', error);
   }
@@ -203,8 +318,13 @@ const loadAccountBalances = async () => {
   }
 };
 
-const openTransferDialog = (balance: CtokensAppBalance) => {
-  selectedTokenForTransfer.value = balance;
+const openTransferDialog = (balance: AggregatedBalance) => {
+  if (!balance.liquid) {
+    toast.error('No liquid balance available for transfer');
+    return;
+  }
+
+  selectedTokenForTransfer.value = balance.liquid;
   transferAmount.value = '';
   transferRecipient.value = '';
   transferMemo.value = '';
@@ -247,8 +367,15 @@ const transferTokens = async () => {
   }
 };
 
-const openTransformDialog = (balance: CtokensAppBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
-  selectedToken.value = balance;
+const openTransformDialog = (balance: AggregatedBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
+  const tokenEntry = direction === 'liquid-to-staked' ? balance.liquid : balance.vesting;
+
+  if (!tokenEntry) {
+    toast.error(direction === 'liquid-to-staked' ? 'No liquid balance available to stake' : 'No staked balance available to unstake');
+    return;
+  }
+
+  selectedToken.value = tokenEntry;
   transformDirection.value = direction;
   transformAmount.value = '';
   isTransformDialogOpen.value = true;
@@ -296,18 +423,19 @@ const handleImageError = (nai: string) => {
 };
 
 // Check if image should be shown
-const shouldShowImage = (balance: CtokensAppBalance): boolean => {
+const shouldShowImage = (balance: BalanceLike): boolean => {
   const logoUrl = getTokenLogoUrl(balance);
-  return !!logoUrl && !failedImages.value.has(balance.nai || '');
+  const nai = getBalanceNai(balance);
+  return !!logoUrl && !failedImages.value.has(nai);
 };
 
 // Navigate to token details page
-const navigateToToken = (balance: CtokensAppBalance) => {
+const navigateToToken = (balance: AggregatedBalance) => {
   router.push({
     path: '/tokens/token',
     query: {
       nai: balance.nai,
-      precision: balance.precision?.toString()
+      precision: balance.precision.toString()
     }
   });
 };
@@ -317,7 +445,6 @@ const setMaxTransferAmount = async () => {
   if (!selectedTokenForTransfer.value) return;
 
   try {
-    // Use the raw amount directly from the balance
     transferAmount.value = selectedTokenForTransfer.value.amount || '0';
   } catch (error) {
     console.error('Failed to set max transfer amount:', error);
@@ -329,12 +456,7 @@ const setMaxTransformAmount = async () => {
   if (!selectedToken.value) return;
 
   try {
-    const amount = transformDirection.value === 'liquid-to-staked'
-      ? (selectedToken.value.amount || '0')
-      : getStakedBalance(selectedToken.value);
-
-    // Use the raw amount directly without formatting
-    transformAmount.value = amount;
+    transformAmount.value = selectedToken.value.amount || '0';
   } catch (error) {
     console.error('Failed to set max transform amount:', error);
   }
@@ -574,10 +696,7 @@ onMounted(() => {
                       Asset
                     </th>
                     <th class="text-right p-4 font-medium text-muted-foreground">
-                      Liquid
-                    </th>
-                    <th class="text-right p-4 font-medium text-muted-foreground">
-                      Staked
+                      Balances
                     </th>
                     <th class="text-right p-4 font-medium text-muted-foreground">
                       Total
@@ -590,7 +709,7 @@ onMounted(() => {
                 <tbody>
                   <tr
                     v-for="balance in filteredBalances"
-                    :key="balance.nai"
+                    :key="balance.key"
                     class="border-b hover:bg-muted/50 transition-colors cursor-pointer"
                     @click="navigateToToken(balance)"
                   >
@@ -618,7 +737,7 @@ onMounted(() => {
                               {{ getTokenName(balance) }}
                             </span>
                             <span
-                              v-if="isVesting(balance.nai || '', balance.precision || 0)"
+                              v-if="Number(getStakedBalance(balance)) > 0"
                               class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                             >
                               <svg
@@ -645,17 +764,15 @@ onMounted(() => {
                       </div>
                     </td>
 
-                    <!-- Liquid Balance -->
+                    <!-- Combined Balances -->
                     <td class="p-4 text-right">
-                      <div class="font-medium">
-                        {{ getLiquidBalance(balance) }}
-                      </div>
-                    </td>
-
-                    <!-- Staked Balance -->
-                    <td class="p-4 text-right">
-                      <div class="font-medium">
-                        {{ getStakedBalance(balance) }}
+                      <div class="flex justify-end gap-3 text-sm">
+                        <span class="font-medium">
+                          Liquid: {{ getLiquidBalance(balance) }}
+                        </span>
+                        <span class="text-muted-foreground">
+                          Staked: {{ getStakedBalance(balance) }}
+                        </span>
                       </div>
                     </td>
 
@@ -672,7 +789,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(getLiquidBalance(balance)) === 0"
+                          :disabled="Number(getLiquidBalance(balance)) === 0"
                           title="Transfer tokens"
                           @click.stop="openTransferDialog(balance)"
                         >
@@ -692,7 +809,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(getLiquidBalance(balance)) === 0"
+                          :disabled="Number(getLiquidBalance(balance)) === 0"
                           title="Stake tokens"
                           @click.stop="openTransformDialog(balance, 'liquid-to-staked')"
                         >
@@ -712,7 +829,7 @@ onMounted(() => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="parseFloat(getStakedBalance(balance)) === 0"
+                          :disabled="Number(getStakedBalance(balance)) === 0"
                           title="Unstake tokens"
                           @click.stop="openTransformDialog(balance, 'staked-to-liquid')"
                         >
