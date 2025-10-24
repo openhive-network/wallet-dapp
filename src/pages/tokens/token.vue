@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore } from '@/stores/tokens.store';
+import { isVesting, useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
@@ -45,6 +45,8 @@ const isStaking = ref(false);
 const isUnstaking = ref(false);
 const isCopied = ref(false);
 const isNaiCopied = ref(false);
+
+const isStaked = ref(false);
 
 // Transfer form
 const transferForm = ref({
@@ -192,6 +194,8 @@ const loadTokenDetails = async () => {
       throw new Error(`Token with NAI ${nai.value} not found`);
 
     token.value = tokens[0];
+
+    isStaked.value = isVesting(token.value.nai!, token.value.precision || 0);
 
     // Update formatted values
     await updateFormattedValues();
@@ -365,7 +369,11 @@ const handleTransfer = async () => {
         };
 
         // Reload user balance
-        await tokensStore.loadBalances(true);
+        await Promise.allSettled([
+          tokensStore.loadBalances(true),
+          loadTokenDetails(),
+          loadTopHolders()
+        ]);
         userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
       }
     );
@@ -424,9 +432,11 @@ const handleStake = async () => {
     // Create Layer 2 HTM transaction for token transform (stake)
     const l2Transaction = new HtmTransaction(wax);
 
+    const holder = CTokensProvider.getOperationalPublicKey()!;
+
     l2Transaction.pushOperation({
       token_transform_operation: {
-        holder: tokensStore.wallet.publicKey,
+        holder,
         receiver: stakeForm.value.receiver || undefined,
         amount: {
           amount: stakeForm.value.amount,
@@ -463,7 +473,11 @@ const handleStake = async () => {
         };
 
         // Reload user balance
-        await tokensStore.loadBalances(true);
+        await Promise.allSettled([
+          tokensStore.loadBalances(true),
+          loadTokenDetails(),
+          loadTopHolders()
+        ]);
         userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
       }
     );
@@ -525,9 +539,11 @@ const handleUnstake = async () => {
     // Create Layer 2 HTM transaction for token transform (unstake)
     const l2Transaction = new HtmTransaction(wax);
 
+    const holder = CTokensProvider.getOperationalPublicKey()!;
+
     l2Transaction.pushOperation({
       token_transform_operation: {
-        holder: tokensStore.wallet.publicKey,
+        holder,
         receiver: stakeForm.value.receiver || undefined,
         amount: {
           amount: stakeForm.value.amount,
@@ -561,7 +577,11 @@ const handleUnstake = async () => {
         };
 
         // Reload user balance
-        await tokensStore.loadBalances(true);
+        await Promise.allSettled([
+          tokensStore.loadBalances(true),
+          loadTokenDetails(),
+          loadTopHolders()
+        ]);
         userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
       }
     );
@@ -751,10 +771,22 @@ onMounted(async () => {
               </Avatar>
 
               <div class="flex-1 min-w-0">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
                   <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
                     {{ tokenName }}
                   </h1>
+                  <span
+                    v-if="token.is_nft"
+                    class="inline-flex items-center rounded-md bg-purple-500/10 text-[16px]/[18px] px-2 font-medium text-purple-500 border border-purple-500/20"
+                  >
+                    nft
+                  </span>
+                  <span
+                    v-if="isStaked"
+                    class="inline-flex items-center rounded-md bg-blue-500/10  text-[16px]/[18px] px-2 font-medium text-blue-500 border border-blue-500/20"
+                  >
+                    staked
+                  </span>
                 </div>
 
                 <p
