@@ -300,11 +300,9 @@ const registerHTMAccount = async () => {
       }
     });
 
-    await tokensStore.reset(await CTokensProvider.for(wax, 'owner', false));
+    const walletL2 = await CTokensProvider.for(wax, 'owner', false);
 
-    console.log(CTokensProvider.getOperationalPublicKey());
-
-    await tokensStore.wallet?.signTransaction(l2Transaction);
+    await walletL2.signTransaction(l2Transaction);
 
     // Create Layer 1 transaction and broadcast
     const l1Transaction = await wax.createTransaction();
@@ -326,6 +324,8 @@ const registerHTMAccount = async () => {
         // After successful registration, redirect to login
         showRegistrationForm.value = false;
         showHTMLogin();
+
+        await tokensStore.reset(walletL2);
       }
     );
   } catch (error) {

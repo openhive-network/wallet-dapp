@@ -66,8 +66,8 @@ const dammDigit = (str: string) => {
   return row.toString();
 };
 
-const assetNumFromNAI = (nai: string, precision: number): number => {
-  return (Number.parseInt(nai.slice(2, -1)) << 5) | 0x10 | precision;
+const assetNumFromNAI = (nai: string, precision: number): bigint => {
+  return (BigInt(Number.parseInt(nai.slice(2, -1))) << 5n) | 0x10n | BigInt(precision);
 };
 
 const generateRandomNAI = (symbol: string): string => {
@@ -92,9 +92,9 @@ const generateRandomNAI = (symbol: string): string => {
 };
 
 export const toVesting = (nai: string, precision: number): string => {
-  const vestingNum = assetNumFromNAI(nai, precision) ^ 0x20;
+  const vestingNum = assetNumFromNAI(nai, precision) ^ 0x20n;
 
-  const naiVesting = (vestingNum >> 5).toString().padStart(8, '0');
+  const naiVesting = (vestingNum >> 5n).toString().padStart(8, '0');
 
   return `@@${naiVesting}${dammDigit(naiVesting)}`;
 };
@@ -183,9 +183,11 @@ export const transferNAIToken = async (params: TokenTransferParams) => {
   // Create Layer 2 HTM transaction for token transfer
   const l2Transaction = new HtmTransaction(wax);
 
+  const sender = CTokensProvider.getOperationalPublicKey()!;
+
   l2Transaction.pushOperation({
     token_transfer_operation: {
-      sender: tokensStore.wallet.publicKey!,
+      sender,
       receiver: params.to,
       amount: {
         amount: params.amount,
