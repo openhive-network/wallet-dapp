@@ -53,7 +53,7 @@ const parseMetamaskPublicKeys = async () => {
     isLoading.value = true;
 
     try {
-      await metamaskStore.connect(0);
+      await metamaskStore.connect(0, 'posting');
       isMetamaskConnected.value = metamaskStore.isConnected;
     } catch {
       toast.error('Metamask is not installed or not connected');
@@ -77,7 +77,7 @@ const parseMetamaskPublicKeys = async () => {
 const connectMetamask = async () => {
   isLoading.value = true;
   try {
-    await metamaskStore.connect(0);
+    await metamaskStore.connect(0, 'posting');
     isMetamaskConnected.value = metamaskStore.isConnected;
     isMetamaskSnapInstalled.value = metamaskStore.isInstalled();
 

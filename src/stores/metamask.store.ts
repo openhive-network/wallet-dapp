@@ -26,7 +26,7 @@ export const useMetamaskStore = defineStore('metamask', {
         this.performingOperation = false;
       }
     },
-    async connect (accountIndex: number, role?: TRole) {
+    async connect (accountIndex: number, role: TRole) {
       try {
         this.performingOperation = true;
 
