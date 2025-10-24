@@ -56,13 +56,14 @@ const logout = async () => {
 };
 const goToLoginPage = async () => {
   try {
-    // If L1 logged in, show provide password modal, show the wallet select modal otherwise
-    if (settingsStore.settings?.account)
+    const hasStoredWallet = await CTokensProvider.hasWallet();
+
+    if (settingsStore.settings?.account || hasStoredWallet) {
       walletStore.isProvideWalletPasswordModalOpen = true;
-    else if (await CTokensProvider.hasWallet())
-      walletStore.isWalletSelectModalOpen = true;
-    else
-      router.push('/tokens/register-account');
+      return;
+    }
+
+    router.push('/tokens/register-account');
   } catch(error) {
     toastError('Failed to log in', error);
   }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiSwapHorizontal } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import hiveLogoUrl from '@/assets/icons/hive.svg';
 import cTokensLogoUrl from '@/assets/icons/wallets/ctokens.svg';
@@ -18,6 +19,7 @@ const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 const userStore = useUserStore();
 const tokensStore = useTokensStore();
+const router = useRouter();
 
 // Current active account type
 const activeAccount = ref<'hive' | 'htm'>('hive');
@@ -88,10 +90,14 @@ const connectToHive = () => {
 // Connect to HTM
 const connectToHTM = async () => {
   try {
-    if (settingsStore.settings?.account)
+    const hasStoredWallet = await CTokensProvider.hasWallet();
+
+    if (settingsStore.settings?.account || hasStoredWallet) {
       walletStore.isProvideWalletPasswordModalOpen = true;
-    else if (await CTokensProvider.hasWallet())
-      walletStore.openWalletSelectModal();
+      return;
+    }
+
+    router.push('/tokens/register-account');
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   }

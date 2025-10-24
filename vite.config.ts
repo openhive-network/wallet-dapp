@@ -44,6 +44,11 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(import.meta.dirname, './src'),
       },
     },
+    server: {
+      allowedHosts: [
+        '15.bc.fqdn.pl'
+      ]
+    },
     define: {
       __COMMIT_HASH__: JSON.stringify(getCommitHash()),
       // Make environment variables available in the application

@@ -5,6 +5,7 @@ import type {
   CtokensAppBalance,
   CtokensAppBalanceHistory,
   CtokensAppTransactionStatusResponse,
+  CtokensAppArrayOfAccountBalances,
   CtokensAppArrayOfTokens,
   CtokensAppArrayOfUsers,
   CtokensAppArrayOfTopHolders
@@ -114,7 +115,19 @@ export class CTokensApiService {
    * Get account balances for a user
    */
   public async getAccountBalances (user: string, page: number = 1): Promise<CtokensAppBalance[]> {
-    return await this.extendedChain.restApi.ctokensApi.balances({ user, page });
+    const response = await this.extendedChain.restApi.ctokensApi.balances({ user, page }) as CtokensAppArrayOfAccountBalances;
+
+    return response.flatMap((entry) => {
+      const balances: CtokensAppBalance[] = [];
+
+      if (entry.liquid)
+        balances.push(entry.liquid);
+
+      if (entry.vesting)
+        balances.push(entry.vesting);
+
+      return balances;
+    });
   }
 
   /**

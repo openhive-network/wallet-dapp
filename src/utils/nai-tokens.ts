@@ -9,7 +9,7 @@ import {
   getCTokensApi,
   getUserOperationalKey
 } from './ctokens-api';
-import type { CtokensAppArrayOfTokens } from './wallet/ctokens/api';
+import type { CtokensAppArrayOfTokens, CtokensAppBalance } from './wallet/ctokens/api';
 import CTokensProvider from './wallet/ctokens/signer';
 
 export interface TokenCreationParams {
@@ -55,7 +55,11 @@ const dammDigit = (str: string) => {
   let row = 0;
 
   for(let i = 0; i < str.length; i++) {
-    const col = str.charAt(i) as unknown as number;
+    const col = Number.parseInt(str.charAt(i), 10);
+
+    if (Number.isNaN(col) || col < 0 || col > 9)
+      throw new Error(`Invalid character '${str.charAt(i)}' in NAI string '${str}'`);
+
     row = table[row][col];
   }
 
@@ -306,7 +310,7 @@ export const getTokenDefinitions = async (creator?: string): Promise<CtokensAppA
 /**
  * Get account balances - now using ctokens-api
  */
-export const getAccountBalances = async (): Promise<CtokensAppArrayOfTokens> => {
+export const getAccountBalances = async (): Promise<CtokensAppBalance[]> => {
   try {
     const operationalKey = await getUserOperationalKey();
     if (!operationalKey)
@@ -318,36 +322,24 @@ export const getAccountBalances = async (): Promise<CtokensAppArrayOfTokens> => 
   } catch (error) {
     console.error('Failed to get account balances:', error);
     // Fallback to mock data for development
-    const mockBalances = [
+    const mockBalances: CtokensAppBalance[] = [
       {
-        symbol: 'HIVE',
-        name: 'Hive',
-        nai: '@@000000021',
-        liquid_balance: '150.500',
-        staked_balance: '0.000',
-        total_balance: '150.500',
+        nai: '@@000000308',
+        amount: '199800',
         precision: 3,
-        logo_url: undefined
+        metadata: {
+          name: 'Test Token',
+          symbol: 'TEST'
+        }
       },
       {
-        symbol: 'HBD',
-        name: 'Hive Backed Dollar',
-        nai: '@@000000013',
-        liquid_balance: '75.250',
-        staked_balance: '0.000',
-        total_balance: '75.250',
+        nai: '@@000000319',
+        amount: '100',
         precision: 3,
-        logo_url: undefined
-      },
-      {
-        symbol: 'MAT',
-        name: 'My Awesome Token',
-        nai: '@@123456789',
-        liquid_balance: '1000.000',
-        staked_balance: '500.000',
-        total_balance: '1500.000',
-        precision: 3,
-        logo_url: undefined
+        metadata: {
+          name: 'Test Token (Vesting)',
+          symbol: 'TEST'
+        }
       }
     ];
 
