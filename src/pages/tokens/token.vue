@@ -5,9 +5,9 @@ import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import { AlertDescription, Alert } from '@/components/ui/alert';
 import HTMView from '@/components/HTMView.vue';
 import MemoInput from '@/components/MemoInput.vue';
+import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
