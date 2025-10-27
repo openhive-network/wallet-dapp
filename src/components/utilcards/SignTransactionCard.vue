@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { ITransaction, TRole, TTransactionRequiredAuthorities } from '@hiveio/wax/vite';
 import { mdiFileSign } from '@mdi/js';
+import { AlertCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import { AlertCircle } from 'lucide-vue-next';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

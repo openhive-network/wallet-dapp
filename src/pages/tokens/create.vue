@@ -42,6 +42,8 @@ const settingsStore = useSettingsStore();
 const tokenName = ref('');
 const tokenSymbol = ref('');
 const tokenDescription = ref('');
+const tokenImage = ref('');
+const tokenWebsite = ref('');
 const initialSupply = ref('1000000');
 const precision = ref('3');
 const othersCanStake = ref(true);
@@ -217,6 +219,22 @@ const createToken = async () => {
     };
     const owner = CTokensProvider.getOperationalPublicKey()!;
     const assetTokenName = tokenName.value.trim();
+    const trimmedSymbol = tokenSymbol.value.trim();
+    const trimmedDescription = tokenDescription.value.trim();
+    const trimmedImage = tokenImage.value.trim();
+    const trimmedWebsite = tokenWebsite.value.trim();
+
+    const metadataItems = [
+      { key: 'name', value: assetTokenName },
+      { key: 'symbol', value: trimmedSymbol },
+      { key: 'description', value: trimmedDescription }
+    ];
+
+    if (trimmedImage)
+      metadataItems.push({ key: 'image', value: trimmedImage });
+
+    if (trimmedWebsite)
+      metadataItems.push({ key: 'website', value: trimmedWebsite });
 
     // Prepare HTM asset definition data
     const assetDefinition: asset_definition = {
@@ -225,11 +243,7 @@ const createToken = async () => {
       max_supply: capped.value ? parseAssetAmount(initialSupply.value, parseInt(precision.value)) : '0',
       owner,
       metadata: {
-        items: [
-          { key: 'name', value: assetTokenName },
-          { key: 'symbol', value: tokenSymbol.value.trim() },
-          { key: 'description', value: tokenDescription.value.trim() }
-        ]
+        items: [...metadataItems]
       },
       is_nft: false,
       others_can_stake: othersCanStake.value,
@@ -239,11 +253,7 @@ const createToken = async () => {
       identifier: identifierVesting,
       owner,
       metadata: {
-        items: [
-          { key: 'name', value: assetTokenName },
-          { key: 'symbol', value: tokenSymbol.value.trim() },
-          { key: 'description', value: tokenDescription.value.trim() }
-        ]
+        items: [...metadataItems]
       }
     };
 
@@ -285,6 +295,8 @@ const resetForm = () => {
   tokenName.value = '';
   tokenSymbol.value = '';
   tokenDescription.value = '';
+  tokenImage.value = '';
+  tokenWebsite.value = '';
   initialSupply.value = '1000000';
   precision.value = '3';
   othersCanStake.value = true;
@@ -307,6 +319,8 @@ const previewToken = computed(() => ({
   symbol: tokenSymbol.value || undefined,
   description: tokenDescription.value || undefined,
   nai: generatedNAI.value || undefined,
+  image: tokenImage.value || undefined,
+  website: tokenWebsite.value || undefined,
   totalSupply: initialSupply.value,
   maxSupply: capped.value ? initialSupply.value : undefined,
   precision: parseInt(precision.value) ?? 3,
@@ -396,6 +410,42 @@ const previewToken = computed(() => ({
                   rows="3"
                 />
               </div>
+
+              <Separator />
+
+              <!-- Token Image URL -->
+              <div class="space-y-2">
+                <Label for="token-image">Image URL</Label>
+                <Input
+                  id="token-image"
+                  v-model="tokenImage"
+                  type="url"
+                  placeholder="https://example.com/token-logo.png"
+                  :disabled="isCreatingToken"
+                  class="font-mono text-sm"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Optional: URL to your token's logo or icon
+                </p>
+              </div>
+
+              <!-- Token Website URL -->
+              <div class="space-y-2">
+                <Label for="token-website">Website URL</Label>
+                <Input
+                  id="token-website"
+                  v-model="tokenWebsite"
+                  type="url"
+                  placeholder="https://example.com"
+                  :disabled="isCreatingToken"
+                  class="font-mono text-sm"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Optional: Official website for your token project
+                </p>
+              </div>
+
+              <Separator />
 
               <!-- Initial Supply -->
               <div class="space-y-2">

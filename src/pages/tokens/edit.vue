@@ -311,6 +311,32 @@ onMounted(async () => {
                 </p>
               </div>
             </div>
+            <div class="flex flex-wrap gap-2 mt-4">
+              <span
+                :class="[
+                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                  token?.is_nft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ]"
+              >
+                {{ token?.is_nft ? 'NFT' : 'Fungible' }}
+              </span>
+              <span
+                :class="[
+                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                  token?.others_can_stake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                ]"
+              >
+                {{ token?.others_can_stake ? 'Staking ✓' : 'Staking ✗' }}
+              </span>
+              <span
+                :class="[
+                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
+                  token?.others_can_unstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                ]"
+              >
+                {{ token?.others_can_unstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
+              </span>
+            </div>
           </CardContent>
         </Card>
 
