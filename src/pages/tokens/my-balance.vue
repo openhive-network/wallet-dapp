@@ -9,6 +9,7 @@ import {
   mdiWallet,
   mdiImageMultiple
 } from '@mdi/js';
+import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -23,11 +24,12 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTokensStore } from '@/stores/tokens.store';
-import { getCTokensApi, getUserOperationalKey, formatCTokenAmount } from '@/utils/ctokens-api';
-import { transferNAIToken, stakeNAIToken, toVesting } from '@/utils/nai-tokens';
+import { getWax } from '@/stores/wax.store';
+import { toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const router = useRouter();
 const tokensStore = useTokensStore();
@@ -168,6 +170,12 @@ const aggregatedBalances = computed<AggregatedBalance[]>(() => {
   return order.map(key => map.get(key)!);
 });
 
+// Reformat this code and use wax one:
+const formatCTokenAmount = (amount: string, precision: number): string => {
+  const num = parseFloat(amount);
+  return (num / Math.pow(10, precision)).toFixed(precision);
+};
+
 const formatBalanceAmount = (amount: string | undefined, precision: number | undefined): string => {
   if (!amount || amount === '0') return '0';
   return formatCTokenAmount(amount, precision ?? 0);
@@ -261,33 +269,30 @@ watch(searchQuery, () => {
 // Methods
 const loadAccountStatistics = async () => {
   try {
-    const cTokensApi = await getCTokensApi();
-    const operationalKey = await getUserOperationalKey();
+    const operationalKey = CTokensProvider.getOperationalPublicKey();
 
     if (!operationalKey) {
       console.warn('No operational key available');
       return;
     }
 
+    const wax = await getWax();
+
     // Get all tokens created by this user (owner field matches operational key)
-    const allTokens = await cTokensApi.getRegisteredTokens();
+    const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
     const createdTokens = allTokens.filter(token => token.owner === operationalKey);
     createdTokensCount.value = createdTokens.length;
 
     // Get owned tokens (tokens with balance)
-    const balances = await cTokensApi.getAccountBalances(operationalKey);
+    const balances = await wax.restApi.ctokensApi.balances({ user: operationalKey });
     const uniqueBalanceKeys = new Set<string>();
     const stakedTokenKeys = new Set<string>();
 
-    balances.forEach((balance) => {
-      if (!balance.nai) return;
-      const precision = balance.precision ?? 0;
-      const baseNai = isVesting(balance.nai, precision) ? toVesting(balance.nai, precision) : balance.nai;
-      const key = `${baseNai}:${precision}`;
-      uniqueBalanceKeys.add(key);
-
-      if (isVesting(balance.nai, precision))
-        stakedTokenKeys.add(key);
+    balances.forEach(({ liquid, vesting }) => {
+      if (liquid)
+        uniqueBalanceKeys.add(`${liquid.nai}:${liquid.precision}`);
+      if (vesting)
+        stakedTokenKeys.add(`${vesting.nai}:${vesting.precision}`);
     });
 
     ownedTokensCount.value = uniqueBalanceKeys.size;
@@ -340,26 +345,26 @@ const transferTokens = async () => {
   try {
     isTransferLoading.value = true;
 
-    const txId = await transferNAIToken({
-      to: transferRecipient.value,
-      amount: transferAmount.value,
-      nai: selectedTokenForTransfer.value.nai || '',
-      precision: selectedTokenForTransfer.value.precision || 0,
-      memo: transferMemo.value || undefined
-    });
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
-      0,
-      'Transfer',
-      async () => {
-        // Refresh balances on success
-        await loadAccountBalances();
-        isTransferDialogOpen.value = false;
-      }
+      () => ([{
+        token_transfer_operation: {
+          receiver: transferRecipient.value,
+          sender: CTokensProvider.getOperationalPublicKey()!,
+          amount: {
+            amount: transferAmount.value,
+            nai: selectedTokenForTransfer.value?.nai || '',
+            precision: selectedTokenForTransfer.value?.precision || 0
+          },
+          memo: transferMemo.value
+        }
+      } satisfies htm_operation]),
+      'Transfer'
     );
 
+    // Refresh balances on success
+    await loadAccountBalances();
+    isTransferDialogOpen.value = false;
   } catch (error) {
     toastError('Failed to transfer tokens', error);
   } finally {
@@ -390,26 +395,24 @@ const transformTokens = async () => {
   try {
     isTransformLoading.value = true;
 
-    const txId = await stakeNAIToken({
-      amount: transformAmount.value,
-      nai: selectedToken.value.nai || '',
-      precision: selectedToken.value.precision || 0,
-      direction: transformDirection.value === 'liquid-to-staked' ? 'stake' : 'unstake'
-    });
-
-    const action = transformDirection.value === 'liquid-to-staked' ? 'Stake' : 'Unstake';
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
-      0,
-      action,
-      async () => {
-        // Refresh balances on success
-        await loadAccountBalances();
-        isTransformDialogOpen.value = false;
-      }
+      () => ([{
+        token_transform_operation: {
+          amount: {
+            amount: transformAmount.value,
+            nai: transformDirection.value === 'liquid-to-staked' ? selectedToken.value!.nai! : toVesting(selectedToken.value!.nai!, selectedToken.value!.precision!),
+            precision: selectedToken.value!.precision!
+          },
+          holder: CTokensProvider.getOperationalPublicKey()!
+        }
+      } satisfies htm_operation]),
+      transformDirection.value === 'liquid-to-staked' ? 'Stake' : 'Unstake'
     );
+
+    // Refresh balances on success
+    await loadAccountBalances();
+    isTransformDialogOpen.value = false;
   } catch (error) {
     toastError('Failed to transform tokens', error);
   } finally {

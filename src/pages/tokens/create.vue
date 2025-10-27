@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ITransaction } from '@hiveio/wax';
 import {
   mdiCurrencyUsd,
   mdiRefresh,
@@ -6,7 +7,7 @@ import {
   mdiRocket,
   mdiLoading
 } from '@mdi/js';
-import { HtmTransaction, type asset, type asset_definition } from '@mtyszczak-cargo/htm';
+import type { asset_metadata_update, htm_operation, asset, asset_definition } from '@mtyszczak-cargo/htm';
 import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -26,7 +27,6 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { parseAssetAmount } from '@/utils/htm-utils';
 import { generateNAI as generateHTMNAI, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -160,6 +160,12 @@ const copyNAI = async () => {
   }
 };
 
+const parseAssetAmount = (amountStr: string, precision: number): string => {
+  const [integerPart, fractionalPart = ''] = amountStr.split('.');
+  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
+  return integerPart + normalizedFractional;
+};
+
 // Create token using HTM
 const createToken = async () => {
   if (!isFormValid.value) {
@@ -229,62 +235,44 @@ const createToken = async () => {
       others_can_stake: othersCanStake.value,
       others_can_unstake: othersCanUnstake.value
     };
-
-    // Set proxy account for HTM transactions
-    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
-
-    // Create Layer 2 HTM transaction for user signup
-    const l2Transaction = new HtmTransaction(wax);
-
-    l2Transaction.pushOperation({
-      asset_definition_operation: assetDefinition
-    });
-
-    l2Transaction.pushOperation({
-      asset_metadata_update_operation: {
-        identifier: identifierVesting,
-        owner,
-        metadata: {
-          items: [
-            { key: 'name', value: assetTokenName },
-            { key: 'symbol', value: tokenSymbol.value.trim() },
-            { key: 'description', value: tokenDescription.value.trim() }
-          ]
-        }
+    const modifyVestingDefinition: asset_metadata_update = {
+      identifier: identifierVesting,
+      owner,
+      metadata: {
+        items: [
+          { key: 'name', value: assetTokenName },
+          { key: 'symbol', value: tokenSymbol.value.trim() },
+          { key: 'description', value: tokenDescription.value.trim() }
+        ]
       }
-    });
-
-    await tokensStore.wallet!.signTransaction(l2Transaction);
-
-    // Create Layer 1 transaction and broadcast
-    const l1Transaction = await wax.createTransaction();
-    l1Transaction.pushOperation({
-      transfer_operation: {
-        from: settingsStore.settings.account!,
-        to: 'htm.fee',
-        amount: wax.hiveCoins(1),
-        memo: `${assetTokenName} creation fee`
-      }
-    });
-    l1Transaction.pushOperation(l2Transaction);
-
-    // Sign Layer 1 transaction with the Hive active key
-    await walletStore.wallet!.signTransaction(l1Transaction);
-
-    // Broadcast the transaction
-    await wax.broadcast(l1Transaction);
+    };
 
     // Wait for transaction status
     await waitForTransactionStatus(
-      l1Transaction.legacy_id,
-      1, // First we have transfer, than HTM operation
-      'Token creation',
-      async () => {
-        // Success, reset form
-        await router.push(`/tokens/token?nai=${generatedNAI.value}&precision=${precision.value}`);
-        resetForm();
-      }
+      (tx: ITransaction) => {
+        tx.pushOperation({
+          transfer_operation: {
+            from: settingsStore.settings.account!,
+            to: 'htm.fee',
+            amount: wax.hiveCoins(1),
+            memo: `${assetTokenName} creation fee`
+          }
+        });
+
+        return [
+          { asset_definition_operation: assetDefinition } satisfies htm_operation,
+          { asset_metadata_update_operation: modifyVestingDefinition } satisfies htm_operation
+        ];
+      },
+      'Token creation'
     );
+
+    const redirectUrl = `/tokens/token?nai=${generatedNAI.value}&precision=${precision.value}`;
+
+    resetForm();
+
+    // Success, reset form
+    await router.push(redirectUrl);
   } catch (error) {
     toastError('Failed to create token', error);
   } finally {
