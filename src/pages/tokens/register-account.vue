@@ -7,7 +7,7 @@ import {
   mdiNumeric3Circle,
   mdiRefresh
 } from '@mdi/js';
-import { HtmTransaction } from '@mtyszczak-cargo/htm';
+import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -265,8 +265,6 @@ const registerHTMAccount = async () => {
       generatedKeys.value.managementPrivateKey
     );
 
-    console.log(keys);
-
     await CTokensProvider.login(
       registrationData.value.walletPassword
     );
@@ -274,60 +272,39 @@ const registerHTMAccount = async () => {
     if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
       throw new Error('Setting HTM Account via proxy is not supported yet. Please log in using your L1 wallet first.');
 
-    // Set proxy account for HTM transactions
-    HtmTransaction.HiveProxyAccount = settingsStore.settings.account;
-
-    // Create Layer 2 HTM transaction for user signup
-    const l2Transaction = new HtmTransaction(wax);
-
-    l2Transaction.pushOperation({
-      user_signup_operation: {
-        hive_account: settingsStore.settings.account,
-        management_key: keys.management!,
-        operational_key: keys.operational
-      }
-    }).pushOperation({
-      user_metadata_update_operation: {
-        user: keys.operational,
-        metadata: {
-          items: [
-            { key: 'name', value: registrationData.value.name.trim() },
-            ...(registrationData.value.about.trim() ? [{ key: 'about', value: registrationData.value.about.trim() }] : []),
-            ...(registrationData.value.website.trim() ? [{ key: 'website', value: registrationData.value.website.trim() }] : []),
-            ...(registrationData.value.profile_image.trim() ? [{ key: 'profile_image', value: registrationData.value.profile_image.trim() }] : [])
-          ]
-        }
-      }
-    });
-
-    const walletL2 = await CTokensProvider.for(wax, 'owner', false);
-
-    await walletL2.signTransaction(l2Transaction);
-
-    // Create Layer 1 transaction and broadcast
-    const l1Transaction = await wax.createTransaction();
-    l1Transaction.pushOperation(l2Transaction);
-
-    // Sign Layer 1 transaction with the Hive posting key
-    await walletStore.createWalletFor(settingsStore.settings, 'posting');
-    await walletStore.wallet!.signTransaction(l1Transaction);
-
-    // Broadcast the transaction
-    await wax.broadcast(l1Transaction);
+    const explicitWallet = await CTokensProvider.for(wax, 'owner', false);
 
     // Wait for transaction status
     await waitForTransactionStatus(
-      l1Transaction.legacy_id,
-      0,
+      () => ([{
+        user_signup_operation: {
+          hive_account: settingsStore.settings.account,
+          management_key: keys.management!,
+          operational_key: keys.operational
+        }
+      } satisfies htm_operation, {
+        user_metadata_update_operation: {
+          user: keys.operational,
+          metadata: {
+            items: [
+              { key: 'name', value: registrationData.value.name.trim() },
+              ...(registrationData.value.about.trim() ? [{ key: 'about', value: registrationData.value.about.trim() }] : []),
+              ...(registrationData.value.website.trim() ? [{ key: 'website', value: registrationData.value.website.trim() }] : []),
+              ...(registrationData.value.profile_image.trim() ? [{ key: 'profile_image', value: registrationData.value.profile_image.trim() }] : [])
+            ]
+          }
+        }
+      } satisfies htm_operation]),
       'HTM account registration',
-      async () => {
-        // After successful registration, redirect to login
-        showRegistrationForm.value = false;
-        showHTMLogin();
-
-        await tokensStore.reset(walletL2);
-      }
+      true,
+      explicitWallet
     );
+
+    tokensStore.reset(await CTokensProvider.for(wax, 'posting', false));
+
+    // After successful registration, redirect to login
+    showRegistrationForm.value = false;
+    showHTMLogin();
   } catch (error) {
     toastError('Failed to create HTM account', error);
   } finally {

@@ -2,10 +2,7 @@ import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
 import { getWax } from '@/stores/wax.store';
-import {
-  getCTokensApi,
-  getUserOperationalKey
-} from '@/utils/ctokens-api';
+import { isVesting } from '@/utils/nai-tokens';
 import type {
   CtokensAppArrayOfBalances,
   CtokensAppArrayOfTokens,
@@ -41,10 +38,6 @@ export interface CTokenDisplay {
 }
 
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
-
-// Helper functions for token transformation
-export const isVesting = (nai: string, precision: number): boolean =>
-  (((BigInt(nai.slice(2, -1)) << 5n) | 0x10n | BigInt(precision)) & 0x20n) !== 0n;
 
 const formatAsset = async (value: string | bigint, precision: number, name?: string): Promise<string> => {
   const wax = await getWax();
@@ -113,7 +106,7 @@ export const useTokensStore = defineStore('tokens', {
   },
   actions: {
     async loadBalances (forceRefresh = false) {
-      const operationalKey = await getUserOperationalKey();
+      const operationalKey = CTokensProvider.getOperationalPublicKey();
 
       if (!operationalKey) {
         this.lastError = 'No operational key available';
@@ -126,17 +119,12 @@ export const useTokensStore = defineStore('tokens', {
       this.lastError = null;
 
       try {
-        // Test API connectivity first
-        const cTokensApi = await getCTokensApi();
-        const isApiAvailable = await cTokensApi.testConnection();
-
-        if (!isApiAvailable)
-          throw new Error('ctokens-api is not available. Using fallback data.');
+        const wax = await getWax();
 
         // Get balances from ctokens-api
-        const cTokenBalances = await cTokensApi.getAccountBalances(operationalKey);
+        const cTokenBalances = await wax.restApi.ctokensApi.balances({ user: operationalKey, page: 1 });
 
-        this.balances = cTokenBalances;
+        this.balances = cTokenBalances.flatMap(balance => ([balance.liquid!, balance.vesting!]));
       } catch (error) {
         console.error('Failed to load balances:', error);
         this.lastError = error instanceof Error ? error.message : 'Failed to load balances';
@@ -152,15 +140,10 @@ export const useTokensStore = defineStore('tokens', {
       this.lastError = null;
 
       try {
-        // Test API connectivity first
-        const cTokensApi = await getCTokensApi();
-        const isApiAvailable = await cTokensApi.testConnection();
-
-        if (!isApiAvailable)
-          throw new Error('ctokens-api is not available. Using fallback data.');
+        const wax = await getWax();
 
         // Get registered tokens from ctokens-api
-        const tokens = await cTokensApi.getRegisteredTokens();
+        const tokens = await wax.restApi.ctokensApi.registeredTokens({ });
 
         // Filter by creator if provided
         this.tokenDefinitions = creator ? tokens.filter((token: CtokensAppToken) => token.owner === creator) : tokens;
@@ -204,10 +187,9 @@ export const useTokensStore = defineStore('tokens', {
       this.lastError = null;
 
       try {
-        const cTokensApi = await getCTokensApi();
-
+        const wax = await getWax();
         // Get raw tokens from API
-        const tokens = await cTokensApi.getRegisteredTokens(nai, precision) as Required<CtokensAppToken>[];
+        const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai, precision }) as Required<CtokensAppToken>[];
 
         // Transform tokens to display format
         const transformedTokens = await Promise.all(
@@ -247,16 +229,16 @@ export const useTokensStore = defineStore('tokens', {
       );
     },
     async getBalanceHistory (nai: string, precision: number, page = 1): Promise<CtokensAppBalanceHistory[]> {
-      const operationalKey = await getUserOperationalKey();
+      const operationalKey = CTokensProvider.getOperationalPublicKey();
       if (!operationalKey)
         throw new Error('No operational key available');
 
-      const cTokensApi = await getCTokensApi();
-      return cTokensApi.getBalanceHistory(operationalKey, nai, precision, page);
+      const wax = await getWax();
+      return wax.restApi.ctokensApi.balanceHistory({ user: operationalKey, nai, precision, page });
     },
     async getTopHolders (nai: string, precision: number, page = 1): Promise<CtokensAppTopHolder[]> {
-      const cTokensApi = await getCTokensApi();
-      return cTokensApi.getTopHolders(nai, precision, page);
+      const wax = await getWax();
+      return wax.restApi.ctokensApi.topHolders({ nai, precision, page });
     },
     getTokenByNAI (nai: string): CtokensAppBalance | undefined {
       return this.balances.find(balance => balance.nai === nai);
@@ -279,7 +261,7 @@ export const useTokensStore = defineStore('tokens', {
       precision: number,
       metadata: Record<string, string>
     ): Promise<string> {
-      const operationalKey = await getUserOperationalKey();
+      const operationalKey = CTokensProvider.getOperationalPublicKey();
       if (!operationalKey)
         throw new Error('No operational key available');
 

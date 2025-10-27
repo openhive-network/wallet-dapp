@@ -1,6 +1,11 @@
+import type { AEncryptionProvider, ITransaction } from '@hiveio/wax';
+import { HtmTransaction, type htm_operation, PROTOCOL_OPERATION_ID } from '@mtyszczak-cargo/htm';
 import { toast } from 'vue-sonner';
 
-import { getCTokensApi } from './ctokens-api';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 
 /**
  * Poll transaction status until it's confirmed or failed
@@ -14,12 +19,13 @@ export async function pollTransactionStatus (
   maxAttempts: number = 30,
   intervalMs: number = 2000
 ): Promise<{ success: boolean; message: string; details?: string }> {
-  const cTokensApi = await getCTokensApi();
+  const wax = await getWax();
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       // Call status endpoint
-      const status = await cTokensApi.getTransactionStatus(refId);
+      /* eslint-disable-next-line @typescript-eslint/naming-convention */
+      const status = await wax.restApi.ctokensApi.status({ 'ref-id': refId });
 
       // Check if we got a successful response
       if (status) {
@@ -69,64 +75,102 @@ export async function pollTransactionStatus (
   };
 }
 
+const broadcastHtmOperation = async (
+  operationsFactory: (tx: ITransaction) => htm_operation[],
+  l2Wallet: AEncryptionProvider | undefined = undefined
+): Promise<string> => {
+  const settingsStore = useSettingsStore();
+  const tokensStore = useTokensStore();
+  const wax = await getWax();
+  const walletStore = useWalletStore();
+
+  // Remove later on. No checks for other wallets or any connection type here as users may not be connected yet, but want to register an account
+  if (walletStore.isL2Wallet)
+    throw new Error('HTM transactions are not supported with Layer 2 wallets at this time.');
+
+  // Set proxy account for HTM transactions
+  HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
+
+  // Create Layer 2 HTM transaction for user signup
+  const l2Transaction = new HtmTransaction(wax);
+
+  // Create Layer 1 transaction and broadcast
+  const l1Transaction = await wax.createTransaction();
+
+  operationsFactory(l1Transaction).map(op => l2Transaction.pushOperation(op));
+
+  // We are in the scope of the automated function for retrieving status of HTM transactions.
+  // Therefore, we must ensure that no custom, injected HTM operations are mixed with proper, observable operations in the same transaction.
+  for(const op of l1Transaction.transaction.operations)
+  {if (op.custom_json_operation?.id === PROTOCOL_OPERATION_ID)
+    throw new Error('Custom, injected HTM operations cannot be mixed with other operations in the same transaction.');
+  }
+
+  await (l2Wallet ?? tokensStore.wallet!).signTransaction(l2Transaction);
+
+  const l1Op = l2Transaction.toLayer1Operation();
+
+  l1Transaction.pushOperation(l1Op);
+
+  if (!walletStore.wallet)
+    throw new Error('No wallet available for signing the transaction. Currently, you are required to connect a Layer 1 wallet to perform HTM transactions.');
+
+  // Sign Layer 1 transaction with the Hive active key
+  await walletStore.createWalletFor(settingsStore.settings, l1Op.custom_json_operation!.required_auths.length > 0 ? 'active' : 'posting');
+  await walletStore.wallet!.signTransaction(l1Transaction);
+
+  // Broadcast the transaction
+  await wax.broadcast(l1Transaction);
+
+  return `${l1Transaction.legacy_id}_${l1Transaction.transaction.operations.length - 1}`;
+};
+
 /**
  * Wait for transaction status and show appropriate toast
- * @param txId - Transaction reference ID (transaction hash)
- * @param opSeq - Operation sequence number (e.g., for tracking specific operations)
+ * @param operationsFactory - Function that creates HTM operations for the L1 transaction. Thanks to the L1 transaction provided as an argument to the function,
+ *                            you can include your custom operations (such as e.g. fees) in the same transaction.
  * @param operationName - Name of the operation for toast messages (e.g., "Transfer", "Stake")
- * @param onSuccess - Optional callback to execute on success
- * @param onFailure - Optional callback to execute on failure
+ * @param enableToasts - Whether to show toasts for transaction status (default: true)
+ * @param l2Wallet - Optional explicit L2 signer. If not provided, the default signer from tokens store will be used.
+ *
+ * @throws This function throws an error if the transaction fails or if there is an issue during broadcasting.
  */
-export async function waitForTransactionStatus (
-  txId: string,
-  opSeq: number,
-  operationName: string,
-  onSuccess?: () => void | Promise<void>,
-  onFailure?: (error: Error) => void | Promise<void>
-): Promise<void> {
+export const waitForTransactionStatus = async (
+  operationsFactory: (tx: ITransaction) => htm_operation[],
+  operationName: string = 'Operation',
+  enableToasts: boolean = true,
+  l2Wallet: AEncryptionProvider | undefined = undefined
+): Promise<void> => {
   // Show pending toast
-  const loadingToast = toast.loading(`${operationName} in progress...`, {
+  const loadingToast = enableToasts ? toast.loading(`${operationName} in progress...`, {
     description: 'Waiting for transaction confirmation'
-  });
+  }) : undefined;
 
   try {
-    const result = await pollTransactionStatus(`${txId}_${opSeq}`);
+    const refId = await broadcastHtmOperation(operationsFactory, l2Wallet);
 
-    // Dismiss loading toast
+    const result = await pollTransactionStatus(refId);
+
+    if (!enableToasts) return;
+
     toast.dismiss(loadingToast);
-
     if (result.success) {
-      // Show success toast
       toast.success(`${operationName} successful`, {
         description: result.message
       });
-
-      // Execute success callback if provided
-      if (onSuccess)
-        await onSuccess();
     } else {
-      // Show error toast
       toast.error(`${operationName} failed`, {
         description: result.details || result.message
       });
-
-      // Execute failure callback if provided
-      if (onFailure)
-        await onFailure(new Error(result.message));
     }
   } catch (error: unknown) {
-    // Dismiss loading toast
-    toast.dismiss(loadingToast);
+    if (enableToasts) {
+      toast.dismiss(loadingToast);
+      toast.error(`${operationName} failed`, {
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    }
 
-    const err = error as Error;
-
-    // Show error toast
-    toast.error(`${operationName} failed`, {
-      description: err?.message || 'Unknown error occurred'
-    });
-
-    // Execute failure callback if provided
-    if (onFailure)
-      await onFailure(err);
+    throw error;
   }
-}
+};
