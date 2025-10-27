@@ -221,6 +221,78 @@ const getTotalBalance = (balance: BalanceLike): string => {
   return getLiquidBalance(balance);
 };
 
+const formatDisplayAmount = (amount: string | undefined, precision: number | undefined): string => {
+  const normalized = formatBalanceAmount(amount, precision);
+
+  if (!normalized || normalized === '0')
+    return '0';
+
+  const [integerPart, decimalPart] = normalized.split('.');
+  const withSeparators = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  if (!decimalPart)
+    return withSeparators;
+
+  const trimmedDecimal = decimalPart.replace(/0+$/, '');
+
+  if (!trimmedDecimal)
+    return withSeparators;
+
+  return `${withSeparators}.${trimmedDecimal}`;
+};
+
+const getLiquidBalanceDisplay = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance))
+    return formatDisplayAmount(balance.liquid?.amount, balance.liquid?.precision ?? balance.precision);
+
+  if (isVesting(balance.nai || '', balance.precision || 0))
+    return '0';
+
+  return formatDisplayAmount(balance.amount, balance.precision);
+};
+
+const getStakedBalanceDisplay = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance))
+    return formatDisplayAmount(balance.vesting?.amount, balance.vesting?.precision ?? balance.precision);
+
+  if (isVesting(balance.nai || '', balance.precision || 0))
+    return formatDisplayAmount(balance.amount, balance.precision);
+
+  return '0';
+};
+
+const getTotalBalanceDisplay = (balance: BalanceLike): string => {
+  if (!balance) return '0';
+
+  if (isAggregatedBalance(balance)) {
+    const precision = balance.precision;
+    const liquidAmount = balance.liquid?.amount ? BigInt(balance.liquid.amount) : 0n;
+    const stakedAmount = balance.vesting?.amount ? BigInt(balance.vesting.amount) : 0n;
+    return formatDisplayAmount((liquidAmount + stakedAmount).toString(), precision);
+  }
+
+  return formatDisplayAmount(balance.amount, balance.precision);
+};
+
+const getBalancePercent = (balance: BalanceLike, type: 'liquid' | 'staked'): number => {
+  const liquid = Number(getLiquidBalance(balance));
+  const staked = Number(getStakedBalance(balance));
+  const total = liquid + staked;
+
+  if (!total)
+    return 0;
+
+  if (type === 'liquid')
+    return Number(((liquid / total) * 100).toFixed(1));
+
+  const stakedRatio = 100 - (liquid / total) * 100;
+  return Number(stakedRatio.toFixed(1));
+};
+
 
 // Filter balances based on search query
 const filteredBalancesAll = computed(() => {
@@ -768,21 +840,83 @@ onMounted(() => {
                     </td>
 
                     <!-- Combined Balances -->
-                    <td class="p-4 text-right">
-                      <div class="flex justify-end gap-3 text-sm">
-                        <span class="font-medium">
-                          Liquid: {{ getLiquidBalance(balance) }}
-                        </span>
-                        <span class="text-muted-foreground">
-                          Staked: {{ getStakedBalance(balance) }}
-                        </span>
+                    <td class="p-4 align-middle">
+                      <div class="ml-auto flex w-full max-w-[260px] flex-col gap-3 text-sm">
+                        <div class="flex items-center justify-between gap-3">
+                          <span
+                            :class="[
+                              'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
+                              Number(getLiquidBalance(balance)) === 0
+                                ? 'bg-muted text-muted-foreground border-transparent'
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            ]"
+                          >
+                            Liquid
+                          </span>
+                          <span
+                            :class="[
+                              'font-medium tabular-nums',
+                              Number(getLiquidBalance(balance)) === 0 ? 'text-muted-foreground' : 'text-foreground'
+                            ]"
+                          >
+                            {{ getLiquidBalanceDisplay(balance) }}
+                          </span>
+                        </div>
+
+                        <div class="flex items-center justify-between gap-3">
+                          <span
+                            :class="[
+                              'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
+                              Number(getStakedBalance(balance)) === 0
+                                ? 'bg-muted text-muted-foreground border-transparent'
+                                : 'bg-sky-50 text-sky-700 border-sky-200'
+                            ]"
+                          >
+                            Staked
+                          </span>
+                          <span
+                            :class="[
+                              'font-medium tabular-nums',
+                              Number(getStakedBalance(balance)) === 0 ? 'text-muted-foreground' : 'text-foreground'
+                            ]"
+                          >
+                            {{ getStakedBalanceDisplay(balance) }}
+                          </span>
+                        </div>
+
+                        <template v-if="Number(getTotalBalance(balance)) > 0">
+                          <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                            <div
+                              class="h-full bg-emerald-500 transition-all"
+                              :style="{ width: `${getBalancePercent(balance, 'liquid')}%` }"
+                            />
+                            <div
+                              class="h-full bg-sky-500 transition-all"
+                              :style="{ width: `${getBalancePercent(balance, 'staked')}%` }"
+                            />
+                          </div>
+                          <div class="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>Distribution</span>
+                            <span class="tabular-nums">
+                              {{ getBalancePercent(balance, 'liquid').toFixed(1) }}% liquid ·
+                              {{ getBalancePercent(balance, 'staked').toFixed(1) }}% staked
+                            </span>
+                          </div>
+                        </template>
+
+                        <div
+                          v-else
+                          class="text-xs text-muted-foreground text-right"
+                        >
+                          No balance yet
+                        </div>
                       </div>
                     </td>
 
                     <!-- Total Balance -->
                     <td class="p-4 text-right">
-                      <div class="font-medium">
-                        {{ getTotalBalance(balance) }}
+                      <div class="font-semibold tabular-nums">
+                        {{ getTotalBalanceDisplay(balance) }}
                       </div>
                     </td>
 
@@ -941,7 +1075,7 @@ onMounted(() => {
               <DialogTitle>Transfer {{ selectedTokenForTransfer ? getTokenName(selectedTokenForTransfer) : '' }}</DialogTitle>
             </div>
             <DialogDescription>
-              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? getLiquidBalance(selectedTokenForTransfer) : '0' }} {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}
+              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? getLiquidBalanceDisplay(selectedTokenForTransfer) : '0' }} {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}
             </DialogDescription>
           </DialogHeader>
 
@@ -974,7 +1108,7 @@ onMounted(() => {
               </div>
               <div class="flex justify-between text-xs">
                 <span class="text-muted-foreground">
-                  Available: {{ getLiquidBalance(selectedTokenForTransfer!) }}
+                  Available: {{ getLiquidBalanceDisplay(selectedTokenForTransfer!) }}
                 </span>
                 <button
                   v-if="selectedTokenForTransfer && Number(getLiquidBalance(selectedTokenForTransfer)) > 0"
@@ -1068,8 +1202,8 @@ onMounted(() => {
             </div>
             <DialogDescription>
               {{ transformDirection === 'liquid-to-staked'
-                ? `Stake tokens to earn rewards. Available: ${selectedToken ? getLiquidBalance(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
-                : `Unstake tokens to make them liquid. Available: ${selectedToken ? getStakedBalance(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
+                ? `Stake tokens to earn rewards. Available: ${selectedToken ? getLiquidBalanceDisplay(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
+                : `Unstake tokens to make them liquid. Available: ${selectedToken ? getStakedBalanceDisplay(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
               }}
             </DialogDescription>
           </DialogHeader>
@@ -1094,7 +1228,7 @@ onMounted(() => {
               </div>
               <div class="flex justify-between text-xs">
                 <span class="text-muted-foreground">
-                  Available: {{ transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken!) : getStakedBalance(selectedToken!) }}
+                  Available: {{ transformDirection === 'liquid-to-staked' ? getLiquidBalanceDisplay(selectedToken!) : getStakedBalanceDisplay(selectedToken!) }}
                 </span>
                 <button
                   v-if="selectedToken && Number(transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken) : getStakedBalance(selectedToken)) > 0"
