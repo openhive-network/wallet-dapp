@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { mdiPencilOutline, mdiContentCopy, mdiCheck } from '@mdi/js';
-import { HtmTransaction } from '@mtyszczak-cargo/htm';
+import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import { AlertDescription, Alert } from '@/components/ui/alert';
 import HTMView from '@/components/HTMView.vue';
 import MemoInput from '@/components/MemoInput.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,12 +15,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { isVesting, useTokensStore } from '@/stores/tokens.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { isValidPublicKey } from '@/utils/htm';
-import { transferNAIToken } from '@/utils/nai-tokens';
+import { isVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
@@ -73,6 +73,28 @@ const isTokenOwner = computed(() => {
   if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
   return token.value.owner === CTokensProvider.getOperationalPublicKey();
 });
+
+// Connect to HTM
+const connectToHTM = async () => {
+  try {
+    const hasStoredWallet = await CTokensProvider.hasWallet();
+
+    if (settingsStore.settings?.account || hasStoredWallet) {
+      walletStore.isProvideWalletPasswordModalOpen = true;
+      return;
+    }
+
+    router.push('/tokens/register-account');
+  } catch (error) {
+    toastError('Failed to connect to HTM', error);
+  }
+};
+
+const isValidPublicKey = (key: string): boolean => {
+  // Simple validation for Hive public key (starts with STM and has correct length)
+  const hivePublicKeyRegex = /^STM[0-9A-Za-z]{50}$/;
+  return hivePublicKeyRegex.test(key);
+};
 
 // Validate recipient address (must be a public key)
 const isRecipientValid = computed(() => {
@@ -346,38 +368,37 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
-    // Transfer the tokens using transferNAIToken
-    const txId = await transferNAIToken({
-      to: transferForm.value.to,
-      amount: transferForm.value.amount,
-      nai: token.value.nai!,
-      precision: token.value.precision || 0,
-      memo: transferForm.value.memo || undefined
-    });
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
-      0,
-      'Transfer',
-      async () => {
-        // Reset form on success
-        transferForm.value = {
-          to: '',
-          amount: '',
-          memo: ''
-        };
-
-        // Reload user balance
-        await Promise.allSettled([
-          tokensStore.loadBalances(true),
-          loadTokenDetails(),
-          loadTopHolders()
-        ]);
-        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
-      }
+      () => ([{
+        token_transfer_operation: {
+          amount: {
+            amount: transferForm.value.amount,
+            nai: token.value!.nai!,
+            precision: token.value!.precision || 0
+          },
+          receiver: transferForm.value.to,
+          sender: CTokensProvider.getOperationalPublicKey()!,
+          memo: transferForm.value.memo
+        }
+      } satisfies htm_operation]),
+      'Transfer'
     );
 
+    // Reset form on success
+    transferForm.value = {
+      to: '',
+      amount: '',
+      memo: ''
+    };
+
+    // Reload user balance
+    await Promise.allSettled([
+      tokensStore.loadBalances(true),
+      loadTokenDetails(),
+      loadTopHolders()
+    ]);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
   } catch (error) {
     toastError('Transfer failed', error);
   } finally {
@@ -424,64 +445,35 @@ const handleStake = async () => {
   try {
     isStaking.value = true;
 
-    const wax = await getWax();
-
-    // Set proxy account for HTM transactions
-    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
-
-    // Create Layer 2 HTM transaction for token transform (stake)
-    const l2Transaction = new HtmTransaction(wax);
-
-    const holder = CTokensProvider.getOperationalPublicKey()!;
-
-    l2Transaction.pushOperation({
-      token_transform_operation: {
-        holder,
-        receiver: stakeForm.value.receiver || undefined,
-        amount: {
-          amount: stakeForm.value.amount,
-          nai: token.value.nai!,
-          precision: token.value.precision || 0
-        }
-      }
-    });
-
-    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
-      throw new Error('Staking via proxy is not supported yet. Please log in using your L1 wallet first.');
-
-    await tokensStore.wallet.signTransaction(l2Transaction);
-
-    // Create Layer 1 transaction and broadcast
-    const l1Transaction = await wax.createTransaction();
-    l1Transaction.pushOperation(l2Transaction);
-
-    await walletStore.wallet!.signTransaction(l1Transaction);
-
-    // Broadcast the transaction
-    await wax.broadcast(l1Transaction);
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      l1Transaction.legacy_id,
-      0,
-      'Stake',
-      async () => {
-        // Reset form on success
-        stakeForm.value = {
-          amount: '',
-          receiver: ''
-        };
-
-        // Reload user balance
-        await Promise.allSettled([
-          tokensStore.loadBalances(true),
-          loadTokenDetails(),
-          loadTopHolders()
-        ]);
-        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
-      }
+      () => ([{
+        token_transform_operation: {
+          holder: CTokensProvider.getOperationalPublicKey()!,
+          receiver: stakeForm.value.receiver || undefined,
+          amount: {
+            amount: stakeForm.value.amount,
+            nai: token.value!.nai!,
+            precision: token.value!.precision || 0
+          }
+        }
+      } satisfies htm_operation]),
+      'Stake'
     );
 
+    // Reset form on success
+    stakeForm.value = {
+      amount: '',
+      receiver: ''
+    };
+
+    // Reload user balance
+    await Promise.allSettled([
+      tokensStore.loadBalances(true),
+      loadTokenDetails(),
+      loadTopHolders()
+    ]);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
   } catch (error) {
     toastError('Staking failed', error);
   } finally {
@@ -528,63 +520,35 @@ const handleUnstake = async () => {
   try {
     isUnstaking.value = true;
 
-    const wax = await getWax();
-
-    // Set proxy account for HTM transactions
-    HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
-
-    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
-      throw new Error('Unstaking via proxy is not supported yet. Please log in using your L1 wallet first.');
-
-    // Create Layer 2 HTM transaction for token transform (unstake)
-    const l2Transaction = new HtmTransaction(wax);
-
-    const holder = CTokensProvider.getOperationalPublicKey()!;
-
-    l2Transaction.pushOperation({
-      token_transform_operation: {
-        holder,
-        receiver: stakeForm.value.receiver || undefined,
-        amount: {
-          amount: stakeForm.value.amount,
-          nai: token.value.nai!,
-          precision: token.value.precision || 0
-        }
-      }
-    });
-
-    await tokensStore.wallet.signTransaction(l2Transaction);
-
-    // Create Layer 1 transaction and broadcast
-    const l1Transaction = await wax.createTransaction();
-    l1Transaction.pushOperation(l2Transaction);
-
-    await walletStore.wallet!.signTransaction(l1Transaction);
-
-    // Broadcast the transaction
-    await wax.broadcast(l1Transaction);
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      l1Transaction.legacy_id,
-      0,
-      'Unstake',
-      async () => {
-        // Reset form on success
-        stakeForm.value = {
-          amount: '',
-          receiver: ''
-        };
-
-        // Reload user balance
-        await Promise.allSettled([
-          tokensStore.loadBalances(true),
-          loadTokenDetails(),
-          loadTopHolders()
-        ]);
-        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
-      }
+      () => ([{
+        token_transform_operation: {
+          holder: CTokensProvider.getOperationalPublicKey()!,
+          receiver: stakeForm.value.receiver || undefined,
+          amount: {
+            amount: stakeForm.value.amount,
+            nai: token.value!.nai!,
+            precision: token.value!.precision || 0
+          }
+        }
+      } satisfies htm_operation]),
+      'Unstake'
     );
+
+    // Reset form on success
+    stakeForm.value = {
+      amount: '',
+      receiver: ''
+    };
+
+    // Reload user balance
+    await Promise.allSettled([
+      tokensStore.loadBalances(true),
+      loadTokenDetails(),
+      loadTopHolders()
+    ]);
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
   } catch (error) {
     toastError('Unstaking failed', error);
   } finally {
@@ -993,7 +957,7 @@ onMounted(async () => {
                 </p>
                 <Button
                   size="lg"
-                  @click="$router.push('/')"
+                  @click="connectToHTM"
                 >
                   Connect Wallet
                 </Button>
@@ -1201,7 +1165,7 @@ onMounted(async () => {
                 </p>
                 <Button
                   size="lg"
-                  @click="$router.push('/')"
+                  @click="connectToHTM"
                 >
                   Connect Wallet
                 </Button>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiArrowLeft, mdiContentSave, mdiLoading } from '@mdi/js';
+import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -150,31 +151,37 @@ const handleUpdateToken = async () => {
       website: form.value.website.trim()
     };
 
-    // Call store method to update token metadata
-    const txId = await tokensStore.updateTokenMetadata(
-      token.value.nai!,
-      token.value.precision!,
-      metadata
-    );
-
     // Wait for transaction status
     await waitForTransactionStatus(
-      txId,
-      0,
-      'Token metadata update',
-      async () => {
-        // Refresh token data after update
-        await tokensStore.loadRegisteredTokens(token.value!.nai, token.value!.precision, 1, true);
-
-        router.push({
-          path: '/tokens/token',
-          query: {
-            nai: token.value!.nai,
-            precision: token.value!.precision
+      () => ([{
+        asset_metadata_update_operation: {
+          identifier: {
+            amount: '0',
+            nai: token.value!.nai!,
+            precision: token.value!.precision!
+          },
+          owner: CTokensProvider.getOperationalPublicKey()!,
+          metadata: {
+            items: Object.entries(metadata).map(([key, value]) => ({
+              key,
+              value
+            }))
           }
-        });
-      }
+        }
+      } satisfies htm_operation]),
+      'Token metadata update'
     );
+
+    // Refresh token data after update
+    await tokensStore.loadRegisteredTokens(token.value!.nai, token.value!.precision, 1, true);
+
+    router.push({
+      path: '/tokens/token',
+      query: {
+        nai: token.value!.nai,
+        precision: token.value!.precision
+      }
+    });
   } catch (error) {
     toastError('Failed to update token metadata', error);
   } finally {
