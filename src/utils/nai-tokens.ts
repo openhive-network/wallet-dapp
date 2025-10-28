@@ -30,7 +30,7 @@ const dammDigit = (str: string) => {
     if (Number.isNaN(col) || col < 0 || col > 9)
       throw new Error(`Invalid character '${str.charAt(i)}' in NAI string '${str}'`);
 
-    row = table[row][col];
+    row = table[row]![col]!;
   }
 
   return row.toString();

@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
 
 /**
  * Poll transaction status until it's confirmed or failed
@@ -158,18 +159,11 @@ export const waitForTransactionStatus = async (
       toast.success(`${operationName} successful`, {
         description: result.message
       });
-    } else {
-      toast.error(`${operationName} failed`, {
-        description: result.details || result.message
-      });
-    }
+    } else
+      toastError(`${operationName} failed`, new Error(result.details || result.message));
   } catch (error: unknown) {
-    if (enableToasts) {
+    if (enableToasts)
       toast.dismiss(loadingToast);
-      toast.error(`${operationName} failed`, {
-        description: error instanceof Error ? error.message : 'Unknown error occurred'
-      });
-    }
 
     throw error;
   }

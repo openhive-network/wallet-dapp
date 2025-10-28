@@ -12,46 +12,19 @@ import HTMView from '@/components/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useSettingsStore } from '@/stores/settings.store';
-import type { CTokenDisplay } from '@/stores/tokens.store';
+import { transformTokenToDisplayFormat, type CTokenDisplay } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const router = useRouter();
-const settingsStore = useSettingsStore();
 
 // State
 const tokensFullList = ref<CTokenDisplay[]>([]);
 const isLoading = ref(false);
 const currentPage = ref(0);
 const hasMorePages = ref(true);
-
-// Get user's public key for filtering
-const getUserPublicKey = async (): Promise<string | undefined> => {
-  try {
-    // First try to get from CTokens provider if logged in
-    if (CTokensProvider.isLoggedIn())
-      return CTokensProvider.getOperationalPublicKey();
-
-    // If no CTokens wallet, get from account data
-    if (settingsStore.account) {
-      const wax = await getWax();
-      const response = await wax.api.database_api.find_accounts({
-        accounts: [settingsStore.account],
-        delayed_votes_active: true
-      });
-      if (response.accounts.length > 0)
-        return response.accounts[0].posting.key_auths[0][0]; // Get the first posting key
-    }
-
-    return undefined;
-  } catch (error) {
-    console.error('Failed to get user public key:', error);
-    return undefined;
-  }
-};
 
 // Navigate to token detail page
 const viewTokenDetails = (token: CTokenDisplay) => {
@@ -63,55 +36,26 @@ const loadTokens = async (page: number = 1) => {
   try {
     isLoading.value = true;
 
-    const userPublicKey = await getUserPublicKey();
+    const userPublicKey = CTokensProvider.getOperationalPublicKey();
     if (!userPublicKey) {
       toastError('Unable to determine your public key', 'Please make sure you are connected to a wallet');
       return;
     }
 
     const wax = await getWax();
-    const formatAsset = (value: string | bigint, precision: number, symbol?: string): string => {
-      const formatted = wax.formatter.formatNumber(value, precision);
-      return symbol ? `${formatted} ${symbol}` : formatted;
-    };
-
-    // Temporary naive implementation of vesting space check
-    const isVesting = (nai: string, precision: number) => (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) != 0;
-
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({}) as Required<CtokensAppToken>[];
-
-    // Filter tokens by user's public key
-    const userTokens = tokens.filter(token => token.owner === userPublicKey);
+    const tokens = await wax.restApi.ctokensApi.registeredTokens({ owner: userPublicKey });
 
     if (page === 1)
       tokensFullList.value = [];
 
-    tokensFullList.value.push(...userTokens.map(token => {
-      const { name, symbol, description, website, image } = (token.metadata || {}) as Record<string, string>;
-
-      return {
-        nai: token.nai,
-        isStaked: isVesting(token.nai, token.precision),
-        displayMaxSupply: formatAsset(token.max_supply, token.precision, symbol || name),
-        ownerPublicKey: token.owner,
-        precision: token.precision,
-        displayTotalSupply: formatAsset(token.total_supply, token.precision, symbol || name),
-        totalSupply: BigInt(token.total_supply),
-        maxSupply: BigInt(token.max_supply),
-        capped: token.capped,
-        othersCanStake: token.others_can_stake,
-        othersCanUnstake: token.others_can_unstake,
-        isNft: token.is_nft,
-        metadata: token.metadata,
-        name,
-        symbol,
-        description,
-        website,
-        image
-      } as CTokenDisplay;
+    tokensFullList.value.push(...tokens.flatMap(token => {
+      return [
+        transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>),
+        transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>)
+      ];
     }));
 
-    hasMorePages.value = userTokens.length === 100; // API returns 100 results per page
+    hasMorePages.value = tokens.length === 100; // API returns 100 results per page
     currentPage.value = page;
   } catch (error) {
     toastError('Failed to load tokens', error);
