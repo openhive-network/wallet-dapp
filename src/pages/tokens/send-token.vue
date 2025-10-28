@@ -266,21 +266,18 @@ const loadTokenDetails = async () => {
     const wax = await getWax();
 
     // Fetch token details by NAI
-    let tokens = await wax.restApi.ctokensApi.registeredTokens({
+    const tokens = await wax.restApi.ctokensApi.registeredTokens({
       nai: nai.value,
       precision: Number(precision.value!)
     });
 
-    if (!tokens || tokens.length === 0) {
-      const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
-      tokens = allTokens.filter(t => t.nai === nai.value);
-    }
-
     if (!tokens || tokens.length === 0)
       throw new Error(`Token with NAI ${nai.value} not found`);
 
-    token.value = tokens[0];
+    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
 
+    if (!token.value)
+      throw new Error(`Token with NAI ${nai.value} not found`);
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');

@@ -1,11 +1,10 @@
+import type { IWaxBaseInterface } from '@hiveio/wax/vite';
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
 import { getWax } from '@/stores/wax.store';
 import { isVesting } from '@/utils/nai-tokens';
 import type {
-  CtokensAppArrayOfBalances,
-  CtokensAppArrayOfTokens,
   CtokensAppBalance,
   CtokensAppToken,
   CtokensAppBalanceHistory,
@@ -39,22 +38,21 @@ export interface CTokenDisplay {
 
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
 
-const formatAsset = async (value: string | bigint, precision: number, name?: string): Promise<string> => {
-  const wax = await getWax();
+const formatAsset = (wax: IWaxBaseInterface, value: string | bigint, precision: number, name?: string): string => {
   const formatted = wax.formatter.formatNumber(value, precision);
   return name ? `${formatted} ${name}` : formatted;
 };
 
-const transformTokenToDisplayFormat = async (token: Required<CtokensAppToken>): Promise<CTokenDisplay> => {
+export const transformTokenToDisplayFormat = (wax: IWaxBaseInterface, token: Required<CtokensAppToken>): CTokenDisplay => {
   const { name, symbol, description, website, image } = (token.metadata || {}) as Record<string, string>;
 
   return {
     nai: token.nai,
     isStaked: isVesting(token.nai, token.precision),
-    displayMaxSupply: await formatAsset(token.max_supply, token.precision, symbol || name),
+    displayMaxSupply: formatAsset(wax, token.max_supply, token.precision, symbol || name),
     ownerPublicKey: token.owner,
     precision: token.precision,
-    displayTotalSupply: await formatAsset(token.total_supply, token.precision, symbol || name),
+    displayTotalSupply: formatAsset(wax, token.total_supply, token.precision, symbol || name),
     totalSupply: BigInt(token.total_supply),
     maxSupply: BigInt(token.max_supply),
     capped: token.capped,
@@ -72,8 +70,8 @@ const transformTokenToDisplayFormat = async (token: Required<CtokensAppToken>): 
 
 export const useTokensStore = defineStore('tokens', {
   state: () => ({
-    balances: [] as CtokensAppArrayOfBalances,
-    tokenDefinitions: [] as CtokensAppArrayOfTokens,
+    balances: [] as CtokensAppBalance[],
+    tokenDefinitions: [] as CtokensAppBalance[],
     registeredTokens: [] as CTokenDisplay[],
     isLoadingBalances: false,
     isLoadingTokens: false,
@@ -149,10 +147,15 @@ export const useTokensStore = defineStore('tokens', {
         const wax = await getWax();
 
         // Get registered tokens from ctokens-api
-        const tokens = await wax.restApi.ctokensApi.registeredTokens({ });
+        const tokens = await wax.restApi.ctokensApi.registeredTokens({ owner: creator });
 
         // Filter by creator if provided
-        this.tokenDefinitions = creator ? tokens.filter((token: CtokensAppToken) => token.owner === creator) : tokens;
+        this.tokenDefinitions = tokens.flatMap(token => {
+          const result: CtokensAppBalance[] = [];
+          if (token.liquid) result.push(token.liquid);
+          if (token.vesting) result.push(token.vesting);
+          return result;
+        });
       } catch (error) {
         console.error('Failed to load token definitions:', error);
         this.lastError = error instanceof Error ? error.message : 'Failed to load token definitions';
@@ -195,12 +198,13 @@ export const useTokensStore = defineStore('tokens', {
       try {
         const wax = await getWax();
         // Get raw tokens from API
-        const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai, precision }) as Required<CtokensAppToken>[];
+        const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai, precision });
 
         // Transform tokens to display format
-        const transformedTokens = await Promise.all(
-          tokens.map(token => transformTokenToDisplayFormat(token))
-        );
+        const transformedTokens = tokens.flatMap(token => ([
+          transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>),
+          transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>)
+        ]));
 
         // For pagination, we append or replace based on page
         if (page === 1)
