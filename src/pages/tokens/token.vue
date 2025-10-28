@@ -158,10 +158,9 @@ const formattedTopHolders = computed(() => {
   });
 });
 
-// Helper to format amount synchronously
+// Helper to format amount synchronously (fallback for top holders)
 const formatAmount = (amount: string, precision: number): string => {
   try {
-    // Simple formatter - convert to number with proper decimal places
     const num = parseFloat(amount);
     if (isNaN(num)) return amount;
 
@@ -172,6 +171,13 @@ const formatAmount = (amount: string, precision: number): string => {
   } catch {
     return amount;
   }
+};
+
+// Parse asset amount - convert decimal to base units (integer with precision zeros)
+const parseAssetAmount = (amountStr: string, precision: number): string => {
+  const [integerPart, fractionalPart = ''] = amountStr.split('.');
+  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
+  return integerPart + normalizedFractional;
 };
 
 // Update formatted values
@@ -368,12 +374,15 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
+    // Convert decimal amount to base units (add precision zeros)
+    const baseAmount = parseAssetAmount(transferForm.value.amount, token.value.precision || 0);
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
         token_transfer_operation: {
           amount: {
-            amount: transferForm.value.amount,
+            amount: baseAmount,
             nai: token.value!.nai!,
             precision: token.value!.precision || 0
           },
@@ -445,6 +454,9 @@ const handleStake = async () => {
   try {
     isStaking.value = true;
 
+    // Convert decimal amount to base units (add precision zeros)
+    const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -452,7 +464,7 @@ const handleStake = async () => {
           holder: CTokensProvider.getOperationalPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
-            amount: stakeForm.value.amount,
+            amount: baseAmount,
             nai: token.value!.nai!,
             precision: token.value!.precision || 0
           }
@@ -520,6 +532,9 @@ const handleUnstake = async () => {
   try {
     isUnstaking.value = true;
 
+    // Convert decimal amount to base units (add precision zeros)
+    const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -527,7 +542,7 @@ const handleUnstake = async () => {
           holder: CTokensProvider.getOperationalPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
-            amount: stakeForm.value.amount,
+            amount: baseAmount,
             nai: token.value!.nai!,
             precision: token.value!.precision || 0
           }
