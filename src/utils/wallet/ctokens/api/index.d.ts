@@ -6,17 +6,20 @@ export interface CtokensAppBalance {
   amount?: string;
   precision?: number;
   /** Key-value pairs with additional token metadata. */
-  metadata?: object;
+  metadata?: Record<string, any>;
 }
 
-export type CtokensAppArrayOfBalances = CtokensAppBalance[];
-
-export interface CtokensAppAccountBalance {
-  liquid?: CtokensAppBalance | null;
-  vesting?: CtokensAppBalance | null;
+export interface CtokensAppLiquidAndVestingBalance {
+  liquid?: CtokensAppBalance;
+  vesting?: CtokensAppBalance;
 }
 
-export type CtokensAppArrayOfAccountBalances = CtokensAppAccountBalance[];
+export type CtokensAppArrayOfBalances = CtokensAppLiquidAndVestingBalance[];
+
+export enum CtokensAppSortDirection {
+  Asc = "asc",
+  Desc = "desc",
+}
 
 export interface CtokensAppToken {
   /** Currency NAI */
@@ -38,10 +41,15 @@ export interface CtokensAppToken {
   /** Marks given asset as a NFT. */
   is_nft?: boolean;
   /** Key-value pairs with additional token metadata. */
-  metadata?: object;
+  metadata?: Record<string, any>;
 }
 
-export type CtokensAppArrayOfTokens = CtokensAppToken[];
+export interface CtokensAppLiquidAndVestingToken {
+  liquid?: CtokensAppToken;
+  vesting?: CtokensAppToken;
+}
+
+export type CtokensAppArrayOfTokens = CtokensAppLiquidAndVestingToken[];
 
 export interface CtokensAppUser {
   management_key?: string;
@@ -49,7 +57,7 @@ export interface CtokensAppUser {
   /** connected hive account */
   hive_account?: string | null;
   /** Key-value pairs with additional user metadata. */
-  metadata?: object;
+  metadata?: Record<string, any>;
 }
 
 export type CtokensAppArrayOfUsers = CtokensAppUser[];
@@ -69,7 +77,7 @@ export interface CtokensAppTopHolder {
   /** Amount of held tokens */
   amount?: string;
   /** Key-value pairs with additional user metadata. */
-  metadata?: object;
+  metadata?: Record<string, any>;
 }
 
 export type CtokensAppArrayOfTopHolders = CtokensAppTopHolder[];
@@ -105,12 +113,25 @@ export interface CtokensEndpointsGetTopHoldersParams {
 
 export interface CtokensEndpointsGetAccountBalancesParams {
   user: string;
+  /** @default null */
+  nai?: string;
+  /** @default null */
+  precision?: number;
   /**
    * 100 results per page (default `1`).
    * @min 1
    * @default 1
    */
   page?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
 }
 
 export interface CtokensEndpointsGetBalanceHistoryParams {
@@ -126,20 +147,45 @@ export interface CtokensEndpointsGetBalanceHistoryParams {
 }
 
 export interface CtokensEndpointsGetRegisteredTokensParams {
+  /**
+   * Filter by owner (accepts both operational and management keys).
+   * @default null
+   */
+  owner?: string;
   /** @default null */
   nai?: string;
   /** @default null */
   precision?: number;
+  /**
+   * 100 results per page (default `1`).
+   * @min 1
+   * @default 1
+   */
+  page?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
 }
 
 export interface CtokensEndpointsGetRegisteredUsersParams {
   /** @default null */
   user?: string;
+  /**
+   * 100 results per page (default `1`).
+   * @min 1
+   * @default 1
+   */
+  page?: number;
 }
 
 export interface CtokensEndpointsGetStatusParams {
-  /* eslint-disable-next-line @typescript-eslint/naming-convention */
-  'ref-id': string;
+  "ref-id": string;
 }
 
 type TWaxExtended = {
@@ -158,7 +204,7 @@ type TWaxExtended = {
       }
     },
     balances: {
-      result: CtokensAppArrayOfAccountBalances,
+      result: CtokensAppArrayOfBalances,
       params: CtokensEndpointsGetAccountBalancesParams & TEmptyReq & {
       }
     },
@@ -184,5 +230,5 @@ type TWaxExtended = {
     }
   }
 }
-declare const WaxExtendedData: TWaxExtended;
-export default WaxExtendedData;
+declare var WaxExtendedData: TWaxExtended
+export default WaxExtendedData
