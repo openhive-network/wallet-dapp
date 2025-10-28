@@ -210,18 +210,15 @@ const loadTokenDetails = async () => {
 
     // Fetch token details by NAI
     // First try with just NAI, if that doesn't work, get all tokens and filter
-    let tokens = await wax.restApi.ctokensApi.registeredTokens({ nai: nai.value, precision: Number(precision.value!) });
-
-    // If no token found with just NAI, try getting all tokens and filtering
-    if (!tokens || tokens.length === 0) {
-      const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
-      tokens = allTokens.filter(token => token.nai === nai.value);
-    }
+    const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai: nai.value, precision: Number(precision.value!) });
 
     if (!tokens || tokens.length === 0)
       throw new Error(`Token with NAI ${nai.value} not found`);
 
-    token.value = tokens[0]!;
+    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
+
+    if (!token.value)
+      throw new Error(`Token with NAI ${nai.value} not found`);
 
     isStaked.value = isVesting(token.value.nai!, token.value.precision || 0);
 

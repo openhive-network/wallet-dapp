@@ -291,6 +291,9 @@ const formatDisplayAmount = (amount: string | undefined, precision: number | und
     return '0';
 
   const [integerPart, decimalPart] = normalized.split('.');
+  if (!integerPart)
+    return '0';
+
   const withSeparators = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 
   if (!decimalPart)
@@ -433,8 +436,7 @@ const loadAccountStatistics = async () => {
     const wax = await getWax();
 
     // Get all tokens created by this user (owner field matches operational key)
-    const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
-    const createdTokens = allTokens.filter(token => token.owner === operationalKey);
+    const createdTokens = await wax.restApi.ctokensApi.registeredTokens({ owner: operationalKey });
     createdTokensCount.value = createdTokens.length;
 
     // Get owned tokens (tokens with balance)
@@ -452,7 +454,7 @@ const loadAccountStatistics = async () => {
     ownedTokensCount.value = uniqueBalanceKeys.size;
 
     // Get NFT collections (created NFT tokens)
-    const nftTokens = createdTokens.filter(token => token.is_nft);
+    const nftTokens = createdTokens.filter(token => token.liquid?.is_nft);
     nftCollectionsCount.value = nftTokens.length;
 
     // Get staked tokens (tokens with vesting bit set)
