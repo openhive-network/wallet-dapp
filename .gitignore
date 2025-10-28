@@ -5,6 +5,8 @@ build/
 coverage/
 .cache/
 .vscode
+.nuxt/
+.output/
 
 # Logs
 snap/snapper.log.json

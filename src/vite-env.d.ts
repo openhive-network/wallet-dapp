@@ -1,10 +1,8 @@
 /// <reference types="vite/client" />
 
-import type { MetaMaskInpageProvider, EIP6963AnnounceProviderEvent } from "@metamask/providers";
+import type { MetaMaskInpageProvider, EIP6963AnnounceProviderEvent } from '@metamask/providers';
 
 declare global {
-  const __COMMIT_HASH__: string;
-
   interface Window {
     ethereum?: MetaMaskInpageProvider & {
       detected?: MetaMaskInpageProvider[];
@@ -18,6 +16,7 @@ declare global {
     }
   }
   interface WindowEventMap {
+    /* eslint-disable-next-line @typescript-eslint/naming-convention */
     'eip6963:announceProvider': EIP6963AnnounceProviderEvent;
   }
 }

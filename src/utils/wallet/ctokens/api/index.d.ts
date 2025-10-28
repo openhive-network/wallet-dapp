@@ -184,5 +184,5 @@ type TWaxExtended = {
     }
   }
 }
-declare let WaxExtendedData: TWaxExtended;
+declare const WaxExtendedData: TWaxExtended;
 export default WaxExtendedData;
