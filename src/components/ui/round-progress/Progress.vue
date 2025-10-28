@@ -102,7 +102,7 @@ const primaryCircleStyle = computed(() => ({
     </svg>
     <span
       :data-current-value="currentPercent"
-      class="duration-[var(--transition-length)] delay-[var(--delay)] absolute inset-0 m-auto size-fit ease-linear animate-in fade-in"
+      class="[transition-duration:var(--transition-length)] [transition-delay:var(--delay)] absolute inset-0 m-auto size-fit ease-linear animate-in fade-in"
     >
       {{ currentPercent.toFixed(2) }}%
     </span>

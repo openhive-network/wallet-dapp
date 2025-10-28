@@ -50,13 +50,12 @@ const connect = async () => {
         await walletStore.createWalletFor(settingsStore.settings, 'posting');
         await userStore.parseUserData(settingsStore.settings!.account!);
       }
+
+      toast.success('Logged in successfully!');
+      close(false);
     } catch (error) {
       toastError('Failed to create wallet', error);
     }
-
-    toast.success('Logged in successfully!');
-
-    close(false);
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   } finally {

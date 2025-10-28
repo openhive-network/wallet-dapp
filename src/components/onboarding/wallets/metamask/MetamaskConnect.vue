@@ -79,7 +79,7 @@ const onAccountNameValidationChange = (isValid: boolean) => {
   accountNameValid.value = isValid;
 };
 
-const generateAccountUpdateTransaction = async (): Promise<string | void> => {
+const generateAccountUpdateTransaction = async (): Promise<string | undefined> => {
   try {
     const wax = await getWax();
     const tx = await wax.createTransaction();

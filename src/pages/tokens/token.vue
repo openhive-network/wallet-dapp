@@ -166,7 +166,7 @@ const formatAmount = (amount: string, precision: number): string => {
 
     // Format with precision and add thousand separators
     const parts = num.toFixed(precision).split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     return parts.join('.');
   } catch {
     return amount;
@@ -221,7 +221,7 @@ const loadTokenDetails = async () => {
     if (!tokens || tokens.length === 0)
       throw new Error(`Token with NAI ${nai.value} not found`);
 
-    token.value = tokens[0];
+    token.value = tokens[0]!;
 
     isStaked.value = isVesting(token.value.nai!, token.value.precision || 0);
 

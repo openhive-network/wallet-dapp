@@ -30,6 +30,8 @@ import { toastError } from '@/utils/parse-error';
 import packageJson from '../../../package.json';
 import AccountCreationActionButtons from '../ui/hive/AccountCreationActionButtons.vue';
 
+const { public: { commitHash } } = useRuntimeConfig();
+
 const { version } = packageJson;
 const accountName = ref('');
 const accountNameValid = ref(false);
@@ -202,7 +204,7 @@ const downloadAuthorityData = () => {
       }
     },
     _note: 'KEEP THIS FILE SAFE! This master key is the key to your entire account. Store it in a secure location and never share it with anyone.',
-    generator: `Hive Bridge v${version} #${__COMMIT_HASH__}`
+    generator: `Hive Bridge v${version} #${commitHash}`
   };
 
   const dataStr = JSON.stringify(authorityFile, null, 2);
