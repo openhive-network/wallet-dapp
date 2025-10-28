@@ -124,7 +124,13 @@ export const useTokensStore = defineStore('tokens', {
         // Get balances from ctokens-api
         const cTokenBalances = await wax.restApi.ctokensApi.balances({ user: operationalKey, page: 1 });
 
-        this.balances = cTokenBalances.flatMap(balance => ([balance.liquid!, balance.vesting!]));
+        // Filter out null values when flattening
+        this.balances = cTokenBalances.flatMap(balance => {
+          const result: CtokensAppBalance[] = [];
+          if (balance.liquid) result.push(balance.liquid);
+          if (balance.vesting) result.push(balance.vesting);
+          return result;
+        });
       } catch (error) {
         console.error('Failed to load balances:', error);
         this.lastError = error instanceof Error ? error.message : 'Failed to load balances';
