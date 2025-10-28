@@ -150,6 +150,9 @@ export const useUserStore = defineStore('user', {
         // Maybe adjust wax code so I don't have to do all of this manually:
         // (Currently I do this so wax does not call API multiple times for same data)
         const { rc_accounts: [rcData] } = await wax.api.rc_api.find_rc_accounts({ accounts: [data.name] });
+        if (!rcData)
+          throw new Error('RC data not found for account');
+
         const now = Math.floor(new Date(`${time}Z`).getTime() / 1000);
         const downvotePoolPercent = BigInt(downvote_pool_percent);
         let downVoteManabarMax = BigInt(data.post_voting_power.amount);
@@ -234,6 +237,9 @@ export const useUserStore = defineStore('user', {
       const wax = await getWax();
 
       const { accounts: [ data ] } = await wax.api.database_api.find_accounts({ accounts: [ accountName ], delayed_votes_active: false });
+      if (!data)
+        throw new Error('Account not found');
+
       try {
         this.parsedJsonMetadata = JSON.parse(data.json_metadata);
       } catch {}

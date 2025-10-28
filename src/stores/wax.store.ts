@@ -143,10 +143,8 @@ export const getWax = async () => {
   if (!chain) {
     const { public: { hiveNodeEndpoint, hiveChainId, ctokensApiUrl } } = useRuntimeConfig();
 
-    const chainId = hiveChainId.length > 0 ? hiveChainId : undefined;
+    const chainId = typeof hiveChainId === 'number' || hiveChainId.length > 0 ? String(hiveChainId) : undefined;
     const apiEndpoint = hiveNodeEndpoint.length > 0 ? hiveNodeEndpoint : undefined;
-
-    console.log(chainId, apiEndpoint);
 
     chain = (await (await import('@hiveio/wax/vite')).createHiveChain({ apiEndpoint, chainId })).extend<WaxApi>().extendRest(CTokensApi);
 
