@@ -1,4 +1,4 @@
-import { type IBeekeeperInstance, type IBeekeeperOptions, type IBeekeeperUnlockedWallet } from '@hiveio/beekeeper/vite';
+import type { IBeekeeperInstance, IBeekeeperOptions, IBeekeeperUnlockedWallet } from '@hiveio/beekeeper/vite';
 import type { IHiveChainInterface, ISignatureTransaction, TPublicKey, TRole, TSignature, TWaxRestExtended } from '@hiveio/wax/vite';
 import { AEncryptionProvider } from '@hiveio/wax/vite';
 
@@ -6,7 +6,6 @@ import RestApi from './api';
 
 export class WaxCTokensEncryptionProviderError extends Error {
   public constructor (message: string, cause?: Error) {
-    // @ts-expect-error - TODO: cause not working for some reason - maybe update tsconfig
     super(message, { cause });
   }
 }
@@ -18,8 +17,6 @@ const LOCAL_STORAGE_WALLET_INDEX_KEY = 'ctokens_wallet_index';
 const LOCAL_STORAGE_WALLET_INDEX_DEFAULT = 0;
 const LOCAL_STORAGE_OPERATIONAL_PUBLIC_KEY = 'ctokens_operational_public_key';
 const LOCAL_STORAGE_MANAGEMENT_PUBLIC_KEY = 'ctokens_management_public_key';
-
-export const DEFAULT_CTOKENS_API_URL = 'http://192.168.6.7';
 
 export class CTokensProvider extends AEncryptionProvider {
   static #beekeeper: IBeekeeperInstance | undefined;
@@ -179,7 +176,7 @@ export class CTokensProvider extends AEncryptionProvider {
     return { management, operational };
   }
 
-  public static async for (chain: IHiveChainInterface, role: TRole, onlineCheckKeys = true, ctokensUrl: string = (import.meta.env.VITE_CTOKENS_API_URL || DEFAULT_CTOKENS_API_URL)): Promise<CTokensProvider> {
+  public static async for (chain: IHiveChainInterface, role: TRole, onlineCheckKeys = true, ctokensUrl?: string): Promise<CTokensProvider> {
     CTokensProvider.ensurePublicKeysLoaded();
 
     if (role === 'owner') {
@@ -192,6 +189,11 @@ export class CTokensProvider extends AEncryptionProvider {
 
     if (!CTokensProvider.#beekeeper)
       await CTokensProvider.prepareBeekeeper();
+
+    const { public: { ctokensApiUrl } } = useRuntimeConfig();
+
+    if (!ctokensUrl)
+      ctokensUrl = ctokensApiUrl || 'http://192.168.6.7';
 
     const instance = new CTokensProvider(chain, role, ctokensUrl);
 

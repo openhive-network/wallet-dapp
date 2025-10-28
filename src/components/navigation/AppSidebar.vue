@@ -9,7 +9,8 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, Si
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
+
+const { public: { commitHash, snapOrigin, snapVersion } } = useRuntimeConfig();
 
 const props = defineProps({
   forceTokenView: {
@@ -156,8 +157,11 @@ const navigateTo = (url: string) => {
 };
 
 const waxVersion = ref('');
+
+const defaultSnapOrigin = snapOrigin || 'npm:@hiveio/metamask-snap'; // local:http://localhost:8080
+const defaultSnapVersion: string | undefined = snapVersion || '1.6.0';
+
 const metamaskVersion = `${defaultSnapOrigin}@${defaultSnapVersion}`;
-const commitHash = __COMMIT_HASH__;
 
 onMounted(async () => {
   try {

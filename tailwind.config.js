@@ -1,7 +1,9 @@
+/* eslint-disable import/no-commonjs */
+
 /** @type {import('tailwindcss').Config} */
 export default {
-    darkMode: ['class'],
-    content: ['./index.html', './src/**/*.{ts,js,vue}'],
+  darkMode: ['class'],
+  content: ['./src/**/*.{ts,js,vue}'],
   theme: {
   	extend: {
   		borderRadius: {
@@ -63,6 +65,5 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
-}
-
+  plugins: [require('tailwindcss-animate')]
+};
