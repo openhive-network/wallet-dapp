@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiPencilOutline, mdiContentCopy, mdiCheck } from '@mdi/js';
+import { mdiPencilOutline, mdiContentCopy, mdiCheck, mdiQrcodeScan } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -584,6 +584,13 @@ const editToken = () => {
   });
 };
 
+const showQRCode = () => {
+  router.push({
+    path: '/tokens/send-token',
+    query: { nai: token.value?.nai, precision: token.value?.precision }
+  });
+};
+
 // Copy owner address to clipboard
 const copyOwnerAddress = () => {
   if (!token.value?.owner) return;
@@ -659,27 +666,51 @@ onMounted(async () => {
           </svg>
           Back to Tokens
         </Button>
-        <Button
-          v-if="isTokenOwner"
-          variant="default"
-          size="sm"
-          class="gap-2"
-          @click="editToken"
+        <div
+          class="flex gap-3"
         >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
+          <Button
+            variant="outline"
+            size="sm"
+            class="gap-2"
+            @click="showQRCode"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiPencilOutline"
-            />
-          </svg>
-          Edit Token Definition
-        </Button>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiQrcodeScan"
+              />
+            </svg>
+            Show QR Code
+          </Button>
+          <Button
+            v-if="isTokenOwner"
+            variant="default"
+            size="sm"
+            class="gap-2"
+            @click="editToken"
+          >
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiPencilOutline"
+              />
+            </svg>
+            Edit Token Definition
+          </Button>
+        </div>
       </div>
 
       <!-- Loading State -->

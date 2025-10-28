@@ -14,6 +14,7 @@ import TokensList from '@/pages/tokens/list.vue';
 import AccountBalances from '@/pages/tokens/my-balance.vue';
 import TokenDefinitions from '@/pages/tokens/my-tokens.vue';
 import RegisterHTMAccount from '@/pages/tokens/register-account.vue';
+import SendToken from '@/pages/tokens/send-token.vue';
 import TokenDetail from '@/pages/tokens/token.vue';
 
 const standardPath = (path: string, component: Component) => ({ path, component });
@@ -40,6 +41,7 @@ export const routes = [
   tokensPath('/tokens/register-account', RegisterHTMAccount),
   tokensPath('/tokens/create', CreateToken),
   tokensPath('/tokens/edit', EditToken),
+  tokensPath('/tokens/send-token', SendToken),
   tokensPath('/tokens/my-tokens', TokenDefinitions),
   tokensPath('/tokens/my-balance', AccountBalances),
   tokensPath('/tokens/list', TokensList),
