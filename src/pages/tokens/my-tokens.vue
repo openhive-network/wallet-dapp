@@ -70,9 +70,9 @@ const loadTokens = async (page: number = 1) => {
     }
 
     const wax = await getWax();
-    const formatAsset = (value: string | bigint, precision: number, name?: string): string => {
+    const formatAsset = (value: string | bigint, precision: number, symbol?: string): string => {
       const formatted = wax.formatter.formatNumber(value, precision);
-      return name ? `${formatted} ${name}` : formatted;
+      return symbol ? `${formatted} ${symbol}` : formatted;
     };
 
     // Temporary naive implementation of vesting space check
@@ -87,15 +87,15 @@ const loadTokens = async (page: number = 1) => {
       tokensFullList.value = [];
 
     tokensFullList.value.push(...userTokens.map(token => {
-      const { name, description, website, image } = (token.metadata || {}) as Record<string, string>;
+      const { name, symbol, description, website, image } = (token.metadata || {}) as Record<string, string>;
 
       return {
         nai: token.nai,
         isStaked: isVesting(token.nai, token.precision),
-        displayMaxSupply: formatAsset(token.max_supply, token.precision, name),
+        displayMaxSupply: formatAsset(token.max_supply, token.precision, symbol || name),
         ownerPublicKey: token.owner,
         precision: token.precision,
-        displayTotalSupply: formatAsset(token.total_supply, token.precision, name),
+        displayTotalSupply: formatAsset(token.total_supply, token.precision, symbol || name),
         totalSupply: BigInt(token.total_supply),
         maxSupply: BigInt(token.max_supply),
         capped: token.capped,
@@ -104,6 +104,7 @@ const loadTokens = async (page: number = 1) => {
         isNft: token.is_nft,
         metadata: token.metadata,
         name,
+        symbol,
         description,
         website,
         image
