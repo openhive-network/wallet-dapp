@@ -43,11 +43,11 @@ const emit = defineEmits<{
 
 // Get avatar fallback text
 const getAvatarFallback = (token: TokenPreviewData | CTokenDisplay): string => {
-  if (token.name)
-    return token.name.slice(0, 2).toUpperCase();
-
   if (token.symbol)
     return token.symbol.slice(0, 2).toUpperCase();
+
+  if (token.name)
+    return token.name.slice(0, 2).toUpperCase();
 
   if (token.ownerPublicKey)
     return token.ownerPublicKey.slice(3, 5).toUpperCase();
@@ -124,7 +124,7 @@ onMounted(async () => {
           <AvatarImage
             v-if="token.image"
             :src="token.image"
-            :alt="token.name || 'Token'"
+            :alt="token.symbol || token.name || 'Token'"
           />
           <AvatarFallback>
             <svg
@@ -153,7 +153,13 @@ onMounted(async () => {
         <div class="flex-1 min-w-0">
           <div class="flex flex-col gap-2 mb-1">
             <CardTitle class="text-lg truncate inline-flex gap-2 flex-wrap items-center">
-              <span>{{ token.name || 'Unnamed Token' }}</span>
+              <span>{{ token.symbol || token.name || 'Unnamed Token' }}</span>
+              <span
+                v-if="token.name && token.symbol && token.name !== token.symbol"
+                class="text-sm text-muted-foreground font-normal"
+              >
+                {{ token.name }}
+              </span>
               <span
                 v-if="token.isNft"
                 class="inline-flex items-center rounded-md bg-purple-500/10 text-[12px]/[14px] px-1 font-medium text-purple-500 border border-purple-500/20"
