@@ -1,3 +1,6 @@
+import type { Component } from 'vue';
+
+import AppSidebar from '@/components/navigation/AppSidebar.vue';
 import AccountCreate from '@/pages/account/create.vue';
 import RequestCreate from '@/pages/account/request.vue';
 import AccountUpdate from '@/pages/account/update.vue';
@@ -13,19 +16,32 @@ import TokenDefinitions from '@/pages/tokens/my-tokens.vue';
 import RegisterHTMAccount from '@/pages/tokens/register-account.vue';
 import TokenDetail from '@/pages/tokens/token.vue';
 
+const standardPath = (path: string, component: Component) => ({ path, component });
+
+const tokensPath = (path: string, component: Component) => ({
+  path,
+  components: {
+    default: component,
+    sidebar: AppSidebar
+  },
+  props: {
+    sidebar: { forceTokenView: true }
+  }
+});
+
 export const routes = [
-  { path: '/', component: Index },
-  { path: '/sign/transaction', component: SignTransaction },
-  { path: '/sign/message', component: SignMessage },
-  { path: '/account/create', component: AccountCreate },
-  { path: '/account/request', component: RequestCreate },
-  { path: '/account/update', component: AccountUpdate },
-  { path: '/tokens/register-account', component: RegisterHTMAccount },
-  { path: '/tokens/create', component: CreateToken },
-  { path: '/tokens/edit', component: EditToken },
-  { path: '/tokens/my-tokens', component: TokenDefinitions },
-  { path: '/tokens/my-balance', component: AccountBalances },
-  { path: '/tokens/list', component: TokensList },
-  { path: '/tokens/token', component: TokenDetail },
-  { path: '/automation/authorize', component: DappAuthorize }
+  standardPath('/', Index),
+  standardPath('/sign/transaction', SignTransaction),
+  standardPath('/sign/message', SignMessage),
+  standardPath('/account/create', AccountCreate),
+  standardPath('/account/request', RequestCreate),
+  standardPath('/account/update', AccountUpdate),
+  standardPath('/automation/authorize', DappAuthorize),
+  tokensPath('/tokens/register-account', RegisterHTMAccount),
+  tokensPath('/tokens/create', CreateToken),
+  tokensPath('/tokens/edit', EditToken),
+  tokensPath('/tokens/my-tokens', TokenDefinitions),
+  tokensPath('/tokens/my-balance', AccountBalances),
+  tokensPath('/tokens/list', TokensList),
+  tokensPath('/tokens/token', TokenDetail)
 ];

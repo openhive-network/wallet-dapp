@@ -771,6 +771,7 @@ onMounted(async () => {
                 <p
                   v-if="tokenDescription"
                   class="text-muted-foreground text-base mb-4 leading-relaxed"
+                  style="word-break:break-word"
                 >
                   {{ tokenDescription }}
                 </p>

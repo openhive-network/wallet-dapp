@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup, mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -11,6 +11,13 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
 
+const props = defineProps({
+  forceTokenView: {
+    type: Boolean,
+    default: false
+  }
+});
+
 const router = useRouter();
 
 const { toggleSidebar, isMobile } = useSidebar();
@@ -21,7 +28,42 @@ const walletStore = useWalletStore();
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 const hasHTMWallet = computed(() => !!tokensStore.wallet);
 
-const groups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
+const tokensGroups: { title?: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
+  items: [{
+    title: 'Back to Hive Bridge',
+    url: '/',
+    icon: mdiArrowLeft
+  }]
+},
+{
+  title: 'Tokens',
+  items: [
+    {
+      title: 'My HTM Account',
+      url: '/tokens/my-balance',
+      icon: mdiWallet,
+      visible: hasHTMWallet
+    },
+    {
+      title: 'Tokens List',
+      url: '/tokens/list',
+      icon: mdiAccountGroup
+    },
+    {
+      title: 'My Token Definitions',
+      url: '/tokens/my-tokens',
+      icon: mdiViewList,
+      visible: hasHTMWallet
+    },
+    {
+      title: 'Register HTM Account',
+      url: '/tokens/register-account',
+      icon: mdiAccountPlusOutline
+    }
+  ]
+}];
+
+const mainGroups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
   title: 'Hive Account Management',
   items: [
     {
@@ -98,6 +140,14 @@ const groups: { title: string; items: Array<{ title: string; url: string; icon: 
   ]
 }];
 
+const groups = computed(() => {
+  if (props.forceTokenView)
+    return tokensGroups;
+  else
+    return mainGroups;
+
+});
+
 const navigateTo = (url: string) => {
   router.push(url);
 
@@ -132,6 +182,10 @@ onMounted(async () => {
           class="h-[32px] w-[32px]"
         >
         <span class="text-foreground/80 font-bold text-xl ml-2">Hive Bridge</span>
+        <span
+          v-if="props.forceTokenView"
+          class="text-foreground/60 ml-2 text-sm"
+        >Tokens</span>
       </div>
     </SidebarHeader>
     <SidebarContent>
@@ -140,9 +194,16 @@ onMounted(async () => {
         :key="group.title"
         class="pb-0"
       >
-        <SidebarGroupLabel class="text-foreground/60">
+        <SidebarGroupLabel
+          v-if="group.title"
+          class="text-foreground/60"
+        >
           {{ group.title }}
         </SidebarGroupLabel>
+        <div
+          v-else
+          class="h-2"
+        />
         <SidebarGroupContent>
           <SidebarMenu>
             <SidebarMenuItem
