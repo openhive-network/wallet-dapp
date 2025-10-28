@@ -25,7 +25,7 @@ const encryptForKey = ref('');
 const inputData = ref('');
 const outputData = ref('');
 
-const getMemoKeyForUser = async (user: string): Promise<string | void> => {
+const getMemoKeyForUser = async (user: string): Promise<string | undefined> => {
   const accountName = user.startsWith('@') ? user.slice(1) : user;
   try {
     const wax = await getWax();
@@ -33,7 +33,7 @@ const getMemoKeyForUser = async (user: string): Promise<string | void> => {
       accounts: [accountName],
       delayed_votes_active: true
     });
-    return response.accounts[0].memo_key;
+    return response.accounts[0]?.memo_key;
   } catch (error) {
     toastError(`Error retrieving memo key for account: @${accountName}`, error);
   }
@@ -70,7 +70,7 @@ const encryptOrDecrypt = async () => {
 
     if (isEncrypt.value) {
       let publicKey: string;
-      let accountOrKey = encryptForKey.value;
+      const accountOrKey = encryptForKey.value;
       if (accountOrKey.startsWith('STM'))
         publicKey = accountOrKey;
       else {

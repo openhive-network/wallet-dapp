@@ -3,8 +3,6 @@ import MetamaskProvider from '@hiveio/wax-signers-metamask';
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
-import { defaultSnapOrigin, defaultSnapVersion } from '@/utils/wallet/metamask/snap';
-
 // Do not watch for changes inside the metamask wallet - its only a tool we call functions from
 const metamaskWallet = shallowRef<MetamaskProvider | undefined>(undefined);
 
@@ -34,6 +32,10 @@ export const useMetamaskStore = defineStore('metamask', {
       try {
         this.performingOperation = true;
 
+        const { public: { snapOrigin } } = useRuntimeConfig();
+
+        const defaultSnapOrigin = snapOrigin || 'npm:@hiveio/metamask-snap';
+
         metamaskWallet.value = await MetamaskProvider.for(accountIndex, role, defaultSnapOrigin);
       } finally {
         this.performingOperation = false;
@@ -45,6 +47,10 @@ export const useMetamaskStore = defineStore('metamask', {
 
         if (!this.metamask)
           throw new Error('Install: Metamask not connected');
+
+        const { public: { snapVersion } } = useRuntimeConfig();
+
+        const defaultSnapVersion: string | undefined = snapVersion || '1.6.0';
 
         await this.metamask.installSnap(defaultSnapVersion);
       } finally {
