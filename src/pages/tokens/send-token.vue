@@ -1,0 +1,585 @@
+<script setup lang="ts">
+import { mdiArrowLeft, mdiArrowDown, mdiArrowUp } from '@mdi/js';
+import type { htm_operation } from '@mtyszczak-cargo/htm';
+import QRCode from 'qrcode';
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
+
+import HTMView from '@/components/HTMView.vue';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
+import { waitForTransactionStatus } from '@/utils/transaction-status';
+import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+// Router
+const route = useRoute();
+const router = useRouter();
+
+const settingsStore = useSettingsStore();
+const tokensStore = useTokensStore();
+const walletStore = useWalletStore();
+
+// State
+const token = ref<CtokensAppToken | null>(null);
+const isLoading = ref(true);
+const isUpdating = ref(false);
+const isSending = ref(false);
+const addingMemo = ref(false);
+const qrCodeDataUrl = ref<string>('');
+
+// Form state
+const form = ref({
+  amount: '',
+  memo: ''
+});
+
+// Get NAI and precision from route parameters
+const nai = computed(() => route.query.nai as string);
+const precision = computed(() => route.query.precision);
+const receiverKey = computed(() => route.query.to as string | undefined);
+const queryAmount = computed(() => route.query.amount as string | undefined);
+const queryMemo = computed(() => route.query.memo as string | undefined);
+
+// Check if we're in receive mode (when 'to' is in query params)
+// When 'to' is present, we're actually sending (confirming a transfer request)
+const isReceiveMode = computed(() => !!receiverKey.value);
+
+const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
+
+// Check if user is logged in
+const isLoggedIn = computed(() => !!settingsStore.settings.account);
+
+// Check if current user is the token owner
+const isTokenOwner = computed(() => {
+  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
+  return token.value.owner === CTokensProvider.getOperationalPublicKey();
+});
+
+const tokenName = computed(() => {
+  if (!token.value) return 'Unknown Token';
+  const metadata = token.value.metadata as { name?: string } | undefined;
+  return metadata?.name || token.value.nai || 'Unknown Token';
+});
+
+const tokenSymbol = computed(() => {
+  if (!token.value) return '';
+  const metadata = token.value.metadata as { symbol?: string } | undefined;
+  return metadata?.symbol || '';
+});
+
+const amountValidation = computed(() => {
+  if (!form.value.amount || !token.value)
+    return { isValid: false, error: '' };
+
+  return validateAmountPrecision(form.value.amount, token.value.precision || 0);
+});
+
+// Validate amount precision and overflow
+const validateAmountPrecision = (amount: string, precision: number): { isValid: boolean; error?: string; parsedAmount?: string } => {
+  try {
+    // Remove thousand separators (commas, spaces) to get clean number
+    const cleanAmount = amount.replace(/[,\s]/g, '');
+
+    // Check if amount contains only valid characters (digits, decimal point)
+    if (!/^\d*\.?\d*$/.test(cleanAmount))
+      return { isValid: false, error: 'Amount must contain only digits and decimal point' };
+
+    // Check if amount is a valid number
+    const numAmount = parseFloat(cleanAmount);
+    if (isNaN(numAmount) || numAmount <= 0)
+      return { isValid: false, error: 'Amount must be a positive number' };
+
+    // Check for infinity
+    if (!isFinite(numAmount))
+      return { isValid: false, error: 'Amount value is too large' };
+
+    // Check decimal places - count actual decimal places in input
+    const decimalIndex = cleanAmount.indexOf('.');
+    if (decimalIndex !== -1) {
+      const decimalPlaces = cleanAmount.length - decimalIndex - 1;
+      if (decimalPlaces > precision) {
+        return {
+          isValid: false,
+          error: `Amount has too many decimal places. Maximum ${precision} decimal places allowed for this token.`
+        };
+      }
+    }
+
+    // Convert to base units to check for overflow
+    const multiplier = Math.pow(10, precision);
+    const baseUnits = numAmount * multiplier;
+
+    // Check for overflow - ensure it's within safe integer range
+    // Maximum safe integer in JavaScript is 2^53 - 1
+    const MAX_SAFE_BASE_UNITS = Number.MAX_SAFE_INTEGER;
+    if (baseUnits > MAX_SAFE_BASE_UNITS)
+      return { isValid: false, error: 'Amount is too large and would cause overflow' };
+
+    // Ensure conversion to base units produces an integer (no precision loss)
+    const roundedBaseUnits = Math.round(baseUnits);
+    if (Math.abs(baseUnits - roundedBaseUnits) > 0.0001) {
+      return {
+        isValid: false,
+        error: `Amount precision mismatch. Please use at most ${precision} decimal places.`
+      };
+    }
+
+    return { isValid: true, parsedAmount: roundedBaseUnits.toString() };
+  } catch (_error) {
+    return { isValid: false, error: 'Invalid amount format' };
+  }
+};
+
+// Form validation
+const isFormValid = computed(() => {
+  // Amount is optional, but if provided, it must be valid
+  if (form.value.amount.trim() === '')
+    return true; // Valid when empty (amount is optional)
+
+  return amountValidation.value.isValid;
+});
+
+// Generate QR Code
+const generateQRCode = async () => {
+  // Generate QR code even without amount (amount is optional)
+  try {
+    const baseUrl = window.location.origin;
+    const params = new URLSearchParams({
+      nai: nai.value,
+      precision: precision.value as string,
+      to: userOperationalKey.value || ''
+    });
+
+    // Add amount only if provided and valid
+    if (form.value.amount.trim() && amountValidation.value.isValid)
+      params.append('amount', form.value.amount);
+
+    // Add memo only if provided
+    if (form.value.memo.trim())
+      params.append('memo', form.value.memo);
+
+    const url = `${baseUrl}/tokens/send-token?${params.toString()}`;
+    const dataUrl = await QRCode.toDataURL(url, {
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+    qrCodeDataUrl.value = dataUrl;
+  } catch (error) {
+    console.error('Failed to generate QR code:', error);
+    qrCodeDataUrl.value = '';
+  }
+};
+
+// Watch form changes and regenerate QR code (only in send mode)
+watch([() => form.value.amount, () => form.value.memo, userOperationalKey], async () => {
+  if (!isReceiveMode.value)
+    await generateQRCode();
+}, { immediate: false });
+
+// Parse asset amount - convert decimal to base units (integer with precision zeros)
+const parseAssetAmount = (amountStr: string, precision: number): string => {
+  const [integerPart, fractionalPart = ''] = amountStr.split('.');
+  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
+  return integerPart + normalizedFractional;
+};
+
+// Handle send transaction
+const handleSend = async () => {
+  if (!token.value || !isLoggedIn.value) {
+    toastError('You must be logged in to send tokens', new Error('Not logged in'));
+    return;
+  }
+
+  if (!form.value.amount || !receiverKey.value) {
+    toastError('Missing required fields', new Error('Amount and receiver are required'));
+    return;
+  }
+
+  // Validate amount
+  if (!amountValidation.value.isValid) {
+    toastError('Invalid amount', new Error(amountValidation.value.error || 'Invalid amount format'));
+    return;
+  }
+
+  if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
+    throw new Error('Transferring via proxy is not supported yet. Please log in using your L1 wallet first.');
+
+  try {
+    isSending.value = true;
+
+    // Convert decimal amount to base units (add precision zeros)
+    const baseAmount = parseAssetAmount(form.value.amount, token.value.precision || 0);
+
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      () => ([{
+        token_transfer_operation: {
+          amount: {
+            amount: baseAmount,
+            nai: token.value!.nai!,
+            precision: token.value!.precision || 0
+          },
+          receiver: receiverKey.value!,
+          sender: CTokensProvider.getOperationalPublicKey()!,
+          memo: form.value.memo
+        }
+      } satisfies htm_operation]),
+      'Transfer'
+    );
+
+    toast.success('Token sent successfully!');
+
+    // Reload balances
+    await tokensStore.loadBalances(true);
+
+    // Navigate back
+    router.push({
+      path: '/tokens/token',
+      query: { nai: nai.value, precision: precision.value }
+    });
+  } catch (error) {
+    toastError('Transfer failed', error);
+  } finally {
+    isSending.value = false;
+  }
+};
+
+// Load token details
+const loadTokenDetails = async () => {
+  try {
+    const wax = await getWax();
+
+    // Fetch token details by NAI
+    let tokens = await wax.restApi.ctokensApi.registeredTokens({
+      nai: nai.value,
+      precision: Number(precision.value!)
+    });
+
+    if (!tokens || tokens.length === 0) {
+      const allTokens = await wax.restApi.ctokensApi.registeredTokens({});
+      tokens = allTokens.filter(t => t.nai === nai.value);
+    }
+
+    if (!tokens || tokens.length === 0)
+      throw new Error(`Token with NAI ${nai.value} not found`);
+
+    token.value = tokens[0];
+
+  } catch (error) {
+    toastError('Failed to load token details', error);
+    router.push('/tokens/list');
+  }
+};
+
+// Navigate back to token detail
+const goBack = () => {
+  router.push({
+    path: '/tokens/token',
+    query: { nai: nai.value, precision: precision.value }
+  });
+};
+
+// Initialize
+onMounted(async () => {
+  if (!isLoggedIn.value) {
+    toast.error('You must be logged in to use this feature');
+    router.push('/');
+    return;
+  }
+
+  isLoading.value = true;
+  await loadTokenDetails();
+
+  // Initialize form with query params if in receive mode
+  if (isReceiveMode.value) {
+    form.value.amount = queryAmount.value || '';
+    form.value.memo = queryMemo.value || '';
+    if (form.value.memo)
+      addingMemo.value = true;
+  }
+
+  isLoading.value = false;
+
+  // Check ownership only if NOT in receive mode
+  if (!isReceiveMode.value && !isTokenOwner.value) {
+    toast.error('You do not have permission to send this token');
+    router.push({
+      path: '/tokens/token',
+      query: { nai: nai.value, precision: precision.value }
+    });
+    return;
+  }
+
+  // Generate initial QR code if not in receive mode
+  if (!isReceiveMode.value)
+    await generateQRCode();
+});
+</script>
+
+<template>
+  <HTMView>
+    <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
+      <!-- Header -->
+      <div class="flex items-center justify-between gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="gap-2 hover:bg-accent"
+          @click="goBack"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="flex-shrink-0"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiArrowLeft"
+            />
+          </svg>
+          Back to Token
+        </Button>
+      </div>
+
+      <!-- Loading State -->
+      <div
+        v-if="isLoading"
+        class="space-y-6"
+      >
+        <Card>
+          <CardHeader>
+            <Skeleton class="h-8 w-48" />
+            <Skeleton class="h-4 w-64" />
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-10 w-full" />
+            <Skeleton class="h-24 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+
+      <!-- Send Form -->
+      <div
+        v-else-if="token && (isTokenOwner || isReceiveMode)"
+        class="space-y-6"
+      >
+        <!-- Page Title -->
+        <div>
+          <h1 class="text-3xl font-bold text-foreground mb-2">
+            {{ isReceiveMode ? 'Send Token' : 'Receive Token' }}
+          </h1>
+          <p class="text-muted-foreground">
+            {{ isReceiveMode ? 'Confirm and sned the token transfer.' : 'Scan the generated QR code and transfer the token.' }}
+          </p>
+        </div>
+
+        <!-- Send token Card -->
+        <Card>
+          <CardHeader>
+            <CardTitle>Transfer details</CardTitle>
+            <CardDescription>
+              {{ isReceiveMode ? 'Review the transfer details' : 'Specify the transfer amount' }}
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="space-y-6">
+            <!-- Sender -->
+            <div
+              v-if="isReceiveMode"
+              class="space-y-2"
+            >
+              <Label
+                for="sender"
+                class="text-sm font-medium text-foreground"
+              >
+                Sender (You)
+              </Label>
+              <Input
+                id="sender"
+                :model-value="userOperationalKey"
+                readonly
+                class="transition-colors bg-muted/50 cursor-not-allowed"
+              />
+              <p class="text-xs text-muted-foreground">
+                Sender operational public key
+              </p>
+            </div>
+
+            <Separator v-if="isReceiveMode" />
+
+            <!-- Receiver -->
+            <div class="space-y-2">
+              <Label
+                for="receiver"
+                class="text-sm font-medium text-foreground"
+              >
+                Receiver{{ !isReceiveMode ? ' (You)' : '' }}
+              </Label>
+              <Input
+                id="receiver"
+                :model-value="isReceiveMode ? receiverKey : userOperationalKey"
+                readonly
+                :class="isReceiveMode ? 'transition-colors bg-muted/50 cursor-not-allowed' : 'transition-colors bg-muted/50 cursor-not-allowed'"
+              />
+              <p class="text-xs text-muted-foreground">
+                Receiver operational public key
+              </p>
+            </div>
+
+            <Separator />
+
+            <!-- Transfer Amount -->
+            <div class="space-y-2">
+              <Label
+                for="amount"
+                class="text-sm font-medium text-foreground"
+              >
+                Amount (optional)
+              </Label>
+              <div class="relative">
+                <Input
+                  id="amount"
+                  v-model="form.amount"
+                  type="text"
+                  inputmode="decimal"
+                  :placeholder="`Amount in ${tokenSymbol || tokenName}`"
+                  class="pr-20 transition-colors"
+                  :class="[
+                    form.amount ? (amountValidation.isValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : '',
+                  ]"
+                />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                  {{ tokenSymbol }}
+                </span>
+              </div>
+              <p
+                v-if="token"
+                class="text-xs text-muted-foreground"
+              >
+                Precision: {{ token.precision }} decimal places
+              </p>
+              <p
+                v-if="form.amount && !amountValidation.isValid && amountValidation.error"
+                class="text-xs text-red-500"
+              >
+                {{ amountValidation.error }}
+              </p>
+            </div>
+
+            <Separator v-if="!isReceiveMode" />
+
+            <!-- memo -->
+            <div
+              v-if="addingMemo || (isReceiveMode && form.memo)"
+              class="space-y-2"
+            >
+              <Label
+                for="memo"
+                class="text-sm font-medium text-foreground"
+              >
+                Memo
+              </Label>
+              <Textarea
+                id="memo"
+                v-model="form.memo"
+                placeholder="Add memo..."
+                rows="4"
+                :readonly="isReceiveMode"
+                :disabled="isUpdating"
+                :class="[
+                  'resize-none',
+                  isReceiveMode ? 'bg-muted/50 cursor-not-allowed' : ''
+                ]"
+              />
+              <p class="text-xs text-muted-foreground">
+                A brief memo for token transfer
+              </p>
+            </div>
+
+            <Button
+              v-if="!isReceiveMode"
+              variant="ghost"
+              size="sm"
+              class="gap-2"
+              @click="addingMemo = !addingMemo"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="flex-shrink-0"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="addingMemo ? mdiArrowUp : mdiArrowDown"
+                />
+              </svg>
+              {{ addingMemo ? 'Collapse' : 'Add Memo' }}
+            </Button>
+
+            <!-- Send Button (only in receive mode) -->
+            <div
+              v-if="isReceiveMode"
+              class="pt-4"
+            >
+              <Button
+                class="w-full"
+                :disabled="isSending || !isFormValid || (form.amount.trim() !== '' && !amountValidation.isValid)"
+                @click="handleSend"
+              >
+                {{ isSending ? 'Sending...' : 'Send Token' }}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- QR Code Card (only in send mode) -->
+        <Card v-if="!isReceiveMode">
+          <CardContent class="flex flex-col items-center">
+            <div
+              v-if="qrCodeDataUrl"
+              class="bg-white p-4 rounded-lg my-4"
+            >
+              <img
+                :src="qrCodeDataUrl"
+                alt="QR Code for token transfer"
+                class="w-full h-auto"
+              >
+            </div>
+            <div
+              v-else
+              class="bg-white p-4 rounded-lg my-4 flex items-center justify-center"
+              style="width: 300px; height: 300px;"
+            >
+              <p class="text-muted-foreground text-center">
+                Generating QR code...
+              </p>
+            </div>
+            <p class="text-xs text-muted-foreground text-center max-w-md">
+              This QR code contains the transfer details. The receiver can scan it to accept the token.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  </HTMView>
+</template>
