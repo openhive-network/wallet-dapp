@@ -133,7 +133,7 @@ export const useUserStore = defineStore('user', {
             received: new BalanceData(vestsToHp(BigInt(data.received_vesting_shares.amount)), data.balance.precision, hivePrice),
             delegated: new BalanceData(vestsToHp(BigInt(data.delegated_vesting_shares.amount)), data.balance.precision, hivePrice),
             unclaimed: new BalanceData(BigInt(data.reward_vesting_hive.amount), data.balance.precision, hivePrice),
-            poweringDown: new BalanceData(vestsToHp(BigInt(data.vesting_withdraw_rate.amount) * BigInt(new Date(data.next_vesting_withdrawal).getTime() - Date.now()) / BigInt(60 * 60 * 24 * 7 * 52)), data.balance.precision, hivePrice)
+            poweringDown: new BalanceData(vestsToHp(BigInt(data.vesting_withdraw_rate.amount) * BigInt(Math.max(0, new Date(data.next_vesting_withdrawal).getTime() - Date.now())) / BigInt(60 * 60 * 24 * 7 * 52)), data.balance.precision, hivePrice)
           },
           HBD: {
             liquid: new BalanceData(BigInt(data.hbd_balance.amount), data.hbd_balance.precision, 1),
