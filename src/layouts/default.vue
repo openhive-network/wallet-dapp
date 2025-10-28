@@ -12,6 +12,12 @@ import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 
+const route = useRoute();
+
+const hasTokenInRoute = computed(() => {
+  return route.fullPath.includes('/tokens/');
+});
+
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 
 const hasUser = ref(true);
@@ -50,7 +56,7 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
 
 <template>
   <SidebarProvider>
-    <AppSidebar />
+    <AppSidebar :force-token-view="hasTokenInRoute" />
     <div class="w-full">
       <AppHeader />
       <main class="w-full h-[calc(100%-60px)] bg-background">
