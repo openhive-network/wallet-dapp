@@ -54,9 +54,20 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
   <div id="shadcn-root">
     <div id="app-main">
       <SidebarProvider>
-        <AppSidebar />
+        <RouterView
+          v-slot="{ Component }"
+          name="sidebar"
+        >
+          <component
+            :is="Component"
+            v-if="Component"
+          />
+          <AppSidebar v-else />
+        </RouterView>
         <div class="w-full">
-          <AppHeader />
+          <RouterView name="header">
+            <AppHeader />
+          </RouterView>
           <main class="w-full h-[calc(100%-60px)] bg-background">
             <RouterView />
           </main>
