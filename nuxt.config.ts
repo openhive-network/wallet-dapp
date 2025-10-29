@@ -51,6 +51,7 @@ export default defineNuxtConfig({
       hiveChainId: '',
       snapOrigin: '',
       snapVersion: ''
-    }
+    },
+    googleApplicationCredentailsJson: {}
   }
 });

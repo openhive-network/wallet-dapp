@@ -44,6 +44,7 @@
     "@pinia/nuxt": "0.11.2",
     "@stylistic/eslint-plugin": "^5.2.2",
     "@tanstack/vue-table": "^8.21.2",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.13.9",
     "@types/qrcode": "^1.5.6",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
@@ -80,6 +81,8 @@
     "node": "^20.18.1 || >= 21.2"
   },
   "dependencies": {
+    "google-auth-library": "^10.4.2",
+    "jsonwebtoken": "^9.0.2",
     "qrcode": "^1.5.4"
   }
 }
