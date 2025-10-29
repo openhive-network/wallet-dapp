@@ -201,8 +201,22 @@ const parseAssetAmount = (amountStr: string, precision: number): string => {
 
 // Handle send transaction
 const handleSend = async () => {
-  if (!token.value || !isLoggedIn.value) {
-    toastError('You must be logged in to send tokens', new Error('Not logged in'));
+  if (!token.value) {
+    toastError('Token not loaded', new Error('Token details not available'));
+    return;
+  }
+
+  // Check if user is logged in - if not, prompt them to log in first
+  if (!isLoggedIn.value || !CTokensProvider.getOperationalPublicKey()) {
+    toast.error('Please log in to your wallet first');
+    // Redirect to home page for login
+    router.push({
+      path: '/',
+      query: {
+        // Store the current URL to redirect back after login
+        redirect: route.fullPath
+      }
+    });
     return;
   }
 
@@ -294,7 +308,10 @@ const goBack = () => {
 
 // Initialize
 onMounted(async () => {
-  if (!isLoggedIn.value) {
+  // In receive mode (when someone scans QR code), allow viewing without login
+  // Login will be required when clicking "Send Token"
+  if (!isLoggedIn.value && !isReceiveMode.value) {
+    // Only require login immediately in send/generate QR mode
     toast.error('You must be logged in to use this feature');
     router.push('/');
     return;
@@ -313,8 +330,8 @@ onMounted(async () => {
 
   isLoading.value = false;
 
-  // Check ownership only if NOT in receive mode
-  if (!isReceiveMode.value && !isTokenOwner.value) {
+  // Check ownership only if NOT in receive mode AND user is logged in
+  if (!isReceiveMode.value && isLoggedIn.value && !isTokenOwner.value) {
     toast.error('You do not have permission to send this token');
     router.push({
       path: '/tokens/token',
@@ -323,8 +340,8 @@ onMounted(async () => {
     return;
   }
 
-  // Generate initial QR code if not in receive mode
-  if (!isReceiveMode.value)
+  // Generate initial QR code if not in receive mode and user is logged in
+  if (!isReceiveMode.value && isLoggedIn.value)
     await generateQRCode();
 });
 </script>
@@ -385,7 +402,7 @@ onMounted(async () => {
             {{ isReceiveMode ? 'Send Token' : 'Receive Token' }}
           </h1>
           <p class="text-muted-foreground">
-            {{ isReceiveMode ? 'Confirm and sned the token transfer.' : 'Scan the generated QR code and transfer the token.' }}
+            {{ isReceiveMode ? 'Confirm and send the token transfer.' : 'Scan the generated QR code and transfer the token.' }}
           </p>
         </div>
 
@@ -411,12 +428,12 @@ onMounted(async () => {
               </Label>
               <Input
                 id="sender"
-                :model-value="userOperationalKey"
+                :model-value="userOperationalKey || 'Not logged in'"
                 readonly
                 class="transition-colors bg-muted/50 cursor-not-allowed"
               />
               <p class="text-xs text-muted-foreground">
-                Sender operational public key
+                {{ userOperationalKey ? 'Sender operational public key' : 'You need to log in to send tokens' }}
               </p>
             </div>
 
@@ -543,7 +560,7 @@ onMounted(async () => {
                 :disabled="isSending || !isFormValid || (form.amount.trim() !== '' && !amountValidation.isValid)"
                 @click="handleSend"
               >
-                {{ isSending ? 'Sending...' : 'Send Token' }}
+                {{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}
               </Button>
             </div>
           </CardContent>
