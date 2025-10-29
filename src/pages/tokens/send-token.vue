@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiArrowLeft, mdiArrowDown, mdiArrowUp } from '@mdi/js';
+import { mdiArrowLeft, mdiArrowDown, mdiArrowUp, mdiFileDocumentOutline } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import QRCode from 'qrcode';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -62,10 +62,6 @@ const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKe
 const isLoggedIn = computed(() => !!settingsStore.settings.account);
 
 // Check if current user is the token owner
-const isTokenOwner = computed(() => {
-  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
-  return token.value.owner === CTokensProvider.getOperationalPublicKey();
-});
 
 const tokenName = computed(() => {
   if (!token.value) return 'Unknown Token';
@@ -306,6 +302,30 @@ const goBack = () => {
   });
 };
 
+// Generate invoice
+const generateInvoice = () => {
+  const params = new URLSearchParams({
+    fromPk: isReceiveMode.value ? userOperationalKey.value || '' : userOperationalKey.value || '',
+    toPk: isReceiveMode.value ? receiverKey.value || '' : userOperationalKey.value || '',
+    amount: form.value.amount || '0',
+    nai: nai.value,
+    precision: precision.value as string
+  });
+
+  // Add optional fields
+  if (form.value.memo)
+    params.append('memo', form.value.memo);
+
+  // You can add names if they are available from your stores/context
+  // params.append('fromName', 'Sender Name');
+  // params.append('toName', 'Receiver Name');
+
+  router.push({
+    path: '/tokens/invoice',
+    query: Object.fromEntries(params)
+  });
+};
+
 // Initialize
 onMounted(async () => {
   // In receive mode (when someone scans QR code), allow viewing without login
@@ -313,7 +333,6 @@ onMounted(async () => {
   if (!isLoggedIn.value && !isReceiveMode.value) {
     // Only require login immediately in send/generate QR mode
     toast.error('You must be logged in to use this feature');
-    router.push('/');
     return;
   }
 
@@ -329,16 +348,6 @@ onMounted(async () => {
   }
 
   isLoading.value = false;
-
-  // Check ownership only if NOT in receive mode AND user is logged in
-  if (!isReceiveMode.value && isLoggedIn.value && !isTokenOwner.value) {
-    toast.error('You do not have permission to send this token');
-    router.push({
-      path: '/tokens/token',
-      query: { nai: nai.value, precision: precision.value }
-    });
-    return;
-  }
 
   // Generate initial QR code if not in receive mode and user is logged in
   if (!isReceiveMode.value && isLoggedIn.value)
@@ -393,7 +402,7 @@ onMounted(async () => {
 
       <!-- Send Form -->
       <div
-        v-else-if="token && (isTokenOwner || isReceiveMode)"
+        v-else-if="token && isLoggedIn"
         class="space-y-6"
       >
         <!-- Page Title -->
@@ -553,7 +562,7 @@ onMounted(async () => {
             <!-- Send Button (only in receive mode) -->
             <div
               v-if="isReceiveMode"
-              class="pt-4"
+              class="pt-4 space-y-3"
             >
               <Button
                 class="w-full"
@@ -562,12 +571,32 @@ onMounted(async () => {
               >
                 {{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}
               </Button>
+              <Button
+                variant="outline"
+                class="w-full gap-2"
+                :disabled="!form.amount || !amountValidation.isValid"
+                @click="generateInvoice"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="flex-shrink-0"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiFileDocumentOutline"
+                  />
+                </svg>
+                Generate Invoice
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        <!-- QR Code Card (only in send mode) -->
-        <Card v-if="!isReceiveMode">
+        <!-- QR Code Card (always visible for logged in user) -->
+        <Card>
           <CardContent class="flex flex-col items-center">
             <div
               v-if="qrCodeDataUrl"
@@ -593,6 +622,33 @@ onMounted(async () => {
             </p>
           </CardContent>
         </Card>
+
+        <!-- Generate Invoice Button (only in send mode) -->
+        <div
+          v-if="!isReceiveMode"
+          class="flex justify-center"
+        >
+          <Button
+            variant="outline"
+            class="gap-2"
+            :disabled="!form.amount || !amountValidation.isValid"
+            @click="generateInvoice"
+          >
+            <svg
+              width="18"
+              height="18"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiFileDocumentOutline"
+              />
+            </svg>
+            Generate Invoice
+          </Button>
+        </div>
       </div>
     </div>
   </HTMView>
