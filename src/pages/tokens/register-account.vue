@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
@@ -356,13 +357,16 @@ onMounted(() => {
           </div>
 
           <!-- Action Button -->
-          <Button
-            size="lg"
-            class="mt-4"
-            @click="goToMyAccount"
-          >
-            Go to My Account
-          </Button>
+          <div class="flex flex-col gap-4 w-full">
+            <Button
+              size="lg"
+              class="mt-4"
+              @click="goToMyAccount"
+            >
+              Go to My Account
+            </Button>
+            <AddToGoogleWallet />
+          </div>
         </div>
       </CardContent>
     </Card>
