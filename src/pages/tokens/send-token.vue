@@ -41,16 +41,21 @@ const qrCodeDataUrl = ref<string>('');
 
 // Form state
 const form = ref({
+  nai: '',
+  precision: '',
   amount: '',
   memo: ''
 });
 
-// Get NAI and precision from route parameters
-const nai = computed(() => route.query.nai as string);
-const precision = computed(() => route.query.precision);
+// Get NAI and precision from route parameters or form
+const nai = computed(() => route.query.nai as string || form.value.nai);
+const precision = computed(() => route.query.precision as string || form.value.precision);
 const receiverKey = computed(() => route.query.to as string | undefined);
 const queryAmount = computed(() => route.query.amount as string | undefined);
 const queryMemo = computed(() => route.query.memo as string | undefined);
+
+// Check if NAI is provided in URL
+const hasNaiFromUrl = computed(() => !!route.query.nai);
 
 // Check if we're in receive mode (when 'to' is in query params)
 // When 'to' is present, we're actually sending (confirming a transfer request)
@@ -140,6 +145,13 @@ const validateAmountPrecision = (amount: string, precision: number): { isValid: 
 
 // Form validation
 const isFormValid = computed(() => {
+  // NAI and precision are required if not provided in URL
+  if (!hasNaiFromUrl.value) {
+    if (!form.value.nai.trim() || !form.value.precision.trim()) return false;
+    const precisionNum = parseInt(form.value.precision);
+    if (isNaN(precisionNum) || precisionNum < 0 || precisionNum > 18) return false;
+  }
+
   // Amount is optional, but if provided, it must be valid
   if (form.value.amount.trim() === '')
     return true; // Valid when empty (amount is optional)
@@ -154,7 +166,7 @@ const generateQRCode = async () => {
     const baseUrl = window.location.origin;
     const params = new URLSearchParams({
       nai: nai.value,
-      precision: precision.value as string,
+      precision: precision.value,
       to: userOperationalKey.value || ''
     });
 
@@ -182,9 +194,26 @@ const generateQRCode = async () => {
   }
 };
 
-// Watch form changes and regenerate QR code (only in send mode)
+// Watch NAI and precision changes to load token details
+watch([() => form.value.nai, () => form.value.precision], async (newValues, oldValues) => {
+  const [newNai, newPrecision] = newValues;
+  const [oldNai, oldPrecision] = oldValues;
+
+  // Only load if both are provided and have changed
+  if (newNai && newPrecision && (newNai !== oldNai || newPrecision !== oldPrecision)) {
+    isLoading.value = true;
+    await loadTokenDetails();
+    isLoading.value = false;
+
+    // Generate QR code if in send mode and logged in
+    if (!isReceiveMode.value && isLoggedIn.value)
+      await generateQRCode();
+  }
+});
+
+// Watch form amount and memo changes to regenerate QR code
 watch([() => form.value.amount, () => form.value.memo, userOperationalKey], async () => {
-  if (!isReceiveMode.value)
+  if (!isReceiveMode.value && nai.value && precision.value && isLoggedIn.value)
     await generateQRCode();
 }, { immediate: false });
 
@@ -272,13 +301,15 @@ const handleSend = async () => {
 
 // Load token details
 const loadTokenDetails = async () => {
+  if (!nai.value || !precision.value) return;
+
   try {
     const wax = await getWax();
 
     // Fetch token details by NAI
     const tokens = await wax.restApi.ctokensApi.registeredTokens({
       nai: nai.value,
-      precision: Number(precision.value!)
+      precision: Number(precision.value)
     });
 
     if (!tokens || tokens.length === 0)
@@ -309,7 +340,7 @@ const generateInvoice = () => {
     toPk: isReceiveMode.value ? receiverKey.value || '' : userOperationalKey.value || '',
     amount: form.value.amount || '0',
     nai: nai.value,
-    precision: precision.value as string
+    precision: precision.value
   });
 
   // Add optional fields
@@ -337,7 +368,10 @@ onMounted(async () => {
   }
 
   isLoading.value = true;
-  await loadTokenDetails();
+
+  // Initialize form with query params
+  form.value.nai = route.query.nai as string || '';
+  form.value.precision = route.query.precision as string || '';
 
   // Initialize form with query params if in receive mode
   if (isReceiveMode.value) {
@@ -347,10 +381,14 @@ onMounted(async () => {
       addingMemo.value = true;
   }
 
+  // Load token details if NAI and precision are available
+  if (nai.value && precision.value)
+    await loadTokenDetails();
+
   isLoading.value = false;
 
-  // Generate initial QR code if not in receive mode and user is logged in
-  if (!isReceiveMode.value && isLoggedIn.value)
+  // Generate initial QR code if not in receive mode and user is logged in and has NAI/precision
+  if (!isReceiveMode.value && isLoggedIn.value && nai.value && precision.value)
     await generateQRCode();
 });
 </script>
@@ -402,16 +440,16 @@ onMounted(async () => {
 
       <!-- Send Form -->
       <div
-        v-else-if="token && isLoggedIn"
+        v-else-if="(token && isLoggedIn) || isReceiveMode"
         class="space-y-6"
       >
         <!-- Page Title -->
         <div>
           <h1 class="text-3xl font-bold text-foreground mb-2">
-            {{ isReceiveMode ? 'Send Token' : 'Receive Token' }}
+            {{ isReceiveMode ? 'Send Token' : (hasNaiFromUrl ? 'Receive Token' : 'Send/Receive Token') }}
           </h1>
           <p class="text-muted-foreground">
-            {{ isReceiveMode ? 'Confirm and send the token transfer.' : 'Scan the generated QR code and transfer the token.' }}
+            {{ isReceiveMode ? 'Confirm and send the token transfer.' : (hasNaiFromUrl ? 'Scan the generated QR code and transfer the token.' : 'Enter token details and generate a QR code for transfer.') }}
           </p>
         </div>
 
@@ -420,10 +458,60 @@ onMounted(async () => {
           <CardHeader>
             <CardTitle>Transfer details</CardTitle>
             <CardDescription>
-              {{ isReceiveMode ? 'Review the transfer details' : 'Specify the transfer amount' }}
+              {{ isReceiveMode ? 'Review the transfer details' : (hasNaiFromUrl ? 'Specify the transfer amount' : 'Enter token details and specify the transfer amount') }}
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-6">
+            <!-- NAI Input (only when not provided in URL) -->
+            <div
+              v-if="!hasNaiFromUrl"
+              class="space-y-2"
+            >
+              <Label
+                for="nai"
+                class="text-sm font-medium text-foreground"
+              >
+                Token NAI
+              </Label>
+              <Input
+                id="nai"
+                v-model="form.nai"
+                type="text"
+                placeholder="Enter token NAI"
+                class="transition-colors"
+              />
+              <p class="text-xs text-muted-foreground">
+                The Non-Fungible Asset Identifier of the token
+              </p>
+            </div>
+
+            <!-- Precision Input (only when not provided in URL) -->
+            <div
+              v-if="!hasNaiFromUrl"
+              class="space-y-2"
+            >
+              <Label
+                for="precision"
+                class="text-sm font-medium text-foreground"
+              >
+                Precision
+              </Label>
+              <Input
+                id="precision"
+                v-model="form.precision"
+                type="number"
+                placeholder="Enter precision (0-18)"
+                min="0"
+                max="18"
+                class="transition-colors"
+              />
+              <p class="text-xs text-muted-foreground">
+                Number of decimal places for the token (0-18)
+              </p>
+            </div>
+
+            <Separator v-if="!hasNaiFromUrl" />
+
             <!-- Sender -->
             <div
               v-if="isReceiveMode"
@@ -595,8 +683,8 @@ onMounted(async () => {
           </CardContent>
         </Card>
 
-        <!-- QR Code Card (always visible for logged in user) -->
-        <Card>
+        <!-- QR Code Card (visible when NAI and precision are available) -->
+        <Card v-if="nai && precision && !isReceiveMode">
           <CardContent class="flex flex-col items-center">
             <div
               v-if="qrCodeDataUrl"
@@ -623,9 +711,9 @@ onMounted(async () => {
           </CardContent>
         </Card>
 
-        <!-- Generate Invoice Button (only in send mode) -->
+        <!-- Generate Invoice Button (only in send mode when NAI/precision available) -->
         <div
-          v-if="!isReceiveMode"
+          v-if="!isReceiveMode && nai && precision"
           class="flex justify-center"
         >
           <Button
