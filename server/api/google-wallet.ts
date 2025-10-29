@@ -8,7 +8,7 @@ const classId = `${issuerId}.codelab_class`;
 const init = () => {
   const config = useRuntimeConfig();
 
-  const credentials = config.googleApplicationCredentailsJson;
+  const credentials = config.googleApplicationCredentialsJson;
 
   if (typeof credentials !== 'object')
     throw new Error('Invalid Google Application Credentials');
