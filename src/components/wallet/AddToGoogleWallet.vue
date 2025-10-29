@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
-
-import CTokensProvider from '~/src/utils/wallet/ctokens/signer';
+import { toastError } from '@/utils/parse-error';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Google Wallet integration
 const googleWalletLoading = ref(false);
@@ -21,13 +20,14 @@ const addToGoogleWallet = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ operationalPublicKey, baseUrl })
     });
-    const data = await res.json();
-    if (data.url)
-      window.open(data.url, '_blank');
+    const data = await res.text();
+    const parsed = JSON.parse(data);
+    if (parsed.url && !parsed.error)
+      window.open(parsed.url, '_blank');
     else
-      toast.error('Failed to generate Google Wallet pass');
-  } catch (_err) {
-    toast.error('Error generating Google Wallet pass');
+      toastError('Failed to generate Google Wallet pass', new Error(parsed.message || data, { cause: parsed }));
+  } catch (error) {
+    toastError('Error generating Google Wallet pass', error);
   } finally {
     googleWalletLoading.value = false;
   }

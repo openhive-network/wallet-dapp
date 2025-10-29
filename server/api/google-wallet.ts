@@ -8,7 +8,7 @@ const classId = `${issuerId}.codelab_class`;
 const init = () => {
   const config = useRuntimeConfig();
 
-  const credentials = config.googleApplicationCredentailsJson;
+  const credentials = config.googleApplicationCredentialsJson;
 
   if (typeof credentials !== 'object')
     throw new Error('Invalid Google Application Credentials');
@@ -29,13 +29,16 @@ export default defineEventHandler(async (event) => {
     return { error: 'Missing operationalPublicKey' };
 
   const credentials = init();
+  const barcodeValue = `${body.baseUrl}/tokens/send-token?to=${operationalPublicKey}`;
+
+  console.log('Creating QR code leading to:', barcodeValue);
+
+  if (!credentials.client_email || !credentials.private_key)
+    throw createError({ statusCode: 500, message: 'Invalid service account credentials' });
 
   // Use service account email for object suffix
   const objectSuffix = `${credentials.client_email.replace(/[^\w.-]/g, '_')}`;
   const objectId = `${issuerId}.${objectSuffix}`;
-  const barcodeValue = `${body.baseUrl}/tokens/send-token?to=${operationalPublicKey}`;
-
-  console.log(barcodeValue);
 
   const genericObject = {
     'id': `${objectId}`,
