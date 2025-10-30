@@ -448,6 +448,7 @@ onMounted(async () => {
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
         <Button
+          v-if="hasNaiFromUrl || selectedTokenNai"
           variant="ghost"
           size="sm"
           class="gap-2 hover:bg-accent"
