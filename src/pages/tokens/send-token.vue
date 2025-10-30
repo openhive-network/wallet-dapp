@@ -7,6 +7,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
+import TokenSelector from '@/components/tokens/TokenSelector.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ const isUpdating = ref(false);
 const isSending = ref(false);
 const addingMemo = ref(false);
 const qrCodeDataUrl = ref<string>('');
+const transferCompleted = ref(false);
 
 // Form state
 const form = ref({
@@ -47,8 +49,15 @@ const form = ref({
   memo: ''
 });
 
-// Get NAI and precision from route parameters or form
-const nai = computed(() => route.query.nai as string || form.value.nai);
+// Selected token NAI from TokenSelector (used when only 'to' is provided)
+const selectedTokenNai = ref<string>('');
+
+// Get NAI and precision from route parameters or form or selected token
+const nai = computed(() => {
+  if (route.query.nai) return route.query.nai as string;
+  if (selectedTokenNai.value) return selectedTokenNai.value;
+  return form.value.nai;
+});
 const precision = computed(() => route.query.precision as string || form.value.precision);
 const receiverKey = computed(() => route.query.to as string | undefined);
 const queryAmount = computed(() => route.query.amount as string | undefined);
@@ -60,6 +69,11 @@ const hasNaiFromUrl = computed(() => !!route.query.nai);
 // Check if we're in receive mode (when 'to' is in query params)
 // When 'to' is present, we're actually sending (confirming a transfer request)
 const isReceiveMode = computed(() => !!receiverKey.value);
+
+// Check if we should show token selector (when only 'to' is provided)
+const shouldShowTokenSelector = computed(() => {
+  return isReceiveMode.value && !hasNaiFromUrl.value && isLoggedIn.value;
+});
 
 const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
 
@@ -81,9 +95,14 @@ const tokenSymbol = computed(() => {
 });
 
 const amountValidation = computed(() => {
-  if (!form.value.amount || !token.value)
-    return { isValid: false, error: '' };
-
+  if (!form.value.amount) {
+    // Empty amount is valid (amount is optional)
+    return { isValid: true, error: '' };
+  }
+  if (!token.value) {
+    // If token is not loaded, don't validate amount
+    return { isValid: true, error: '' };
+  }
   return validateAmountPrecision(form.value.amount, token.value.precision || 0);
 });
 
@@ -145,17 +164,20 @@ const validateAmountPrecision = (amount: string, precision: number): { isValid: 
 
 // Form validation
 const isFormValid = computed(() => {
-  // NAI and precision are required if not provided in URL
-  if (!hasNaiFromUrl.value) {
+  // Receive mode: only token and amount validation matter
+  if (isReceiveMode.value) {
+    if (!token.value) return false;
+    if (form.value.amount.trim() === '') return true;
+    return amountValidation.value.isValid;
+  }
+  // Send mode: NAI and precision required if not from URL or selector
+  if (!hasNaiFromUrl.value && !shouldShowTokenSelector.value) {
     if (!form.value.nai.trim() || !form.value.precision.trim()) return false;
     const precisionNum = parseInt(form.value.precision);
     if (isNaN(precisionNum) || precisionNum < 0 || precisionNum > 18) return false;
   }
-
-  // Amount is optional, but if provided, it must be valid
-  if (form.value.amount.trim() === '')
-    return true; // Valid when empty (amount is optional)
-
+  if (shouldShowTokenSelector.value && !selectedTokenNai.value) return false;
+  if (form.value.amount.trim() === '') return true;
   return amountValidation.value.isValid;
 });
 
@@ -216,6 +238,23 @@ watch([() => form.value.amount, () => form.value.memo, userOperationalKey], asyn
   if (!isReceiveMode.value && nai.value && precision.value && isLoggedIn.value)
     await generateQRCode();
 }, { immediate: false });
+
+// Watch selected token NAI changes to load token details
+watch(selectedTokenNai, async (newNai, oldNai) => {
+  if (newNai && newNai !== oldNai && shouldShowTokenSelector.value) {
+    isLoading.value = true;
+    // Get precision from the selected token's balance
+    const balance = tokensStore.balances.find(b => b.nai === newNai);
+    if (balance) {
+      form.value.precision = balance.precision?.toString() || '';
+      form.value.nai = newNai;
+      await loadTokenDetails();
+    } else
+      token.value = null;
+
+    isLoading.value = false;
+  }
+});
 
 // Parse asset amount - convert decimal to base units (integer with precision zeros)
 const parseAssetAmount = (amountStr: string, precision: number): string => {
@@ -284,6 +323,9 @@ const handleSend = async () => {
 
     toast.success('Token sent successfully!');
 
+    // Mark transfer as completed to show invoice generation option
+    transferCompleted.value = true;
+
     // Reload balances
     await tokensStore.loadBalances(true);
 
@@ -301,16 +343,15 @@ const handleSend = async () => {
 
 // Load token details
 const loadTokenDetails = async () => {
-  if (!nai.value || !precision.value) return;
+  if (!nai.value) return;
 
   try {
     const wax = await getWax();
 
     // Fetch token details by NAI
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({
-      nai: nai.value,
-      precision: Number(precision.value)
-    });
+    const params: { nai: string; precision?: number } = { nai: nai.value };
+    if (precision.value) params.precision = Number(precision.value);
+    const tokens = await wax.restApi.ctokensApi.registeredTokens(params);
 
     if (!tokens || tokens.length === 0)
       throw new Error(`Token with NAI ${nai.value} not found`);
@@ -319,6 +360,10 @@ const loadTokenDetails = async () => {
 
     if (!token.value)
       throw new Error(`Token with NAI ${nai.value} not found`);
+
+    // Update precision if not set from balance
+    if (token.value && !form.value.precision)
+      form.value.precision = token.value.precision?.toString() || '';
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
@@ -368,6 +413,10 @@ onMounted(async () => {
   }
 
   isLoading.value = true;
+
+  // Load user balances if logged in (needed for token selector)
+  if (isLoggedIn.value)
+    await tokensStore.loadBalances();
 
   // Initialize form with query params
   form.value.nai = route.query.nai as string || '';
@@ -462,9 +511,30 @@ onMounted(async () => {
             </CardDescription>
           </CardHeader>
           <CardContent class="space-y-6">
-            <!-- NAI Input (only when not provided in URL) -->
+            <!-- Token Selector (when only 'to' is provided) -->
             <div
-              v-if="!hasNaiFromUrl"
+              v-if="shouldShowTokenSelector"
+              class="space-y-2"
+            >
+              <Label
+                for="token-selector"
+                class="text-sm font-medium text-foreground"
+              >
+                Select Token
+              </Label>
+              <TokenSelector
+                id="token-selector"
+                v-model="selectedTokenNai"
+                placeholder="Choose a token to send"
+              />
+              <p class="text-xs text-muted-foreground">
+                Select from your owned tokens
+              </p>
+            </div>
+
+            <!-- NAI Input (only when not provided in URL and not using token selector) -->
+            <div
+              v-if="!hasNaiFromUrl && !shouldShowTokenSelector"
               class="space-y-2"
             >
               <Label
@@ -485,9 +555,9 @@ onMounted(async () => {
               </p>
             </div>
 
-            <!-- Precision Input (only when not provided in URL) -->
+            <!-- Precision Input (only when not provided in URL and not using token selector) -->
             <div
-              v-if="!hasNaiFromUrl"
+              v-if="!hasNaiFromUrl && !shouldShowTokenSelector"
               class="space-y-2"
             >
               <Label
@@ -653,16 +723,17 @@ onMounted(async () => {
               class="pt-4 space-y-3"
             >
               <Button
+                v-if="!transferCompleted"
                 class="w-full"
-                :disabled="isSending || !isFormValid || (form.amount.trim() !== '' && !amountValidation.isValid)"
+                :disabled="isSending || !isFormValid"
                 @click="handleSend"
               >
                 {{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}
               </Button>
               <Button
+                v-if="transferCompleted"
                 variant="outline"
                 class="w-full gap-2"
-                :disabled="!form.amount || !amountValidation.isValid"
                 @click="generateInvoice"
               >
                 <svg
@@ -710,33 +781,6 @@ onMounted(async () => {
             </p>
           </CardContent>
         </Card>
-
-        <!-- Generate Invoice Button (only in send mode when NAI/precision available) -->
-        <div
-          v-if="!isReceiveMode && nai && precision"
-          class="flex justify-center"
-        >
-          <Button
-            variant="outline"
-            class="gap-2"
-            :disabled="!form.amount || !amountValidation.isValid"
-            @click="generateInvoice"
-          >
-            <svg
-              width="18"
-              height="18"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="flex-shrink-0"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiFileDocumentOutline"
-              />
-            </svg>
-            Generate Invoice
-          </Button>
-        </div>
       </div>
     </div>
   </HTMView>
