@@ -15,13 +15,13 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
-import MemoInput from '@/components/MemoInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
@@ -62,6 +62,7 @@ const isTransferDialogOpen = ref(false);
 const transferAmount = ref('');
 const transferRecipient = ref('');
 const transferMemo = ref('');
+const addingMemo = ref(false);
 const selectedTokenForTransfer = ref<CtokensAppBalance | null>(null);
 const isTransferLoading = ref(false);
 
@@ -1225,10 +1226,50 @@ onMounted(async () => {
               </p>
             </div>
 
-            <MemoInput
-              v-model="transferMemo"
-              :disabled="isTransferLoading"
-            />
+            <!-- memo -->
+            <div
+              v-if="addingMemo || (transferMemo && transferMemo.trim())"
+              class="space-y-2"
+            >
+              <Label
+                for="memo"
+                class="text-sm font-medium text-foreground"
+              >
+                Memo
+              </Label>
+              <Textarea
+                id="memo"
+                v-model="transferMemo"
+                placeholder="Add memo..."
+                rows="4"
+                :disabled="isTransferLoading"
+                class="resize-none"
+              />
+              <p class="text-xs text-muted-foreground">
+                A brief memo for token transfer
+              </p>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              class="gap-2"
+              @click="addingMemo = !addingMemo"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="flex-shrink-0"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="addingMemo ? mdiArrowUp : mdiArrowDown"
+                />
+              </svg>
+              {{ addingMemo ? 'Collapse' : 'Add Memo' }}
+            </Button>
           </div>
 
           <div class="flex justify-end gap-2">

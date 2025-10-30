@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { mdiPencilOutline, mdiContentCopy, mdiCheck, mdiQrcodeScan } from '@mdi/js';
+import { mdiPencilOutline, mdiContentCopy, mdiCheck, mdiQrcodeScan, mdiArrowDown, mdiArrowUp } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
-import MemoInput from '@/components/MemoInput.vue';
 import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
@@ -54,6 +54,9 @@ const transferForm = ref({
   amount: '',
   memo: ''
 });
+
+// Show/hide memo field
+const addingMemo = ref(false);
 
 // Stake/Unstake form
 const stakeForm = ref({
@@ -1116,10 +1119,49 @@ onMounted(async () => {
                   </p>
                 </div>
 
-                <MemoInput
-                  v-model="transferForm.memo"
-                  :disabled="isTransferring"
-                />
+                <div
+                  v-if="addingMemo || (transferForm.memo && transferForm.memo.trim())"
+                  class="space-y-2"
+                >
+                  <Label
+                    for="memo"
+                    class="text-sm font-medium text-foreground"
+                  >
+                    Memo
+                  </Label>
+                  <Textarea
+                    id="memo"
+                    v-model="transferForm.memo"
+                    placeholder="Add memo..."
+                    rows="4"
+                    :disabled="isTransferring"
+                    class="resize-none"
+                  />
+                  <p class="text-xs text-muted-foreground">
+                    A brief memo for token transfer
+                  </p>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="gap-2"
+                  @click="addingMemo = !addingMemo"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="flex-shrink-0"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      :d="addingMemo ? mdiArrowUp : mdiArrowDown"
+                    />
+                  </svg>
+                  {{ addingMemo ? 'Collapse' : 'Add Memo' }}
+                </Button>
 
                 <Button
                   class="w-full"
