@@ -11,3 +11,9 @@ Metamask Wallet dApp
 1. Navigate to [http://localhost:5173](http://localhost:5173) and authorize to test
 
 > If you want to see metamask snap logs on Chrome, go to: [chrome://extensions](chrome://extensions) Details of "MetaMask Flask DEVELOPMENT BUILD" and inspect `offscreen.html` console
+
+## Regenerating ctokens api spec
+
+```bash
+pnpm regenerate-ctokens-api http://192.168.6.7/
+```
