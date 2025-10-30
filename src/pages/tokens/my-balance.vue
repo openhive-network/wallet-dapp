@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
 import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toVesting } from '@/utils/nai-tokens';
@@ -676,6 +677,7 @@ onMounted(async () => {
             </svg>
             Refresh
           </Button>
+          <AddToGoogleWallet />
         </div>
       </div>
 

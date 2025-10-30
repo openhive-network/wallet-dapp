@@ -365,7 +365,7 @@ onMounted(() => {
             >
               Go to My Account
             </Button>
-            <AddToGoogleWallet />
+            <AddToGoogleWallet class="mt-2" />
           </div>
         </div>
       </CardContent>
