@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiArrowLeft, mdiArrowUp, mdiArrowDown } from '@mdi/js';
+import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiCheckCircle } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import QRCode from 'qrcode';
 import { computed, onMounted, ref, watch } from 'vue';
@@ -23,7 +23,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import type { CtokensAppToken, CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 import { Tooltip, TooltipTrigger, TooltipProvider, TooltipContent } from '~/src/components/ui/tooltip';
@@ -45,6 +45,9 @@ const isSending = ref(false);
 const addingMemo = ref(false);
 const qrCodeDataUrl = ref<string>('');
 const transferCompleted = ref(false);
+
+// Summary of the last transfer (snapshot at time of send)
+const sentSummary = ref<{ amount: string; tokenLabel: string; receiver: string; remainingBalance?: string; timestamp?: string } | null>(null);
 
 // UI toggles for compact view
 const showDetails = ref(false);
@@ -327,6 +330,31 @@ const parseAssetAmount = (amountStr: string, precision: number): string => {
   return integerPart + normalizedFractional;
 };
 
+// Helper to format decimal amounts (used synchronously when wax formatter isn't available)
+const formatAmount = (amount: string, precision: number, symbol?: string) => {
+  try {
+    const num = parseFloat(amount);
+    if (isNaN(num)) return amount;
+
+    // Format with precision and add thousand separators
+    const parts = num.toFixed(precision).split('.');
+    parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const formatted = parts.join('.');
+    return symbol ? `${formatted} ${symbol}` : formatted;
+  } catch {
+    return amount;
+  }
+};
+
+// Compute remaining balance for currently selected token from tokens store (display-friendly)
+const remainingBalanceDisplay = computed(() => {
+  if (!token.value) return '';
+  const balance = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === token.value!.nai) as CtokensAppBalance | undefined;
+  if (!balance || !balance.amount) return '';
+
+  return formatAmount(balance.amount!, token.value!.precision || 0, tokenSymbol.value || tokenName.value);
+});
+
 // Handle send transaction
 const handleSend = async () => {
   if (!token.value) {
@@ -368,7 +396,7 @@ const handleSend = async () => {
     // Convert decimal amount to base units (add precision zeros)
     const baseAmount = parseAssetAmount(form.value.amount, token.value.precision || 0);
 
-    // Wait for transaction status
+    // Wait for transaction status and capture its result if available
     await waitForTransactionStatus(
       () => ([{
         token_transfer_operation: {
@@ -390,14 +418,37 @@ const handleSend = async () => {
     // Mark transfer as completed to show invoice generation option
     transferCompleted.value = true;
 
-    // Reload balances
+    // Reload balances so we can compute remaining balance
     await tokensStore.loadBalances(true);
 
-    // Navigate back
-    router.push({
-      path: '/tokens/token',
-      query: { nai: nai.value, precision: precision.value }
-    });
+    // Capture a snapshot summary to show to the user (amount, token label, receiver and remaining balance)
+    const receiverLabel = receiverDisplayName.value || receiverShortKey.value || receiverKey.value || 'Recipient';
+    const tokenLabel = tokenSymbol.value || tokenName.value || token.value!.nai || '';
+
+    // Compute remaining balance if available using the same approach as token.vue (balance.amount decimal string)
+    let remaining = '';
+    const balanceObj = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === token.value!.nai) as CtokensAppBalance | undefined;
+    if (balanceObj && balanceObj.amount) {
+      try {
+        // Prefer wax formatter for localized formatting when available
+        const wax = await getWax();
+        const formatted = wax.formatter.formatNumber(balanceObj.amount!, token.value!.precision || 0);
+        remaining = tokenSymbol.value ? `${formatted} ${tokenSymbol.value}` : formatted;
+      } catch (_e) {
+        // Fallback to synchronous formatter
+        remaining = formatAmount(balanceObj.amount!, token.value!.precision || 0, tokenSymbol.value || tokenName.value);
+      }
+    }
+
+    const ts = new Date().toISOString();
+
+    sentSummary.value = {
+      amount: form.value.amount,
+      tokenLabel,
+      receiver: receiverLabel,
+      remainingBalance: remaining,
+      timestamp: ts
+    };
   } catch (error) {
     toastError('Transfer failed', error);
   } finally {
@@ -743,15 +794,59 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
                 </Button>
 
               </div>
-              <div v-if="addingMemo || (isReceiveMode && form.memo)" class="mt-2">
+              <div v-show="addingMemo" class="mt-2">
                 <Textarea id="memo" v-model="form.memo" placeholder="Memo..." rows="3" :readonly="isReceiveMode" :disabled="isUpdating" class="resize-none" />
               </div>
             </div>
 
-            <!-- Actions -->
+            <!-- Actions / Summary -->
             <div class="pt-3">
+              <!-- Send button (only shown when confirming a transfer request / receive-mode) -->
               <Button v-if="isReceiveMode && !transferCompleted" class="w-full" :disabled="isSending || !isFormValid" @click="handleSend">{{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}</Button>
-              <Button v-if="isReceiveMode && transferCompleted" variant="outline" class="w-full gap-2 mt-2" @click="generateInvoice">Generate Invoice</Button>
+
+              <!-- Bank-style confirmation summary shown after a successful transfer -->
+              <div v-if="transferCompleted" class="mt-4">
+                <Card>
+                  <CardHeader>
+                    <div class="flex items-center gap-3">
+                      <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path style="fill: currentColor" :d="mdiCheckCircle" class="text-green-600" />
+                        </svg>
+                      </div>
+                      <div>
+                        <CardTitle class="text-lg">Transfer Completed</CardTitle>
+                        <CardDescription class="text-sm text-muted-foreground">{{ sentSummary?.timestamp || new Date().toISOString() }}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent class="space-y-4">
+                    <div class="text-3xl font-extrabold text-foreground">
+                      {{ sentSummary?.amount || form.amount }} <span class="text-xl font-semibold">{{ tokenSymbol || tokenName }}</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div class="space-y-1">
+                        <div class="text-xs text-muted-foreground">From</div>
+                        <div class="font-medium">{{ isReceiveMode ? receiverKey?.substring(0, 6) + '...' + receiverKey?.substring(receiverKey.length - 4) : htmUserMetadata?.displayName }}</div>
+                      </div>
+                      <div class="space-y-1">
+                        <div class="text-xs text-muted-foreground">To</div>
+                        <div class="font-medium truncate">{{ isReceiveMode ? htmUserMetadata?.displayName : receiverKey?.substring(0, 6) + '...' + receiverKey?.substring(receiverKey.length - 4) }}</div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                      <div class="text-sm text-muted-foreground">Remaining balance</div>
+                      <div class="font-medium">{{ sentSummary?.remainingBalance || remainingBalanceDisplay }}</div>
+                    </div>
+
+                    <div class="border-t pt-3">
+                      <Button size="sm" class="w-full" @click.prevent="generateInvoice">Generate Invoice</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </CardContent>
         </Card>
