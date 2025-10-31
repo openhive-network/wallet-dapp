@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiArrowDown } from '@mdi/js';
 import { Check, Search } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
@@ -109,16 +110,14 @@ onMounted(async () => {
 <template>
   <Combobox v-model="selectedValue">
     <ComboboxAnchor class="relative w-full">
-      <ComboboxTrigger class="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
-        <div class="flex items-center gap-2 flex-1 min-w-0">
-          <Search class="h-4 w-4 shrink-0 text-muted-foreground" />
+      <ComboboxTrigger class="flex h-9 w-full items-center justify-between rounded-r-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+        <div class="flex items-center justify-between flex-1 min-w-0">
           <div
             v-if="selectedToken"
             class="flex items-center gap-3 truncate flex-1 min-w-0"
           >
             <div class="flex flex-col items-start min-w-0 flex-1">
               <span class="font-semibold text-foreground truncate">{{ selectedToken.displayName }}</span>
-              <span class="text-xs text-muted-foreground">Balance: {{ selectedToken.displayBalance }}</span>
             </div>
           </div>
           <span
@@ -127,9 +126,21 @@ onMounted(async () => {
           >
             {{ placeholder }}
           </span>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0 text-muted-foreground"
+            >
+            <path
+              style="fill: currentColor"
+              :d="mdiArrowDown"
+            />
+          </svg>
         </div>
       </ComboboxTrigger>
-      <ComboboxList class="w-full mt-1 bg-popover border border-border rounded-lg shadow-lg p-0 max-h-64 overflow-hidden">
+      <ComboboxList class="mt-1 bg-popover border border-border rounded-lg shadow-lg p-0 max-h-64 overflow-hidden">
         <div class="flex items-center border-b border-border px-4 py-2 bg-muted/50">
           <Search class="mr-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <ComboboxInput

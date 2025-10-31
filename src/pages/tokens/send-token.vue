@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { mdiArrowLeft, mdiArrowDown, mdiArrowUp, mdiFileDocumentOutline } from '@mdi/js';
+import { mdiArrowLeft, mdiArrowUp, mdiArrowDown } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import QRCode from 'qrcode';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+
 import HTMView from '@/components/HTMView.vue';
 import TokenSelector from '@/components/tokens/TokenSelector.vue';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
+import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+import { Tooltip, TooltipTrigger, TooltipProvider, TooltipContent } from '~/src/components/ui/tooltip';
 
 // Router
 const route = useRoute();
@@ -31,6 +35,7 @@ const router = useRouter();
 const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
+const userStore = useUserStore();
 
 // State
 const token = ref<CtokensAppToken | null>(null);
@@ -40,6 +45,9 @@ const isSending = ref(false);
 const addingMemo = ref(false);
 const qrCodeDataUrl = ref<string>('');
 const transferCompleted = ref(false);
+
+// UI toggles for compact view
+const showDetails = ref(false);
 
 // Form state
 const form = ref({
@@ -59,7 +67,7 @@ const nai = computed(() => {
   return form.value.nai;
 });
 const precision = computed(() => route.query.precision as string || form.value.precision);
-const receiverKey = computed(() => route.query.to as string | undefined);
+const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
 const queryAmount = computed(() => route.query.amount as string | undefined);
 const queryMemo = computed(() => route.query.memo as string | undefined);
 
@@ -68,7 +76,23 @@ const hasNaiFromUrl = computed(() => !!route.query.nai);
 
 // Check if we're in receive mode (when 'to' is in query params)
 // When 'to' is present, we're actually sending (confirming a transfer request)
-const isReceiveMode = computed(() => !!receiverKey.value);
+const isReceiveMode = computed(() => !!route.query.to);
+
+const htmUserMetadata = ref<{
+  displayName: string;
+  about?: string;
+  name?: string;
+  profileImage?: string;
+  website?: string;
+} | undefined>(undefined);
+
+const fetchHTMUserData = async () => {
+  try {
+    htmUserMetadata.value = await tokensStore.getCurrentUserMetadata();
+  } catch (_error) {
+    // toastError('Error fetching HTM user data', error); // TODO: Reformat this code to better handle edge cases...
+  }
+};
 
 // Check if we should show token selector (when only 'to' is provided)
 const shouldShowTokenSelector = computed(() => {
@@ -92,6 +116,46 @@ const tokenSymbol = computed(() => {
   if (!token.value) return '';
   const metadata = token.value.metadata as { symbol?: string } | undefined;
   return metadata?.symbol || '';
+});
+
+// Receiver display helpers (compact UI)
+const receiverDisplayName = computed(() => {
+  // In receive mode the recipient is you — prefer parsed user name (L2 if available)
+  if (isReceiveMode.value) {
+    // userStore.name is a transformed display name if parseUserData ran
+    const name = userStore.name || settingsStore.settings.account || userOperationalKey.value || '';
+    if (name) return name;
+    return 'You';
+  }
+
+  // Otherwise prefer explicit name from query if present
+  const qName = route.query.toName as string | undefined;
+  if (qName && qName.trim()) return qName;
+
+  // Fall back to short key derived from receiverKey
+  const rk = receiverKey.value;
+  if (!rk) return '';
+  return `${rk.slice(0, 6)}…${rk.slice(-4)}`;
+});
+
+const receiverShortKey = computed(() =>
+  isReceiveMode.value
+    ? (userOperationalKey.value || '')
+    : (receiverKey.value ? `${receiverKey.value.slice(0, 8)}…` : '')
+);
+
+const tokenImage = computed(() => {
+  if (!token.value) return '';
+  const metadata = token.value.metadata as { image?: string } | undefined;
+  return metadata?.image || '';
+});
+
+const receiverAvatarLetter = computed(() => {
+  const name = receiverDisplayName.value;
+  if (!name) return '?';
+  // Use first non-space character as avatar letter
+  const ch = name.trim().charAt(0).toUpperCase();
+  return ch || '?';
 });
 
 const amountValidation = computed(() => {
@@ -415,8 +479,10 @@ onMounted(async () => {
   isLoading.value = true;
 
   // Load user balances if logged in (needed for token selector)
-  if (isLoggedIn.value)
+  if (isLoggedIn.value) {
     await tokensStore.loadBalances();
+    await fetchHTMUserData();
+  }
 
   // Initialize form with query params
   form.value.nai = route.query.nai as string || '';
@@ -439,6 +505,57 @@ onMounted(async () => {
   // Generate initial QR code if not in receive mode and user is logged in and has NAI/precision
   if (!isReceiveMode.value && isLoggedIn.value && nai.value && precision.value)
     await generateQRCode();
+});
+
+// If the user logs in after the page mounted (for example after entering password),
+// reload balances, HTM user metadata, token details and QR code as needed.
+watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
+  // Only act when the user becomes logged in
+  if (!loggedIn || wasLoggedIn === loggedIn) return;
+
+  isLoading.value = true;
+
+  try {
+    // Load balances and HTM metadata now that we have an authenticated session
+    await tokensStore.loadBalances();
+    await fetchHTMUserData();
+
+    // If nai/precision available, load token details
+    if (nai.value && precision.value)
+      await loadTokenDetails();
+
+    // Regenerate QR code when appropriate
+    if (!isReceiveMode.value && nai.value && precision.value)
+      await generateQRCode();
+  } catch (e) {
+    // swallow - errors are handled inside the helpers (toastError)
+    console.error('Error reloading data after login', e);
+  } finally {
+    isLoading.value = false;
+  }
+});
+
+// Also watch the tokens store wallet instance - this changes when CTokensProvider is set
+// (e.g., user unlocked their HTM wallet). React to that to load HTM-related data.
+watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
+  if (!newWallet || newWallet === oldWallet) return;
+
+  isLoading.value = true;
+
+  try {
+    await tokensStore.loadBalances();
+    await fetchHTMUserData();
+
+    if (nai.value && precision.value)
+      await loadTokenDetails();
+
+    if (!isReceiveMode.value && nai.value && precision.value)
+      await generateQRCode();
+  } catch (e) {
+    console.error('Error reloading data after tokensStore.wallet changed', e);
+  } finally {
+    isLoading.value = false;
+  }
 });
 </script>
 
@@ -511,246 +628,130 @@ onMounted(async () => {
               {{ isReceiveMode ? 'Review the transfer details' : (hasNaiFromUrl ? 'Specify the transfer amount' : 'Enter token details and specify the transfer amount') }}
             </CardDescription>
           </CardHeader>
-          <CardContent class="space-y-6">
-            <!-- Token Selector (when only 'to' is provided) -->
-            <div
-              v-if="shouldShowTokenSelector"
-              class="space-y-2"
-            >
-              <Label
-                for="token-selector"
-                class="text-sm font-medium text-foreground"
-              >
-                Select Token
-              </Label>
-              <TokenSelector
-                id="token-selector"
-                v-model="selectedTokenNai"
-                placeholder="Choose a token to send"
-              />
-              <p class="text-xs text-muted-foreground">
-                Select from your owned tokens
-              </p>
-            </div>
-
-            <!-- NAI Input (only when not provided in URL and not using token selector) -->
-            <div
-              v-if="!hasNaiFromUrl && !shouldShowTokenSelector"
-              class="space-y-2"
-            >
-              <Label
-                for="nai"
-                class="text-sm font-medium text-foreground"
-              >
-                Token NAI
-              </Label>
-              <Input
-                id="nai"
-                v-model="form.nai"
-                type="text"
-                placeholder="Enter token NAI"
-                class="transition-colors"
-              />
-              <p class="text-xs text-muted-foreground">
-                The Non-Fungible Asset Identifier of the token
-              </p>
-            </div>
-
-            <!-- Precision Input (only when not provided in URL and not using token selector) -->
-            <div
-              v-if="!hasNaiFromUrl && !shouldShowTokenSelector"
-              class="space-y-2"
-            >
-              <Label
-                for="precision"
-                class="text-sm font-medium text-foreground"
-              >
-                Precision
-              </Label>
-              <Input
-                id="precision"
-                v-model="form.precision"
-                type="number"
-                placeholder="Enter precision (0-18)"
-                min="0"
-                max="18"
-                class="transition-colors"
-              />
-              <p class="text-xs text-muted-foreground">
-                Number of decimal places for the token (0-18)
-              </p>
-            </div>
-
-            <Separator v-if="!hasNaiFromUrl" />
-
-            <!-- Sender -->
-            <div
-              v-if="isReceiveMode"
-              class="space-y-2"
-            >
-              <Label
-                for="sender"
-                class="text-sm font-medium text-foreground"
-              >
-                Sender (You)
-              </Label>
-              <Input
-                id="sender"
-                :model-value="userOperationalKey || 'Not logged in'"
-                readonly
-                class="transition-colors bg-muted/50 cursor-not-allowed"
-              />
-              <p class="text-xs text-muted-foreground">
-                {{ userOperationalKey ? 'Sender operational public key' : 'You need to log in to send tokens' }}
-              </p>
-            </div>
-
-            <Separator v-if="isReceiveMode" />
-
-            <!-- Receiver -->
-            <div class="space-y-2">
-              <Label
-                for="receiver"
-                class="text-sm font-medium text-foreground"
-              >
-                Receiver{{ !isReceiveMode ? ' (You)' : '' }}
-              </Label>
-              <Input
-                id="receiver"
-                :model-value="isReceiveMode ? receiverKey : userOperationalKey"
-                readonly
-                :class="isReceiveMode ? 'transition-colors bg-muted/50 cursor-not-allowed' : 'transition-colors bg-muted/50 cursor-not-allowed'"
-              />
-              <p class="text-xs text-muted-foreground">
-                Receiver operational public key
-              </p>
-            </div>
-
-            <Separator />
-
-            <!-- Transfer Amount -->
-            <div class="space-y-2">
-              <Label
-                for="amount"
-                class="text-sm font-medium text-foreground"
-              >
-                Amount (optional)
-              </Label>
-              <div class="relative">
-                <Input
-                  id="amount"
-                  v-model="form.amount"
-                  type="text"
-                  inputmode="decimal"
-                  :placeholder="`Amount in ${tokenSymbol || tokenName}`"
-                  class="pr-20 transition-colors"
-                  :class="[
-                    form.amount ? (amountValidation.isValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : '',
-                  ]"
-                />
-                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                  {{ tokenSymbol }}
-                </span>
+          <CardContent class="space-y-4">
+            <!-- Compact recipient + token summary -->
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <span class="inline-flex items-center text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{{ isReceiveMode ? 'Recipient' : 'Receiver' }}</span>
+                <div class="flex items-center gap-3 min-w-0 mt-3">
+                  <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground flex-shrink-0">
+                    {{ htmUserMetadata?.profileImage ? htmUserMetadata.profileImage  : receiverAvatarLetter }}
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <div class="text-sm font-bold truncate">{{ htmUserMetadata?.displayName }}</div>
+                    <div class="text-xs text-muted-foreground truncate">{{ receiverShortKey }}</div>
+                  </div>
+                </div>
               </div>
-              <p
-                v-if="token"
-                class="text-xs text-muted-foreground"
-              >
-                Precision: {{ token.precision }} decimal places
-              </p>
-              <p
-                v-if="form.amount && !amountValidation.isValid && amountValidation.error"
-                class="text-xs text-red-500"
-              >
-                {{ amountValidation.error }}
-              </p>
-            </div>
-
-            <Separator v-if="!isReceiveMode" />
-
-            <!-- memo -->
-            <div
-              v-if="addingMemo || (isReceiveMode && form.memo)"
-              class="space-y-2"
-            >
-              <Label
-                for="memo"
-                class="text-sm font-medium text-foreground"
-              >
-                Memo
-              </Label>
-              <Textarea
-                id="memo"
-                v-model="form.memo"
-                placeholder="Add memo..."
-                rows="4"
-                :readonly="isReceiveMode"
-                :disabled="isUpdating"
-                :class="[
-                  'resize-none',
-                  isReceiveMode ? 'bg-muted/50 cursor-not-allowed' : ''
-                ]"
-              />
-              <p class="text-xs text-muted-foreground">
-                A brief memo for token transfer
-              </p>
-            </div>
-
-            <Button
-              v-if="!isReceiveMode"
-              variant="ghost"
-              size="sm"
-              class="gap-2"
-              @click="addingMemo = !addingMemo"
-            >
-              <svg
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="flex-shrink-0"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="addingMemo ? mdiArrowUp : mdiArrowDown"
-                />
-              </svg>
-              {{ addingMemo ? 'Collapse' : 'Add Memo' }}
-            </Button>
-
-            <!-- Send Button (only in receive mode) -->
-            <div
-              v-if="isReceiveMode"
-              class="pt-4 space-y-3"
-            >
-              <Button
-                v-if="!transferCompleted"
-                class="w-full"
-                :disabled="isSending || !isFormValid"
-                @click="handleSend"
-              >
-                {{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}
-              </Button>
-              <Button
-                v-if="transferCompleted"
-                variant="outline"
-                class="w-full gap-2"
-                @click="generateInvoice"
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  class="flex-shrink-0"
-                >
-                  <path
-                    style="fill: currentColor"
-                    :d="mdiFileDocumentOutline"
+              <div class="flex flex-col items-center text-right">
+                <Avatar class="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
+                  <AvatarImage
+                    v-if="tokenImage"
+                    :src="tokenImage"
+                    :alt="tokenName"
                   />
-                </svg>
-                Generate Invoice
-              </Button>
+                  <AvatarFallback>
+                    <svg
+                      v-if="!tokenImage"
+                      width="24"
+                      height="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      class="text-muted-foreground"
+                    >
+                      <path
+                        style="fill: currentColor"
+                        d="M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H5M11,7H13V17H11V7Z"
+                      />
+                    </svg>
+                    <span
+                      v-else
+                      class="text-xl sm:text-2xl font-bold text-primary"
+                    >
+                      {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
+                    </span>
+                  </AvatarFallback>
+                </Avatar>
+                <div class="text-xs text-muted-foreground mt-2">{{ form.amount || '—' }}</div>
+              </div>
+            </div>
+
+            <!-- Token selector (compact) -->
+            <div v-if="shouldShowTokenSelector" class="mt-1">
+              <Label for="amount" class="text-sm font-medium text-foreground">Amount</Label>
+              <div class="flex items-center w-full">
+                <div class="w-[75%]">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger as-child>
+                        <Input id="amount" v-model="form.amount" :disabled="!selectedTokenNai" type="text" inputmode="decimal" :placeholder="`Amount in ${tokenSymbol || tokenName}`" class="pr-12 rounded-r-none border-r-0" />
+                      </TooltipTrigger>
+                      <TooltipContent v-if="!selectedTokenNai">
+                        <p>Select token to send first.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <p v-if="form.amount && !amountValidation.isValid && amountValidation.error" class="text-xs text-red-500 mt-1">{{ amountValidation.error }}</p>
+                </div>
+                <TokenSelector id="token-selector" v-model="selectedTokenNai" placeholder="Choose token" class="w-[25%]" :class="{ 'mb-5': form.amount && !amountValidation.isValid && amountValidation.error }" />
+              </div>
+            </div>
+
+            <!-- Small details toggle for NAI/precision when needed -->
+            <div v-if="!hasNaiFromUrl && !shouldShowTokenSelector" class="flex items-center justify-between">
+              <div class="text-xs text-muted-foreground">Token NAI / precision</div>
+              <Button size="sm" variant="ghost" class="px-2 py-1" @click="showDetails = !showDetails">{{ showDetails ? 'Hide' : 'Show' }}</Button>
+            </div>
+
+            <div v-if="showDetails && !hasNaiFromUrl && !shouldShowTokenSelector" class="grid grid-cols-2 gap-2">
+              <Input id="nai" v-model="form.nai" type="text" placeholder="NAI" class="transition-colors" />
+              <Input id="precision" v-model="form.precision" type="number" placeholder="Precision" min="0" max="18" class="transition-colors" />
+            </div>
+
+            <!-- Amount compact -->
+            <div v-if="!shouldShowTokenSelector">
+              <Label for="amount" class="text-sm font-medium text-foreground">Amount</Label>
+              <div class="relative mt-1">
+                <Input id="amount" v-model="form.amount" type="text" inputmode="decimal" :placeholder="`Amount in ${tokenSymbol || tokenName}`" class="pr-12" />
+                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">{{ tokenSymbol }}</span>
+              </div>
+              <p v-if="form.amount && !amountValidation.isValid && amountValidation.error" class="text-xs text-red-500 mt-1">{{ amountValidation.error }}</p>
+            </div>
+
+            <!-- Memo compact -->
+            <div>
+              <div class="flex items-center justify-between">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="gap-2"
+                  @click="addingMemo = !addingMemo"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    class="flex-shrink-0"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      :d="addingMemo ? mdiArrowUp : mdiArrowDown"
+                    />
+                  </svg>
+                  {{ addingMemo ? 'Collapse' : 'Add Memo' }}
+                </Button>
+
+              </div>
+              <div v-if="addingMemo || (isReceiveMode && form.memo)" class="mt-2">
+                <Textarea id="memo" v-model="form.memo" placeholder="Memo..." rows="3" :readonly="isReceiveMode" :disabled="isUpdating" class="resize-none" />
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-3">
+              <Button v-if="isReceiveMode && !transferCompleted" class="w-full" :disabled="isSending || !isFormValid" @click="handleSend">{{ isSending ? 'Sending...' : (isLoggedIn ? 'Send Token' : 'Log in to Send Token') }}</Button>
+              <Button v-if="isReceiveMode && transferCompleted" variant="outline" class="w-full gap-2 mt-2" @click="generateInvoice">Generate Invoice</Button>
             </div>
           </CardContent>
         </Card>
@@ -758,24 +759,11 @@ onMounted(async () => {
         <!-- QR Code Card (visible when NAI and precision are available) -->
         <Card v-if="nai && precision && !isReceiveMode">
           <CardContent class="flex flex-col items-center">
-            <div
-              v-if="qrCodeDataUrl"
-              class="bg-white p-4 rounded-lg my-4"
-            >
-              <img
-                :src="qrCodeDataUrl"
-                alt="QR Code for token transfer"
-                class="w-full h-auto"
-              >
+            <div v-if="qrCodeDataUrl" class="bg-white p-3 rounded-lg my-3">
+              <img :src="qrCodeDataUrl" alt="QR Code for token transfer" class="w-48 h-48 object-contain">
             </div>
-            <div
-              v-else
-              class="bg-white p-4 rounded-lg my-4 flex items-center justify-center"
-              style="width: 300px; height: 300px;"
-            >
-              <p class="text-muted-foreground text-center">
-                Generating QR code...
-              </p>
+            <div v-else class="bg-white p-3 rounded-lg my-3 flex items-center justify-center" style="width:200px; height:200px;">
+              <p class="text-muted-foreground text-center">Generating QR code...</p>
             </div>
             <p class="text-xs text-muted-foreground text-center max-w-md">
               This QR code contains the transfer details. The receiver can scan it to accept the token.
