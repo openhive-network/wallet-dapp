@@ -7,6 +7,8 @@ import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, 
 import { useTokensStore } from '@/stores/tokens.store';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 
+import { isVesting } from '~/src/utils/nai-tokens';
+
 interface TokenOption {
   balance: CtokensAppBalance;
   displayName: string;
@@ -44,6 +46,7 @@ watch(() => props.modelValue, (newValue) => {
 // Get user's token balances with positive amounts
 const ownedTokens = computed((): TokenOption[] => {
   return tokensStore.balances
+    .filter(balance => isVesting(balance.nai!, balance.precision!) === false) // Exclude vesting tokens
     .filter(balance => {
       // Filter out zero balances
       const amount = BigInt(balance.amount || '0');
