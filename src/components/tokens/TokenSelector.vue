@@ -3,6 +3,7 @@ import { mdiArrowDown } from '@mdi/js';
 import { Check, Search } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 
+import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList, ComboboxTrigger } from '@/components/ui/combobox';
 import { useTokensStore } from '@/stores/tokens.store';
 import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
@@ -98,6 +99,15 @@ const selectedToken = computed(() => {
   return ownedTokens.value.find(token => token.balance.nai === selectedValue.value);
 });
 
+// Token image URL
+const tokenImage = computed(() => {
+  if (!selectedToken.value) return undefined;
+  const metadata = selectedToken.value.balance.metadata as { image?: string } | undefined;
+  const tokenDef = tokensStore.getTokenDefinitionByNAI(selectedToken.value.balance.nai!);
+  const tokenMetadata = tokenDef?.metadata as { image?: string } | undefined;
+  return metadata?.image || tokenMetadata?.image || '';
+});
+
 // Watch for changes in balances to ensure we have the latest data
 watch(() => tokensStore.balances, () => {
   // Balances updated, component will re-compute ownedTokens
@@ -117,11 +127,15 @@ onMounted(async () => {
         <div class="flex items-center justify-between flex-1 min-w-0">
           <div
             v-if="selectedToken"
-            class="flex items-center gap-3 truncate flex-1 min-w-0"
+            class="flex items-center gap-2 truncate flex-1 min-w-0"
           >
-            <div class="flex flex-col items-start min-w-0 flex-1">
-              <span class="font-semibold text-foreground truncate">{{ selectedToken.displayName }}</span>
-            </div>
+            <Avatar v-if="tokenImage" class="h-6 w-6">
+              <AvatarImage
+                :src="tokenImage"
+                :alt="selectedToken.displayName"
+              />
+            </Avatar>
+            <span class="font-semibold text-foreground truncate">{{ selectedToken.displayName }}</span>
           </div>
           <span
             v-else
