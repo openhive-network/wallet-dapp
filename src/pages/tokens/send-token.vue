@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiCheckCircle } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
-import QRCode from 'qrcode';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
-
 
 import HTMView from '@/components/HTMView.vue';
 import TokenSelector from '@/components/tokens/TokenSelector.vue';
@@ -26,6 +24,7 @@ import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken, CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+import QRCodeCard from '~/src/components/tokens/QRCodeCard.vue';
 import { Tooltip, TooltipTrigger, TooltipProvider, TooltipContent } from '~/src/components/ui/tooltip';
 
 // Router
@@ -43,7 +42,6 @@ const isLoading = ref(true);
 const isUpdating = ref(false);
 const isSending = ref(false);
 const addingMemo = ref(false);
-const qrCodeDataUrl = ref<string>('');
 const transferCompleted = ref(false);
 
 // Summary of the last transfer (snapshot at time of send)
@@ -248,41 +246,6 @@ const isFormValid = computed(() => {
   return amountValidation.value.isValid;
 });
 
-// Generate QR Code
-const generateQRCode = async () => {
-  // Generate QR code even without amount (amount is optional)
-  try {
-    const baseUrl = window.location.origin;
-    const params = new URLSearchParams({
-      nai: nai.value,
-      precision: precision.value,
-      to: userOperationalKey.value || ''
-    });
-
-    // Add amount only if provided and valid
-    if (form.value.amount.trim() && amountValidation.value.isValid)
-      params.append('amount', form.value.amount);
-
-    // Add memo only if provided
-    if (form.value.memo.trim())
-      params.append('memo', form.value.memo);
-
-    const url = `${baseUrl}/tokens/send-token?${params.toString()}`;
-    const dataUrl = await QRCode.toDataURL(url, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
-    qrCodeDataUrl.value = dataUrl;
-  } catch (error) {
-    console.error('Failed to generate QR code:', error);
-    qrCodeDataUrl.value = '';
-  }
-};
-
 // Watch NAI and precision changes to load token details
 watch([() => form.value.nai, () => form.value.precision], async (newValues, oldValues) => {
   const [newNai, newPrecision] = newValues;
@@ -293,18 +256,8 @@ watch([() => form.value.nai, () => form.value.precision], async (newValues, oldV
     isLoading.value = true;
     await loadTokenDetails();
     isLoading.value = false;
-
-    // Generate QR code if in send mode and logged in
-    if (!isReceiveMode.value && isLoggedIn.value)
-      await generateQRCode();
   }
 });
-
-// Watch form amount and memo changes to regenerate QR code
-watch([() => form.value.amount, () => form.value.memo, userOperationalKey], async () => {
-  if (!isReceiveMode.value && nai.value && precision.value && isLoggedIn.value)
-    await generateQRCode();
-}, { immediate: false });
 
 // Watch selected token NAI changes to load token details
 watch(selectedTokenNai, async (newNai, oldNai) => {
@@ -552,10 +505,6 @@ onMounted(async () => {
     await loadTokenDetails();
 
   isLoading.value = false;
-
-  // Generate initial QR code if not in receive mode and user is logged in and has NAI/precision
-  if (!isReceiveMode.value && isLoggedIn.value && nai.value && precision.value)
-    await generateQRCode();
 });
 
 // If the user logs in after the page mounted (for example after entering password),
@@ -574,10 +523,6 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     // If nai/precision available, load token details
     if (nai.value && precision.value)
       await loadTokenDetails();
-
-    // Regenerate QR code when appropriate
-    if (!isReceiveMode.value && nai.value && precision.value)
-      await generateQRCode();
   } catch (e) {
     // swallow - errors are handled inside the helpers (toastError)
     console.error('Error reloading data after login', e);
@@ -599,9 +544,6 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 
     if (nai.value && precision.value)
       await loadTokenDetails();
-
-    if (!isReceiveMode.value && nai.value && precision.value)
-      await generateQRCode();
   } catch (e) {
     console.error('Error reloading data after tokensStore.wallet changed', e);
   } finally {
@@ -852,20 +794,13 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
         </Card>
 
         <!-- QR Code Card (visible when NAI and precision are available) -->
-        <Card v-if="nai && precision && !isReceiveMode">
-          <CardContent class="flex flex-col items-center">
-            <div v-if="qrCodeDataUrl" class="bg-white p-3 rounded-lg my-3">
-              <img :src="qrCodeDataUrl" alt="QR Code for token transfer" class="w-48 h-48 object-contain">
-            </div>
-            <div v-else class="bg-white p-3 rounded-lg my-3 flex items-center justify-center" style="width:200px; height:200px;">
-              <p class="text-muted-foreground text-center">Generating QR code...</p>
-            </div>
-            <p class="text-xs text-muted-foreground text-center max-w-md">
-              This QR code contains the transfer details. The receiver can scan it to accept the token.
-            </p>
-          </CardContent>
-        </Card>
+        <QRCodeCard
+          v-if="nai && precision && !isReceiveMode"
+          :nai="nai"
+          :precision="precision"
+          :amount="form.amount"
+          :memo="form.memo"
+        />
       </div>
-    </div>
-  </HTMView>
+  </div></HTMView>
 </template>
