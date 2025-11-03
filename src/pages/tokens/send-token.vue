@@ -7,6 +7,7 @@ import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import HTMView from '@/components/HTMView.vue';
+import TokenAmountInput from '@/components/TokenAmountInput.vue';
 import TokenSelector from '@/components/tokens/TokenSelector.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -699,14 +700,17 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
             </div>
 
             <!-- Amount compact -->
-            <div v-if="!shouldShowTokenSelector">
-              <Label for="amount" class="text-sm font-medium text-foreground">Amount</Label>
-              <div class="relative mt-1">
-                <Input id="amount" v-model="form.amount" type="text" inputmode="decimal" :placeholder="`Amount in ${tokenSymbol || tokenName}`" class="pr-12" />
-                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">{{ tokenSymbol }}</span>
-              </div>
-              <p v-if="form.amount && !amountValidation.isValid && amountValidation.error" class="text-xs text-red-500 mt-1">{{ amountValidation.error }}</p>
-            </div>
+            <TokenAmountInput
+              v-if="!shouldShowTokenSelector"
+              v-model="form.amount"
+              :token-name="tokenName"
+              :token-symbol="tokenSymbol"
+              :token-image="tokenImage"
+              :token-nai="token?.nai"
+              :precision="token?.precision"
+              :is-valid="amountValidation.isValid"
+              :validation-error="amountValidation.error"
+            />
 
             <!-- Memo compact -->
             <CollapsibleMemoInput
