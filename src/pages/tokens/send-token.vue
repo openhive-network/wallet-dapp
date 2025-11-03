@@ -7,9 +7,9 @@ import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import HTMView from '@/components/HTMView.vue';
+import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TokenAmountInput from '@/components/TokenAmountInput.vue';
 import TokenSelector from '@/components/tokens/TokenSelector.vue';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -149,14 +149,6 @@ const tokenImage = computed(() => {
   if (!token.value) return '';
   const metadata = token.value.metadata as { image?: string } | undefined;
   return metadata?.image || '';
-});
-
-const receiverAvatarLetter = computed(() => {
-  const name = receiverDisplayName.value;
-  if (!name) return '?';
-  // Use first non-space character as avatar letter
-  const ch = name.trim().charAt(0).toUpperCase();
-  return ch || '?';
 });
 
 const amountValidation = computed(() => {
@@ -621,51 +613,12 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           </CardHeader>
           <CardContent class="space-y-4">
             <!-- Compact recipient + token summary -->
-            <div class="flex items-center justify-between gap-4">
-              <div>
-                <span class="inline-flex items-center text-xs font-semibold uppercase px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{{ isReceiveMode ? 'Recipient' : 'Receiver' }}</span>
-                <div class="flex items-center gap-3 min-w-0 mt-3">
-                  <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground flex-shrink-0">
-                    {{ htmUserMetadata?.profileImage ? htmUserMetadata.profileImage  : receiverAvatarLetter }}
-                  </div>
-                  <div class="flex flex-col min-w-0">
-                    <div class="text-sm font-bold truncate">{{ htmUserMetadata?.displayName }}</div>
-                    <div class="text-xs text-muted-foreground truncate">{{ receiverShortKey }}</div>
-                  </div>
-                </div>
-              </div>
-              <div class="flex flex-col items-center text-right">
-                <Avatar class="h-10 w-10 sm:h-14 sm:w-14 flex-shrink-0">
-                  <AvatarImage
-                    v-if="tokenImage"
-                    :src="tokenImage"
-                    :alt="tokenName"
-                  />
-                  <AvatarFallback>
-                    <svg
-                      v-if="!tokenImage"
-                      width="24"
-                      height="24"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      class="text-muted-foreground"
-                    >
-                      <path
-                        style="fill: currentColor"
-                        d="M5,3C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H5M11,7H13V17H11V7Z"
-                      />
-                    </svg>
-                    <span
-                      v-else
-                      class="text-xl sm:text-2xl font-bold text-primary"
-                    >
-                      {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
-                    </span>
-                  </AvatarFallback>
-                </Avatar>
-                <div class="text-xs text-muted-foreground mt-2">{{ form.amount || '—' }}</div>
-              </div>
-            </div>
+            <ReceiverTokenSummary
+              :receiver-name="htmUserMetadata?.displayName || receiverDisplayName"
+              :receiver-key="receiverKey"
+              :receiver-avatar="htmUserMetadata?.profileImage"
+              :label="isReceiveMode ? 'Recipient' : 'Receiver'"
+            />
 
             <!-- Token selector (compact) -->
             <div v-if="shouldShowTokenSelector" class="mt-1">
