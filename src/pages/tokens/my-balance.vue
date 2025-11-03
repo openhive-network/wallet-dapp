@@ -16,6 +16,7 @@ import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import HTMView from '@/components/HTMView.vue';
+import TokenAmountInput from '@/components/TokenAmountInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -1189,43 +1190,18 @@ onMounted(async () => {
               />
             </div>
 
-            <div class="grid gap-2">
-              <Label for="amount">Amount</Label>
-              <div class="relative">
-                <Input
-                  id="amount"
-                  v-model="transferAmount"
-                  type="text"
-                  inputmode="decimal"
-                  placeholder="0.000"
-                  class="pr-20 transition-colors"
-                />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <span class="text-xs text-muted-foreground">
-                    {{ getTokenSymbol(selectedTokenForTransfer!) }}
-                  </span>
-                </div>
-              </div>
-              <div class="flex justify-between text-xs">
-                <span class="text-muted-foreground">
-                  Available: {{ getLiquidBalanceDisplay(selectedTokenForTransfer!) }}
-                </span>
-                <button
-                  v-if="selectedTokenForTransfer && getLiquidBalanceNumeric(selectedTokenForTransfer) > 0"
-                  type="button"
-                  class="text-primary hover:text-primary/80 font-medium"
-                  @click="setMaxTransferAmount"
-                >
-                  MAX
-                </button>
-              </div>
-              <p
-                v-if="selectedTokenForTransfer"
-                class="text-xs text-muted-foreground"
-              >
-                Precision: {{ selectedTokenForTransfer.precision }} decimal places
-              </p>
-            </div>
+            <TokenAmountInput
+              v-model="transferAmount"
+              :token-name="getTokenName(selectedTokenForTransfer!)"
+              :token-symbol="getTokenSymbol(selectedTokenForTransfer!)"
+              :token-image="getTokenLogoUrl(selectedTokenForTransfer!)"
+              :token-nai="selectedTokenForTransfer?.nai"
+              :precision="selectedTokenForTransfer?.precision"
+              :disabled="isTransferLoading"
+              :available-balance="getLiquidBalanceDisplay(selectedTokenForTransfer!)"
+              :show-max-button="!!(selectedTokenForTransfer && getLiquidBalanceNumeric(selectedTokenForTransfer) > 0)"
+              @max="setMaxTransferAmount"
+            />
 
             <!-- memo -->
             <CollapsibleMemoInput
@@ -1312,43 +1288,18 @@ onMounted(async () => {
           </DialogHeader>
 
           <div class="grid gap-4 py-4">
-            <div class="grid gap-2">
-              <Label for="transformAmount">Amount</Label>
-              <div class="relative">
-                <Input
-                  id="transformAmount"
-                  v-model="transformAmount"
-                  type="text"
-                  inputmode="decimal"
-                  placeholder="0.000"
-                  class="pr-20 transition-colors"
-                />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <span class="text-xs text-muted-foreground">
-                    {{ getTokenSymbol(selectedToken!) }}
-                  </span>
-                </div>
-              </div>
-              <div class="flex justify-between text-xs">
-                <span class="text-muted-foreground">
-                  Available: {{ transformDirection === 'liquid-to-staked' ? getLiquidBalanceDisplay(selectedToken!) : getStakedBalanceDisplay(selectedToken!) }}
-                </span>
-                <button
-                  v-if="selectedToken && Number(transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken) : getStakedBalance(selectedToken)) > 0"
-                  type="button"
-                  class="text-primary hover:text-primary/80 font-medium"
-                  @click="setMaxTransformAmount"
-                >
-                  MAX
-                </button>
-              </div>
-              <p
-                v-if="selectedToken"
-                class="text-xs text-muted-foreground"
-              >
-                Precision: {{ selectedToken.precision }} decimal places
-              </p>
-            </div>
+            <TokenAmountInput
+              v-model="transformAmount"
+              :token-name="getTokenName(selectedToken!)"
+              :token-symbol="getTokenSymbol(selectedToken!)"
+              :token-image="getTokenLogoUrl(selectedToken!)"
+              :token-nai="selectedToken?.nai"
+              :precision="selectedToken?.precision"
+              :disabled="isTransformLoading"
+              :available-balance="transformDirection === 'liquid-to-staked' ? getLiquidBalanceDisplay(selectedToken!) : getStakedBalanceDisplay(selectedToken!)"
+              :show-max-button="!!(selectedToken && Number(transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken) : getStakedBalance(selectedToken)) > 0)"
+              @max="setMaxTransformAmount"
+            />
           </div>
 
           <div class="flex justify-end gap-2">

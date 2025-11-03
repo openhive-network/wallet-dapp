@@ -7,6 +7,7 @@ import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import HTMView from '@/components/HTMView.vue';
+import TokenAmountInput from '@/components/TokenAmountInput.vue';
 import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -1067,54 +1068,20 @@ onMounted(async () => {
                   </p>
                 </div>
 
-                <div class="space-y-2">
-                  <Label
-                    for="amount"
-                    class="text-sm font-medium text-foreground"
-                  >
-                    Amount
-                  </Label>
-                  <div class="relative">
-                    <Input
-                      id="amount"
-                      v-model="transferForm.amount"
-                      type="text"
-                      inputmode="decimal"
-                      :placeholder="`Amount in ${tokenSymbol || tokenName}`"
-                      :disabled="isTransferring"
-                      class="pr-20 transition-colors"
-                      :class="transferForm.amount ? (amountValidation.isValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
-                    />
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                      {{ tokenSymbol }}
-                    </span>
-                  </div>
-                  <div class="flex justify-between text-xs">
-                    <span class="text-muted-foreground">
-                      Available: {{ formattedUserBalance }}
-                    </span>
-                    <button
-                      v-if="userBalance && Number(userBalance.amount) > 0"
-                      type="button"
-                      class="text-primary hover:text-primary/80 font-medium"
-                      @click="setMaxAmount"
-                    >
-                      MAX
-                    </button>
-                  </div>
-                  <p
-                    v-if="token"
-                    class="text-xs text-muted-foreground"
-                  >
-                    Precision: {{ token.precision }} decimal places
-                  </p>
-                  <p
-                    v-if="transferForm.amount && !amountValidation.isValid && amountValidation.error"
-                    class="text-xs text-red-500"
-                  >
-                    {{ amountValidation.error }}
-                  </p>
-                </div>
+                <TokenAmountInput
+                  v-model="transferForm.amount"
+                  :token-name="tokenName"
+                  :token-symbol="tokenSymbol"
+                  :token-image="tokenImage"
+                  :token-nai="token.nai"
+                  :precision="token.precision"
+                  :disabled="isTransferring"
+                  :available-balance="formattedUserBalance"
+                  :show-max-button="userBalance && Number(userBalance.amount) > 0"
+                  :is-valid="amountValidation.isValid"
+                  :validation-error="amountValidation.error"
+                  @max="setMaxAmount"
+                />
 
                 <CollapsibleMemoInput
                   v-model="transferForm.memo"
@@ -1251,34 +1218,15 @@ onMounted(async () => {
                 v-else
                 class="space-y-5"
               >
-                <div class="space-y-2">
-                  <Label
-                    for="stake-amount"
-                    class="text-sm font-medium text-foreground"
-                  >
-                    Amount
-                  </Label>
-                  <div class="relative">
-                    <Input
-                      id="stake-amount"
-                      v-model="stakeForm.amount"
-                      type="text"
-                      inputmode="decimal"
-                      :placeholder="`Amount in ${tokenSymbol || tokenName}`"
-                      :disabled="isStaking || isUnstaking"
-                      class="pr-20 transition-colors"
-                    />
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
-                      {{ tokenSymbol }}
-                    </span>
-                  </div>
-                  <p
-                    v-if="token"
-                    class="text-xs text-muted-foreground"
-                  >
-                    Precision: {{ token.precision }} decimal places
-                  </p>
-                </div>
+                <TokenAmountInput
+                  v-model="stakeForm.amount"
+                  :token-name="tokenName"
+                  :token-symbol="tokenSymbol"
+                  :token-image="tokenImage"
+                  :token-nai="token.nai"
+                  :precision="token.precision"
+                  :disabled="isStaking || isUnstaking"
+                />
 
                 <div class="space-y-2">
                   <Label
