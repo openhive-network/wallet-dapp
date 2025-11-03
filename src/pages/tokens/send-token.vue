@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { mdiArrowLeft, mdiArrowUp, mdiArrowDown, mdiCheckCircle } from '@mdi/js';
+import { mdiArrowLeft, mdiCheckCircle } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import HTMView from '@/components/HTMView.vue';
 import TokenSelector from '@/components/tokens/TokenSelector.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
@@ -41,7 +41,6 @@ const token = ref<CtokensAppToken | null>(null);
 const isLoading = ref(true);
 const isUpdating = ref(false);
 const isSending = ref(false);
-const addingMemo = ref(false);
 const transferCompleted = ref(false);
 
 // Summary of the last transfer (snapshot at time of send)
@@ -496,8 +495,6 @@ onMounted(async () => {
   if (isReceiveMode.value) {
     form.value.amount = queryAmount.value || '';
     form.value.memo = queryMemo.value || '';
-    if (form.value.memo)
-      addingMemo.value = true;
   }
 
   // Load token details if NAI and precision are available
@@ -712,34 +709,12 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
             </div>
 
             <!-- Memo compact -->
-            <div>
-              <div class="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  class="gap-2"
-                  @click="addingMemo = !addingMemo"
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    class="flex-shrink-0"
-                  >
-                    <path
-                      style="fill: currentColor"
-                      :d="addingMemo ? mdiArrowUp : mdiArrowDown"
-                    />
-                  </svg>
-                  {{ addingMemo ? 'Collapse' : 'Add Memo' }}
-                </Button>
-
-              </div>
-              <div v-show="addingMemo" class="mt-2">
-                <Textarea id="memo" v-model="form.memo" placeholder="Memo..." rows="3" :readonly="isReceiveMode" :disabled="isUpdating" class="resize-none" />
-              </div>
-            </div>
+            <CollapsibleMemoInput
+              v-model="form.memo"
+              :readonly="isReceiveMode"
+              :disabled="isUpdating"
+              :auto-expand="!!queryMemo"
+            />
 
             <!-- Actions / Summary -->
             <div class="pt-3">
