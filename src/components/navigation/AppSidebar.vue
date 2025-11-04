@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup, mdiArrowLeft } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup, mdiArrowLeft, mdiCog } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -123,6 +123,15 @@ const mainGroups: { title: string; items: Array<{ title: string; url: string; ic
       title: 'Transaction signing',
       url: '/sign/transaction',
       icon: mdiFileSign
+    }
+  ]
+}, {
+  title: 'Settings',
+  items: [
+    {
+      title: 'Settings',
+      url: '/settings',
+      icon: mdiCog
     }
   ]
 }];

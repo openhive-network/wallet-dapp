@@ -8,12 +8,13 @@ import cTokensLogoUrl from '@/assets/icons/wallets/ctokens.svg';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useSettingsStore } from '@/stores/settings.store';
+import { useSettingsStore, UsedWallet  } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
 
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
@@ -33,6 +34,11 @@ const hasHiveAccount = computed(() =>
 
 // HTM account data
 const hasHTMAccount = computed(() => tokensStore.wallet !== undefined);
+
+// Check if current Hive account uses Google Drive wallet
+const isGoogleDriveWallet = computed(() =>
+  hasHiveAccount.value && settingsStore.settings.wallet === UsedWallet.GOOGLE_DRIVE
+);
 
 const htmUserMetadata = ref<{
   displayName: string;
@@ -106,6 +112,10 @@ const connectToHTM = async () => {
 // Disconnect from Hive
 const disconnectFromHive = async () => {
   try {
+    // If Google Drive wallet, logout from Google
+    if (isGoogleDriveWallet.value)
+      await GoogleDriveWalletProvider.logout();
+
     settingsStore.resetSettings();
     walletStore.resetWallet();
     userStore.resetSettings();

@@ -8,6 +8,7 @@ import { toast } from 'vue-sonner';
 
 import { getWax } from '@/stores/wax.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
 
 import { useMetamaskStore } from './metamask.store';
 import { type Settings, UsedWallet } from './settings.store';
@@ -26,7 +27,8 @@ export const useWalletStore = defineStore('wallet', {
       metamask: false,
       keychain: false,
       peakvault: false,
-      ctokens: true
+      ctokens: true,
+      googleDrive: false
     },
     isL2Wallet: false,
     isWalletSelectModalOpen: false,
@@ -37,7 +39,7 @@ export const useWalletStore = defineStore('wallet', {
     hasWallet: () => !!currentWallet.value,
     walletsStatus: state => {
       if (!walletRetrievalIntervalId && import.meta.client) {
-        const checkForWallets = () => {
+        const checkForWallets = async () => {
           if (!state._walletsStatus.metamask)
             MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
 
@@ -46,12 +48,24 @@ export const useWalletStore = defineStore('wallet', {
 
           if (!state._walletsStatus.peakvault)
             state._walletsStatus.peakvault = 'peakvault' in window;
+
+          // Check Google Drive authentication status
+          if (!state._walletsStatus.googleDrive) {
+            try {
+              const response = await fetch('/api/google-drive/oauth-status');
+              const data = await response.json();
+              state._walletsStatus.googleDrive = data.authenticated || false;
+            }
+            catch {
+              state._walletsStatus.googleDrive = false;
+            }
+          }
           // KeychainProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.keychain = isInstalled);
           // PeakVaultProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.peakvault = isInstalled);
         };
 
         walletRetrievalIntervalId = setInterval(checkForWallets, 1000);
-        checkForWallets();
+        void checkForWallets();
       }
 
       return state._walletsStatus;
@@ -99,6 +113,12 @@ export const useWalletStore = defineStore('wallet', {
       }
       case UsedWallet.PEAKVAULT: {
         currentWallet.value = PeakVaultProvider.for(settings.account!, role);
+        this.isL2Wallet = false;
+
+        break;
+      }
+      case UsedWallet.GOOGLE_DRIVE: {
+        currentWallet.value = await GoogleDriveWalletProvider.for(role);
         this.isL2Wallet = false;
 
         break;

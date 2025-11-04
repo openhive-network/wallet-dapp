@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 import SelectWallet from '@/components/onboarding/SelectWallet.vue';
 import ThankYou from '@/components/onboarding/ThankYou.vue';
+import GoogleDriveConnect from '@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue';
 import HTMConnect from '@/components/onboarding/wallets/htm/HTMConnect.vue';
 import KeychainConnect from '@/components/onboarding/wallets/keychain/KeychainConnect.vue';
 import MetamaskConnect from '@/components/onboarding/wallets/metamask/MetamaskConnect.vue';
 import PeakVaultConnect from '@/components/onboarding/wallets/peakvault/PeakVaultConnect.vue';
 import { UsedWallet } from '@/stores/settings.store';
 
+interface Props {
+  preselectedWallet?: UsedWallet;
+}
+
+const props = defineProps<Props>();
 const emit = defineEmits(['complete', 'close']);
 
 const selectedWallet = ref<UsedWallet | null>(null);
@@ -46,6 +52,12 @@ const backToStage1 = () => {
   stage_2_connect_wallet.value = false;
   stage_3_thank_you.value = false;
 };
+
+onMounted(() => {
+  // If wallet is preselected, skip to stage 2
+  if (props.preselectedWallet !== undefined)
+    walletSelect(props.preselectedWallet);
+});
 </script>
 
 <template>
@@ -57,6 +69,11 @@ const backToStage1 = () => {
         @wallet-select="walletSelect"
       />
       <div v-if="stage_2_connect_wallet">
+        <GoogleDriveConnect
+          v-if="selectedWallet === UsedWallet.GOOGLE_DRIVE"
+          @close="backToStage1"
+          @setaccount="setAccount"
+        />
         <KeychainConnect
           v-if="selectedWallet === UsedWallet.KEYCHAIN"
           @close="backToStage1"
