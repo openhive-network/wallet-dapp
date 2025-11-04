@@ -40,12 +40,10 @@ export default defineNuxtConfig({
     middleware: 'src/middleware',
     plugins: 'src/plugins'
   },
-  modules: [
-    '@nuxtjs/tailwindcss',
-    '@nuxtjs/color-mode',
-    '@nuxt/eslint',
-    '@pinia/nuxt'
-  ],
+  imports: {
+    dirs: ['src/composables']
+  },
+  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode', '@nuxt/eslint', '@pinia/nuxt'],
   alias: {
     '@': path.resolve(import.meta.dirname, './src')
   },
@@ -60,9 +58,14 @@ export default defineNuxtConfig({
       hiveNodeEndpoint: 'https://api.hive.blog',
       hiveChainId: '',
       snapOrigin: '',
-      snapVersion: ''
+      snapVersion: '',
+      appUrl: process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000'
     },
     googleApplicationCredentialsJson: {},
-    googleWalletIssuerId: ''
+    googleWalletIssuerId: process.env.GOOGLE_WALLET_ISSUER_ID || '',
+    googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+    googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    googleApiKey: process.env.GOOGLE_API_KEY || '',
+    googleDriveStorageFile: process.env.GOOGLE_DRIVE_STORAGE_FILE || 'profile_data.json'
   }
 });

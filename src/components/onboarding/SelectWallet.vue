@@ -85,6 +85,13 @@ const close = () => {
         description="Use already imported accounts"
         @click="useWallet(UsedWallet.PEAKVAULT)"
       />
+      <OnboardingButton
+        :disabled="false"
+        :logo-url="getWalletIcon(UsedWallet.GOOGLE_DRIVE)"
+        name="Google Drive"
+        description="Store your wallet encrypted in Google Drive"
+        @click="useWallet(UsedWallet.GOOGLE_DRIVE)"
+      />
     </CardContent>
     <CardFooter />
   </Card>

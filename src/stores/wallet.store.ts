@@ -8,6 +8,7 @@ import { toast } from 'vue-sonner';
 
 import { getWax } from '@/stores/wax.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
 
 import { useMetamaskStore } from './metamask.store';
 import { type Settings, UsedWallet } from './settings.store';
@@ -26,8 +27,10 @@ export const useWalletStore = defineStore('wallet', {
       metamask: false,
       keychain: false,
       peakvault: false,
-      ctokens: true
+      ctokens: true,
+      googleDrive: false
     },
+    _lastGoogleDriveCheck: 0,
     isL2Wallet: false,
     isWalletSelectModalOpen: false,
     isProvideWalletPasswordModalOpen: false
@@ -37,7 +40,7 @@ export const useWalletStore = defineStore('wallet', {
     hasWallet: () => !!currentWallet.value,
     walletsStatus: state => {
       if (!walletRetrievalIntervalId && import.meta.client) {
-        const checkForWallets = () => {
+        const checkForWallets = async () => {
           if (!state._walletsStatus.metamask)
             MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
 
@@ -46,20 +49,52 @@ export const useWalletStore = defineStore('wallet', {
 
           if (!state._walletsStatus.peakvault)
             state._walletsStatus.peakvault = 'peakvault' in window;
+
+          // Check Google Drive authentication status - but only once per 10 seconds to avoid spam
+          const now = Date.now();
+          const timeSinceLastCheck = now - state._lastGoogleDriveCheck;
+          const shouldCheckGoogleDrive = !state._walletsStatus.googleDrive && timeSinceLastCheck > 10000;
+
+          if (shouldCheckGoogleDrive) {
+            state._lastGoogleDriveCheck = now;
+            try {
+              const response = await fetch('/api/google-drive/oauth-status');
+              const data = await response.json();
+              state._walletsStatus.googleDrive = data.authenticated || false;
+            }
+            catch {
+              state._walletsStatus.googleDrive = false;
+            }
+          }
           // KeychainProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.keychain = isInstalled);
           // PeakVaultProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.peakvault = isInstalled);
         };
 
         walletRetrievalIntervalId = setInterval(checkForWallets, 1000);
-        checkForWallets();
+        void checkForWallets();
       }
 
       return state._walletsStatus;
     }
   },
   actions: {
+    async recheckGoogleDriveStatus () {
+      // Force recheck by resetting the timer
+      this._lastGoogleDriveCheck = 0;
+      try {
+        const response = await fetch('/api/google-drive/oauth-status');
+        const data = await response.json();
+        this._walletsStatus.googleDrive = data.authenticated || false;
+      }
+      catch {
+        this._walletsStatus.googleDrive = false;
+      }
+    },
     openWalletSelectModal () {
       this.isWalletSelectModalOpen = true;
+
+      // Recheck Google Drive status when opening modal
+      void this.recheckGoogleDriveStatus();
 
       // Allow functionality of waiting for wallet to be added / selected
       return new Promise<void>((resolve, reject) => {
@@ -99,6 +134,12 @@ export const useWalletStore = defineStore('wallet', {
       }
       case UsedWallet.PEAKVAULT: {
         currentWallet.value = PeakVaultProvider.for(settings.account!, role);
+        this.isL2Wallet = false;
+
+        break;
+      }
+      case UsedWallet.GOOGLE_DRIVE: {
+        currentWallet.value = await GoogleDriveWalletProvider.for(role);
         this.isL2Wallet = false;
 
         break;
