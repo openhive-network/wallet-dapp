@@ -5,9 +5,11 @@ import AccountBalanceCard from '@/components/utilcards/AccountBalanceCard.vue';
 import AccountDetails from '@/components/utilcards/AccountDetailsCard.vue';
 import ConnectWalletCard from '@/components/utilcards/ConnectWalletCard.vue';
 import { useSettingsStore } from '@/stores/settings.store';
+import { useUserStore } from '@/stores/user.store';
 
 const settingsStore = useSettingsStore();
-const hasUser = computed(() => settingsStore.settings.account !== undefined);
+const userStore = useUserStore();
+const hasUser = computed(() => settingsStore.settings.account !== undefined && userStore.isReady);
 </script>
 
 <template>

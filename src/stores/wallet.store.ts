@@ -30,6 +30,7 @@ export const useWalletStore = defineStore('wallet', {
       ctokens: true,
       googleDrive: false
     },
+    _lastGoogleDriveCheck: 0,
     isL2Wallet: false,
     isWalletSelectModalOpen: false,
     isProvideWalletPasswordModalOpen: false
@@ -49,8 +50,13 @@ export const useWalletStore = defineStore('wallet', {
           if (!state._walletsStatus.peakvault)
             state._walletsStatus.peakvault = 'peakvault' in window;
 
-          // Check Google Drive authentication status
-          if (!state._walletsStatus.googleDrive) {
+          // Check Google Drive authentication status - but only once per 10 seconds to avoid spam
+          const now = Date.now();
+          const timeSinceLastCheck = now - state._lastGoogleDriveCheck;
+          const shouldCheckGoogleDrive = !state._walletsStatus.googleDrive && timeSinceLastCheck > 10000;
+
+          if (shouldCheckGoogleDrive) {
+            state._lastGoogleDriveCheck = now;
             try {
               const response = await fetch('/api/google-drive/oauth-status');
               const data = await response.json();
@@ -72,8 +78,23 @@ export const useWalletStore = defineStore('wallet', {
     }
   },
   actions: {
+    async recheckGoogleDriveStatus () {
+      // Force recheck by resetting the timer
+      this._lastGoogleDriveCheck = 0;
+      try {
+        const response = await fetch('/api/google-drive/oauth-status');
+        const data = await response.json();
+        this._walletsStatus.googleDrive = data.authenticated || false;
+      }
+      catch {
+        this._walletsStatus.googleDrive = false;
+      }
+    },
     openWalletSelectModal () {
       this.isWalletSelectModalOpen = true;
+
+      // Recheck Google Drive status when opening modal
+      void this.recheckGoogleDriveStatus();
 
       // Allow functionality of waiting for wallet to be added / selected
       return new Promise<void>((resolve, reject) => {
