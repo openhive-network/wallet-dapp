@@ -6,7 +6,6 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import { toastError } from '@/utils/parse-error';
 
 /**
  * Poll transaction status until it's confirmed or failed
@@ -25,7 +24,7 @@ export async function pollTransactionStatus (
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       // Call status endpoint
-      /* eslint-disable-next-line @typescript-eslint/naming-convention */
+
       const status = await wax.restApi.ctokensApi.status({ 'ref-id': refId });
 
       // Check if we got a successful response
@@ -160,7 +159,7 @@ export const waitForTransactionStatus = async (
         description: result.message
       });
     } else
-      toastError(`${operationName} failed`, new Error(result.details || result.message));
+      throw new Error(result.details || result.message);
   } catch (error: unknown) {
     if (enableToasts)
       toast.dismiss(loadingToast);

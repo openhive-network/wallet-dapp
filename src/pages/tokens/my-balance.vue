@@ -438,15 +438,15 @@ const loadAccountStatistics = async () => {
     const wax = await getWax();
 
     // Get all tokens created by this user (owner field matches operational key)
-    const createdTokens = await wax.restApi.ctokensApi.registeredTokens({ owner: operationalKey });
-    createdTokensCount.value = createdTokens.length;
+    const createdTokens = await wax.restApi.ctokensApi.tokens({ owner: operationalKey });
+    createdTokensCount.value = createdTokens.items?.length || 0;
 
     // Get owned tokens (tokens with balance)
     const balances = await wax.restApi.ctokensApi.balances({ user: operationalKey });
     const uniqueBalanceKeys = new Set<string>();
     const stakedTokenKeys = new Set<string>();
 
-    balances.forEach(({ liquid, vesting }) => {
+    balances.items!.forEach(({ liquid, vesting }) => {
       if (liquid)
         uniqueBalanceKeys.add(`${liquid.nai}:${liquid.precision}`);
       if (vesting)
@@ -456,7 +456,7 @@ const loadAccountStatistics = async () => {
     ownedTokensCount.value = uniqueBalanceKeys.size;
 
     // Get NFT collections (created NFT tokens)
-    const nftTokens = createdTokens.filter(token => token.liquid?.is_nft);
+    const nftTokens = createdTokens.items!.filter(token => token.liquid?.is_nft);
     nftCollectionsCount.value = nftTokens.length;
 
     // Get staked tokens (tokens with vesting bit set)
@@ -601,8 +601,7 @@ const navigateToToken = (balance: AggregatedBalance) => {
   router.push({
     path: '/tokens/token',
     query: {
-      nai: balance.nai,
-      precision: balance.precision.toString()
+      'asset-num': balance.liquid?.asset_num || balance.vesting?.asset_num || ''
     }
   });
 };

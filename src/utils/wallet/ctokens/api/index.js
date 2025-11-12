@@ -1,6 +1,10 @@
 export default {
   ctokensApi: {
     urlPath: "ctokens-api",
+    broadcastProxy: {
+      urlPath: "broadcast-proxy",
+      method: "POST"
+    },
     version: {
       urlPath: "version",
       method: "GET"
@@ -17,16 +21,28 @@ export default {
       urlPath: "balances",
       method: "GET"
     },
+    nft: {
+      urlPath: "nft",
+      method: "GET"
+    },
+    nfts: {
+      urlPath: "nfts",
+      method: "GET"
+    },
     balanceHistory: {
       urlPath: "balance-history",
       method: "GET"
     },
-    registeredTokens: {
-      urlPath: "registered-tokens",
+    nftHistory: {
+      urlPath: "nft-history",
       method: "GET"
     },
-    registeredUsers: {
-      urlPath: "registered-users",
+    tokens: {
+      urlPath: "tokens",
+      method: "GET"
+    },
+    users: {
+      urlPath: "users",
       method: "GET"
     },
     status: {

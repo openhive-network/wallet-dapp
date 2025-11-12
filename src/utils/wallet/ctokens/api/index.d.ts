@@ -1,5 +1,7 @@
 type TEmptyReq = {}
 export interface CtokensAppBalance {
+  /** unique identifier for the token */
+  asset_num?: number;
   /** balance type (currency) */
   nai?: string;
   /** Balance value (amount of held tokens) */
@@ -10,18 +12,35 @@ export interface CtokensAppBalance {
 }
 
 export interface CtokensAppLiquidAndVestingBalance {
+  /** Indicates if the balance is for an NFT */
+  is_nft?: boolean;
   liquid?: CtokensAppBalance;
   vesting?: CtokensAppBalance;
 }
 
-export type CtokensAppArrayOfBalances = CtokensAppLiquidAndVestingBalance[];
+export interface CtokensAppAccountBalancesResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of balance */
+  items?: CtokensAppLiquidAndVestingBalance[];
+}
 
 export enum CtokensAppSortDirection {
   Asc = "asc",
   Desc = "desc",
 }
 
+export enum CtokensAppAssetType {
+  All = "all",
+  Token = "token",
+  Nft = "nft",
+}
+
 export interface CtokensAppToken {
+  /** Asset symbol, unique identifier for the token */
+  asset_num?: number;
   /** Currency NAI */
   nai?: string;
   /** token owner */
@@ -49,7 +68,14 @@ export interface CtokensAppLiquidAndVestingToken {
   vesting?: CtokensAppToken;
 }
 
-export type CtokensAppArrayOfTokens = CtokensAppLiquidAndVestingToken[];
+export interface CtokensAppRegisteredTokensResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of registered tokens */
+  items?: CtokensAppLiquidAndVestingToken[];
+}
 
 export interface CtokensAppUser {
   management_key?: string;
@@ -59,8 +85,6 @@ export interface CtokensAppUser {
   /** Key-value pairs with additional user metadata. */
   metadata?: Record<string, any>;
 }
-
-export type CtokensAppArrayOfUsers = CtokensAppUser[];
 
 export interface CtokensAppTransactionStatusResponse {
   code?: string;
@@ -80,7 +104,14 @@ export interface CtokensAppTopHolder {
   metadata?: Record<string, any>;
 }
 
-export type CtokensAppArrayOfTopHolders = CtokensAppTopHolder[];
+export interface CtokensAppTopHolderResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of top holders */
+  items?: CtokensAppTopHolder[];
+}
 
 export interface CtokensAppBalanceHistory {
   /** Sequence number of the history entry */
@@ -98,31 +129,185 @@ export interface CtokensAppBalanceHistory {
   timestamp?: string;
 }
 
-export type CtokensAppArrayOfBalanceHistory = CtokensAppBalanceHistory[];
+export interface CtokensAppBalanceHistoryResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of balance history items */
+  items?: CtokensAppBalanceHistory[];
+}
+
+export interface CtokensAppNft {
+  /** Unique identifier for the NFT */
+  unique_id?: string;
+  /** Operational key of the NFT owner */
+  owner?: string;
+  /** Key-value pairs with additional token metadata. */
+  metadata?: Record<string, any>;
+}
+
+export interface CtokensAppNftsResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of NFTs */
+  items?: CtokensAppNft[];
+}
+
+export interface CtokensAppNftHistory {
+  /** Sequence number of the history entry */
+  history_seq_no?: number;
+  /** Type of operation (e.g., create, transfer, stake, unstake) */
+  event_type?: string;
+  /** Whether the balance is liquid or vesting */
+  is_liquid?: boolean;
+  /** unique identifier of the asset (liquid or vesting) */
+  asset_num?: number;
+  /** operational key of the new NFT owner */
+  owner?: string;
+  /**
+   * Creation date
+   * @format date-time
+   */
+  timestamp?: string;
+}
+
+export interface CtokensAppNftHistoryResponse {
+  /** Total number of items */
+  total_items?: number;
+  /** Total number of pages */
+  total_pages?: number;
+  /** List of balance history items */
+  items?: CtokensAppNftHistory[];
+}
+
+export interface BroadcastProxyErrorResponse {
+  /** Indicates if the trasaction was an error */
+  success?: boolean;
+  /** Error message if the trasaction failed */
+  error?: string;
+}
+
+export interface BroadcastProxyResponse {
+  /** Indicates if the trasaction was successful */
+  success?: boolean;
+  /** Reference ID of the broadcasted transaction */
+  "ref-id"?: string;
+}
+
+export interface ProxyTransaction {
+  /**
+   * Protocol version of the transaction
+   * @example "1"
+   */
+  protocol_version?: string;
+  /**
+   * Reference block prefix
+   * @example "2220321480"
+   */
+  ref_block_prefix?: string;
+  /**
+   * List of operations included in the transaction
+   * @example []
+   */
+  operations?: Record<string, any>[];
+  /**
+   * List of signatures for the transaction
+   * @example []
+   */
+  signatures?: string[];
+}
+
+export interface BroadcastProxyInput {
+  /** The transaction object to be broadcasted */
+  trx?: ProxyTransaction;
+}
 
 export interface CtokensEndpointsGetTopHoldersParams {
-  nai: string;
-  precision: number;
+  "asset-num": number;
   /**
    * 100 results per page (default `1`).
    * @min 1
    * @default 1
    */
   page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
 }
 
 export interface CtokensEndpointsGetAccountBalancesParams {
   user: string;
   /** @default null */
-  nai?: string;
-  /** @default null */
-  precision?: number;
+  "asset-num"?: number;
+  /**
+   * Filter by asset type:
+   *
+   *  * `all` - both tokens and NFTs
+   *
+   *  * `token` - only tokens
+   *
+   *  * `nft` - only NFTs
+   * @default "all"
+   */
+  "asset-type"?: CtokensAppAssetType;
   /**
    * 100 results per page (default `1`).
    * @min 1
    * @default 1
    */
   page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
+}
+
+export interface CtokensEndpointsGetNftParams {
+  /** @default null */
+  "unique-id": string;
+}
+
+export interface CtokensEndpointsGetNftsParams {
+  "asset-num": number;
+  /** @default null */
+  owner?: string;
+  /** @default null */
+  "unique-id"?: string;
+  /**
+   * 100 results per page (default `1`).
+   * @min 1
+   * @default 1
+   */
+  page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
   /**
    * Sort order:
    *
@@ -136,14 +321,51 @@ export interface CtokensEndpointsGetAccountBalancesParams {
 
 export interface CtokensEndpointsGetBalanceHistoryParams {
   user: string;
-  nai: string;
-  precision: number;
+  "asset-num": number;
   /**
    * 100 results per page (default `1`).
    * @min 1
    * @default 1
    */
   page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
+}
+
+export interface CtokensEndpointsGetNftHistoryParams {
+  "unique-id": string;
+  /**
+   * 100 results per page (default `1`).
+   * @min 1
+   * @default 1
+   */
+  page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
+  /**
+   * Sort order:
+   *
+   *  * `asc` - Ascending, from A to Z or smallest to largest
+   *
+   *  * `desc` - Descending, from Z to A or largest to smallest
+   * @default "desc"
+   */
+  direction?: CtokensAppSortDirection;
 }
 
 export interface CtokensEndpointsGetRegisteredTokensParams {
@@ -153,15 +375,29 @@ export interface CtokensEndpointsGetRegisteredTokensParams {
    */
   owner?: string;
   /** @default null */
-  nai?: string;
-  /** @default null */
-  precision?: number;
+  "asset-num"?: number;
+  /**
+   * Filter by asset type:
+   *
+   *  * `all` - both tokens and NFTs
+   *
+   *  * `token` - only tokens
+   *
+   *  * `nft` - only NFTs
+   * @default "all"
+   */
+  "asset-type"?: CtokensAppAssetType;
   /**
    * 100 results per page (default `1`).
    * @min 1
    * @default 1
    */
   page?: number;
+  /**
+   * Return max `page-size` operations per page, defaults to `100`
+   * @default 100
+   */
+  "page-size"?: number;
   /**
    * Sort order:
    *
@@ -175,13 +411,7 @@ export interface CtokensEndpointsGetRegisteredTokensParams {
 
 export interface CtokensEndpointsGetRegisteredUsersParams {
   /** @default null */
-  user?: string;
-  /**
-   * 100 results per page (default `1`).
-   * @min 1
-   * @default 1
-   */
-  page?: number;
+  user: string;
 }
 
 export interface CtokensEndpointsGetStatusParams {
@@ -190,6 +420,11 @@ export interface CtokensEndpointsGetStatusParams {
 
 type TWaxExtended = {
   ctokensApi: {
+    broadcastProxy: {
+      result: BroadcastProxyResponse,
+      params: TEmptyReq & BroadcastProxyInput & {
+      }
+    },
     version: {
       result: string,
       params: undefined
@@ -199,27 +434,42 @@ type TWaxExtended = {
       params: undefined
     },
     topHolders: {
-      result: CtokensAppArrayOfTopHolders,
+      result: CtokensAppTopHolderResponse,
       params: CtokensEndpointsGetTopHoldersParams & TEmptyReq & {
       }
     },
     balances: {
-      result: CtokensAppArrayOfBalances,
+      result: CtokensAppAccountBalancesResponse,
       params: CtokensEndpointsGetAccountBalancesParams & TEmptyReq & {
       }
     },
+    nft: {
+      result: CtokensAppNft,
+      params: CtokensEndpointsGetNftParams & TEmptyReq & {
+      }
+    },
+    nfts: {
+      result: CtokensAppNftsResponse,
+      params: CtokensEndpointsGetNftsParams & TEmptyReq & {
+      }
+    },
     balanceHistory: {
-      result: CtokensAppArrayOfBalanceHistory,
+      result: CtokensAppBalanceHistoryResponse,
       params: CtokensEndpointsGetBalanceHistoryParams & TEmptyReq & {
       }
     },
-    registeredTokens: {
-      result: CtokensAppArrayOfTokens,
+    nftHistory: {
+      result: CtokensAppNftHistoryResponse,
+      params: CtokensEndpointsGetNftHistoryParams & TEmptyReq & {
+      }
+    },
+    tokens: {
+      result: CtokensAppRegisteredTokensResponse,
       params: CtokensEndpointsGetRegisteredTokensParams & TEmptyReq & {
       }
     },
-    registeredUsers: {
-      result: CtokensAppArrayOfUsers,
+    users: {
+      result: CtokensAppUser,
       params: CtokensEndpointsGetRegisteredUsersParams & TEmptyReq & {
       }
     },

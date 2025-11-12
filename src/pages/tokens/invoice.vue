@@ -26,8 +26,7 @@ const fromPk = computed(() => route.query.fromPk as string);
 const toName = computed(() => route.query.toName as string | undefined);
 const toPk = computed(() => route.query.toPk as string);
 const amount = computed(() => route.query.amount as string);
-const nai = computed(() => route.query.nai as string);
-const precision = computed(() => route.query.precision as string);
+const assetNum = computed(() => route.query['asset-num'] as string);
 const memo = computed(() => route.query.memo as string | undefined);
 
 // Invoice metadata
@@ -60,12 +59,12 @@ const formattedAmount = computed(() => {
 
 // Mock download functions
 const downloadAsPDF = () => {
-  toast.success('PDF download functionality - coming soon!');
+  toast.warning('PDF download functionality - coming soon!');
   // TODO: Implement actual PDF generation
 };
 
 const downloadAsImage = () => {
-  toast.success('Image download functionality - coming soon!');
+  toast.warning('Image download functionality - coming soon!');
   // TODO: Implement actual image generation
 };
 
@@ -79,19 +78,20 @@ const loadTokenDetails = async () => {
   try {
     const wax = await getWax();
 
-    // Fetch token details by NAI
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({
-      nai: nai.value,
-      precision: Number(precision.value!)
+    // Fetch token details by asset number
+    const tokens = await wax.restApi.ctokensApi.tokens({
+      'asset-num': Number(assetNum.value)
     });
 
-    if (!tokens || tokens.length === 0)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
 
-    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
+    if (!remoteToken)
+      throw new Error(`Token with asset number ${assetNum.value} not found`);
+
+    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
 
     if (!token.value)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+      throw new Error(`Token with asset number ${assetNum.value} not found`);
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
@@ -101,7 +101,7 @@ const loadTokenDetails = async () => {
 // Initialize
 onMounted(async () => {
   // Validate required params
-  if (!fromPk.value || !toPk.value || !amount.value || !nai.value || !precision.value) {
+  if (!fromPk.value || !toPk.value || !amount.value || !assetNum.value) {
     toast.error('Missing required invoice parameters');
     router.push('/tokens/list');
     return;
@@ -234,7 +234,7 @@ onMounted(async () => {
                         v-if="!fromName || !toName"
                         class="text-muted-foreground/70"
                       >
-                        ({{ nai }})
+                        ({{ assetNum }})
                       </span>
                     </div>
                   </div>

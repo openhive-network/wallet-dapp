@@ -39,8 +39,8 @@ const connect = async () => {
 
     const wax = await getWax();
 
-    const users = await wax.restApi.ctokensApi.registeredUsers({ user: operational });
-    if (users.length === 0) {
+    const users = await wax.restApi.ctokensApi.users({ user: operational });
+    if (!users?.management_key) {
       toastError('Failed to connect to HTM', 'The provided operational key is not registered in HTM');
 
       return;

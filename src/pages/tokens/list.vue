@@ -25,12 +25,12 @@ const hasMorePages = ref(true);
 
 // Navigate to token detail page (placeholder for now)
 const viewTokenDetails = (token: CTokenDisplay) => {
-  router.push(`/tokens/token?nai=${token.nai}&precision=${token.precision}`);
+  router.push(`/tokens/token?asset-num=${token.assetNum}`);
 };
 
 const loadTokens = async (page: number = 1) => {
   try {
-    const result = await tokensStore.loadRegisteredTokens(undefined, undefined, page);
+    const result = await tokensStore.loadRegisteredTokens(undefined, page);
 
     if (result) {
       hasMorePages.value = result.hasMore;

@@ -108,16 +108,16 @@ export default withNuxt().override('nuxt/rules', {
       format: ['PascalCase']
     }, {
       selector: 'objectLiteralProperty',
-      format: ['camelCase', 'PascalCase', 'UPPER_CASE', 'snake_case'],
+      format: null,
       leadingUnderscore: 'allow',
       trailingUnderscore: 'allow'
     }, {
       selector: 'typeProperty',
-      format: ['camelCase', 'UPPER_CASE', 'snake_case'],
+      format: null,
       leadingUnderscore: 'allow'
     }, {
       selector: 'classProperty',
-      format: ['camelCase', 'UPPER_CASE', 'PascalCase']
+      format: null
     }]
   }
 });
