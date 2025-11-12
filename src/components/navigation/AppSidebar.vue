@@ -94,26 +94,11 @@ const mainGroups: { title: string; items: Array<{ title: string; url: string; ic
   title: 'Tokens',
   items: [
     {
-      title: 'My HTM Account',
-      url: '/tokens/my-balance',
+      title: 'My tokens',
+      url: '#',
+      badge: 'Soon',
       icon: mdiWallet,
-      visible: hasHTMWallet
-    },
-    {
-      title: 'Tokens List',
-      url: '/tokens/list',
-      icon: mdiAccountGroup
-    },
-    {
-      title: 'My Token Definitions',
-      url: '/tokens/my-tokens',
-      icon: mdiViewList,
-      visible: hasHTMWallet
-    },
-    {
-      title: 'Register HTM Account',
-      url: '/tokens/register-account',
-      icon: mdiAccountPlusOutline
+      disabled: ref(true)
     }
   ]
 }, {

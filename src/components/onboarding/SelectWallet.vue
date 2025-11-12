@@ -17,6 +17,8 @@ const useWallet = (type: UsedWallet) => {
   emit('walletSelect', type);
 };
 
+const isTokensUrl = computed(() => window.location.href.includes('tokens'));
+
 const close = () => {
   emit('close');
 };
@@ -60,6 +62,7 @@ const close = () => {
         @click="useWallet(UsedWallet.METAMASK)"
       />
       <OnboardingButton
+        v-if="isTokensUrl"
         :disabled="!walletsStatus.ctokens"
         :logo-url="getWalletIcon(UsedWallet.CTOKENS_IMPLEMENTATION)"
         name="Hive Token Machine"
