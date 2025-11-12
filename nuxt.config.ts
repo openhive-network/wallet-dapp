@@ -37,7 +37,7 @@ export default defineNuxtConfig({
   },
   modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode', '@nuxt/eslint', '@pinia/nuxt'],
   alias: {
-    /* eslint-disable-next-line @typescript-eslint/naming-convention */
+
     '@': path.resolve(import.meta.dirname, './src')
   },
   eslint: {

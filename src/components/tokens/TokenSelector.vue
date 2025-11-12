@@ -17,7 +17,7 @@ interface TokenOption {
 }
 
 interface Props {
-  modelValue?: string; // Selected NAI
+  modelValue?: string; // Selected token asset number
   placeholder?: string;
 }
 
@@ -88,15 +88,17 @@ const filteredTokens = computed((): TokenOption[] => {
     return ownedTokens.value;
 
   const query = searchQuery.value.toLowerCase();
-  return ownedTokens.value.filter(token =>
-    token.displayName.toLowerCase().includes(query) ||
-    token.balance.nai?.toLowerCase().includes(query)
+  return ownedTokens.value.filter(token => {
+    return token.displayName.toLowerCase().includes(query) ||
+        token.balance.metadata?.symbol?.toLowerCase().includes(query) ||
+        String(token.balance.asset_num).includes(query);
+  }
   );
 });
 
 // Selected token
 const selectedToken = computed(() => {
-  return ownedTokens.value.find(token => token.balance.nai === selectedValue.value);
+  return ownedTokens.value.find(token => String(token.balance.asset_num) === selectedValue.value);
 });
 
 // Token image URL
@@ -175,8 +177,8 @@ onMounted(async () => {
         <ComboboxGroup class="max-h-48 overflow-y-auto">
           <ComboboxItem
             v-for="token in filteredTokens"
-            :key="token.balance.nai"
-            :value="token.balance.nai!"
+            :key="String(token.balance.asset_num)"
+            :value="String(token.balance.asset_num)"
             class="cursor-pointer px-4 py-3 hover:bg-accent hover:text-accent-foreground transition-colors focus:bg-accent focus:text-accent-foreground"
           >
             <div class="flex w-full items-center justify-between gap-3">

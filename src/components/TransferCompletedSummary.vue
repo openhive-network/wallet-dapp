@@ -15,7 +15,7 @@ interface Props {
   receiverName?: string;
   remainingBalance?: string;
   timestamp?: string;
-  nai: string;
+  assetNum: string;
   precision: string;
   memo?: string;
 }
@@ -28,9 +28,8 @@ const generateInvoice = () => {
   const params = new URLSearchParams({
     fromPk: props.isReceiveMode ? CTokensProvider.getOperationalPublicKey() || '' : CTokensProvider.getOperationalPublicKey() || '',
     toPk: props.isReceiveMode ? props.receiverKey || '' : CTokensProvider.getOperationalPublicKey() || '',
-    amount: props.amount || '0',
-    nai: props.nai,
-    precision: props.precision
+    'asset-num': props.assetNum,
+    amount: props.amount
   });
 
   if (props.memo)

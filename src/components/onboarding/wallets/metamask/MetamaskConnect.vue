@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax/vite';
+import { AccountAuthorityUpdateOperation } from '@hiveio/wax/vite';
 import { mdiClose } from '@mdi/js';
 import { Check, Search } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -84,7 +85,6 @@ const generateAccountUpdateTransaction = async (): Promise<string | undefined> =
     const wax = await getWax();
     const tx = await wax.createTransaction();
     const accountName = updateAccountNameOperation.value!.startsWith('@') ? updateAccountNameOperation.value!.slice(1) : updateAccountNameOperation.value!;
-    const { AccountAuthorityUpdateOperation } = await import('@hiveio/wax/vite');
     const op = await AccountAuthorityUpdateOperation.createFor(wax, accountName);
     for(const key in updateAuthType) {
       if (updateAuthType[key as TRole]) {

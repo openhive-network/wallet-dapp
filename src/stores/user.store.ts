@@ -173,11 +173,10 @@ export const useUserStore = defineStore('user', {
     async parseCTokenData (accountName: string) {
       const wax = await getWax();
 
-      const [ user ] = await wax.restApi.ctokensApi.registeredUsers({ user: accountName });
+      const user = await wax.restApi.ctokensApi.users({ user: accountName });
 
-      if (!user)
+      if (!user?.management_key)
         throw new Error('CTokens user not found');
-
 
       const hivePrice = await this.getHivePrice();
 

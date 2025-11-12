@@ -10,7 +10,7 @@ const props = defineProps<{
   tokenName?: string;
   tokenSymbol?: string;
   tokenImage?: string;
-  tokenNai?: string;
+  tokenAssetNum?: string;
   precision?: number;
   disabled?: boolean;
   label?: string | null;
@@ -110,10 +110,10 @@ const avatarFallback = computed(() => displaySymbol.value.slice(0, 2).toUpperCas
 
     <!-- NAI info -->
     <p
-      v-if="tokenNai"
+      v-if="tokenAssetNum"
       class="text-xs text-muted-foreground font-mono"
     >
-      NAI: {{ tokenNai }}
+      Asset num: {{ tokenAssetNum }}
     </p>
 
     <!-- Validation error -->

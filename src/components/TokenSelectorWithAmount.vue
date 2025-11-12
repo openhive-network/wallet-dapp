@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface Props {
   modelValue: string;
-  selectedTokenNai: string;
+  selectedTokenAssetNum: string;
   tokenSymbol?: string;
   tokenName: string;
   tokenPrecision?: string;
@@ -19,7 +19,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const emit = defineEmits(['update:modelValue', 'update:selectedTokenNai']);
+const emit = defineEmits(['update:modelValue', 'update:selectedTokenAssetNum']);
 
 const amount = computed({
   get: () => props.modelValue,
@@ -27,8 +27,8 @@ const amount = computed({
 });
 
 const selectedToken = computed({
-  get: () => props.selectedTokenNai,
-  set: (value: string | null) => emit('update:selectedTokenNai', value || '')
+  get: () => props.selectedTokenAssetNum,
+  set: (value: string | null) => emit('update:selectedTokenAssetNum', value || '')
 });
 
 const placeholder = computed(() => {
@@ -52,14 +52,14 @@ const placeholder = computed(() => {
               <Input
                 id="amount"
                 v-model="amount"
-                :disabled="!selectedTokenNai"
+                :disabled="!selectedTokenAssetNum"
                 type="text"
                 inputmode="decimal"
                 :placeholder="placeholder"
                 class="pr-12 rounded-r-none border-r-0"
               />
             </TooltipTrigger>
-            <TooltipContent v-if="!selectedTokenNai">
+            <TooltipContent v-if="!selectedTokenAssetNum">
               <p>Select token to send first.</p>
             </TooltipContent>
           </Tooltip>

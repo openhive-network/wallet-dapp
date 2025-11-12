@@ -28,7 +28,7 @@ const hasMorePages = ref(true);
 
 // Navigate to token detail page
 const viewTokenDetails = (token: CTokenDisplay) => {
-  router.push(`/tokens/token?nai=${token.nai}&precision=${token.precision}`);
+  router.push(`/tokens/token?asset-num=${token.assetNum}`);
 };
 
 // Load tokens filtered by user's public key
@@ -43,19 +43,19 @@ const loadTokens = async (page: number = 1) => {
     }
 
     const wax = await getWax();
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({ owner: userPublicKey });
+    const tokens = await wax.restApi.ctokensApi.tokens({ owner: userPublicKey });
 
     if (page === 1)
       tokensFullList.value = [];
 
-    tokensFullList.value.push(...tokens.flatMap(token => {
+    tokensFullList.value.push(...tokens.items!.flatMap(token => {
       return [
         transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>),
         transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>)
       ];
     }));
 
-    hasMorePages.value = tokens.length === 100; // API returns 100 results per page
+    hasMorePages.value = tokens.items!.length === 100; // API returns 100 results per page
     currentPage.value = page;
   } catch (error) {
     toastError('Failed to load tokens', error);

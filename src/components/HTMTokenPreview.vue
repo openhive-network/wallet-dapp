@@ -164,7 +164,7 @@ onMounted(async () => {
                 v-if="token.isNft"
                 class="inline-flex items-center rounded-md bg-purple-500/10 text-[12px]/[14px] px-1 font-medium text-purple-500 border border-purple-500/20"
               >
-                nft
+                NFT
               </span>
               <span
                 v-if="token.isStaked"
