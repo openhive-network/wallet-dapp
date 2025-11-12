@@ -36,7 +36,7 @@ const dammDigit = (str: string) => {
   return row.toString();
 };
 
-const assetNumFromNAI = (nai: string, precision: number): bigint => {
+export const assetNumFromNAI = (nai: string, precision: number): bigint => {
   return (BigInt(Number.parseInt(nai.slice(2, -1))) << 5n) | 0x10n | BigInt(precision);
 };
 
@@ -68,6 +68,9 @@ export const toVesting = (nai: string, precision: number): string => {
 
   return `@@${naiVesting}${dammDigit(naiVesting)}`;
 };
+
+/// @alias toVesting
+export const toLiquid = (nai: string, precision: number): string => toVesting(nai, precision);
 
 /**
  * Generate a unique NAI identifier for a token (liquid, not vesting)

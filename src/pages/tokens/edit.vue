@@ -46,8 +46,7 @@ const form = ref({
 });
 
 // Get NAI and precision from route parameters
-const nai = computed(() => route.query.nai as string);
-const precision = computed(() => route.query.precision);
+const assetNum = computed(() => route.query['asset-num'] as string);
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!settingsStore.settings.account);
@@ -96,18 +95,19 @@ const loadTokenDetails = async () => {
     const wax = await getWax();
 
     // Fetch token details by NAI
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({
-      nai: nai.value,
-      precision: Number(precision.value!)
+    const tokens = await wax.restApi.ctokensApi.tokens({
+      'asset-num': Number(assetNum.value)
     });
 
-    if (!tokens || tokens.length === 0)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
 
-    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
+    if (!remoteToken)
+      throw new Error(`Token with asset num ${assetNum.value} not found`);
+
+    token.value = String(remoteToken!.liquid?.asset_num) === assetNum.value ? remoteToken!.liquid! : String(remoteToken?.vesting?.asset_num) === assetNum.value ? remoteToken!.vesting! : null;
 
     if (!token.value)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+      throw new Error(`Token with asset num ${assetNum.value} not found`);
 
     // Populate form with existing metadata
     const metadata = token.value.metadata as {
@@ -171,13 +171,12 @@ const handleUpdateToken = async () => {
     );
 
     // Refresh token data after update
-    await tokensStore.loadRegisteredTokens(token.value!.nai, token.value!.precision, 1, true);
+    await tokensStore.loadRegisteredTokens(assetNum.value, 1, true);
 
     router.push({
       path: '/tokens/token',
       query: {
-        nai: token.value!.nai,
-        precision: token.value!.precision
+        'asset-num': token.value!.asset_num
       }
     });
   } catch (error) {
@@ -191,7 +190,7 @@ const handleUpdateToken = async () => {
 const goBack = () => {
   router.push({
     path: '/tokens/token',
-    query: { nai: nai.value, precision: precision.value }
+    query: { 'asset-num': assetNum.value }
   });
 };
 
@@ -212,7 +211,7 @@ onMounted(async () => {
     toast.error('You do not have permission to edit this token');
     router.push({
       path: '/tokens/token',
-      query: { nai: nai.value, precision: precision.value }
+      query: { 'asset-num': assetNum.value }
     });
   }
 });

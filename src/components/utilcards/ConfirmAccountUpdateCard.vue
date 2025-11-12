@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AccountAuthorityUpdateOperation } from '@hiveio/wax/vite';
 import { mdiAccountArrowUpOutline } from '@mdi/js';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -49,7 +50,6 @@ const updateAuthority = async () => {
 
     const wax = await getWax();
     const tx = await wax.createTransaction();
-    const { AccountAuthorityUpdateOperation } = await import('@hiveio/wax/vite');
     const op = await AccountAuthorityUpdateOperation.createFor(wax, creator.value.startsWith('@') ? creator.value.slice(1) : creator.value);
     if (memoKey.value)
       op.role('memo').set(memoKey.value);

@@ -1,4 +1,5 @@
 import type { IWaxBaseInterface } from '@hiveio/wax/vite';
+import { HtmTransaction } from '@mtyszczak-cargo/htm';
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
@@ -7,15 +8,17 @@ import { isVesting } from '@/utils/nai-tokens';
 import type {
   CtokensAppBalance,
   CtokensAppToken,
-  CtokensAppBalanceHistory,
   CtokensAppTopHolder
 } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+import { useSettingsStore } from './settings.store';
 import { transformUserName } from './user.store';
+import { useWalletStore } from './wallet.store';
 
 export interface CTokenDisplay {
   nai: string;
+  assetNum: number;
   isStaked: boolean;
   ownerPublicKey: string;
   precision: number;
@@ -48,6 +51,7 @@ export const transformTokenToDisplayFormat = (wax: IWaxBaseInterface, token: Req
 
   return {
     nai: token.nai,
+    assetNum: Number(token.asset_num),
     isStaked: isVesting(token.nai, token.precision),
     displayMaxSupply: formatAsset(wax, token.max_supply, token.precision, symbol || name),
     ownerPublicKey: token.owner,
@@ -119,11 +123,13 @@ export const useTokensStore = defineStore('tokens', {
       try {
         const wax = await getWax();
 
+        // TODO: Implement NFT filtering
+
         // Get balances from ctokens-api
         const cTokenBalances = await wax.restApi.ctokensApi.balances({ user: operationalKey, page: 1 });
 
         // Filter out null values when flattening
-        this.balances = cTokenBalances.flatMap(balance => {
+        this.balances = cTokenBalances.items!.flatMap(balance => {
           const result: CtokensAppBalance[] = [];
           if (balance.liquid) result.push(balance.liquid);
           if (balance.vesting) result.push(balance.vesting);
@@ -147,10 +153,10 @@ export const useTokensStore = defineStore('tokens', {
         const wax = await getWax();
 
         // Get registered tokens from ctokens-api
-        const tokens = await wax.restApi.ctokensApi.registeredTokens({ owner: creator });
+        const tokens = await wax.restApi.ctokensApi.tokens({ owner: creator });
 
         // Filter by creator if provided
-        this.tokenDefinitions = tokens.flatMap(token => {
+        this.tokenDefinitions = tokens.items!.flatMap(token => {
           const result: CtokensAppBalance[] = [];
           if (token.liquid) result.push(token.liquid);
           if (token.vesting) result.push(token.vesting);
@@ -170,9 +176,9 @@ export const useTokensStore = defineStore('tokens', {
       if (this.wallet?.publicKey === undefined)
         throw new Error('Could not load CTokens wallet');
 
-      const [ user ] = await wax.restApi.ctokensApi.registeredUsers({ user: this.wallet.publicKey });
+      const user = await wax.restApi.ctokensApi.users({ user: this.wallet.publicKey });
 
-      if (!user)
+      if (!user?.management_key)
         throw new Error('CTokens user not found');
 
       /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
@@ -189,7 +195,7 @@ export const useTokensStore = defineStore('tokens', {
     /**
      * Load registered tokens with pre-formatted display data
      */
-    async loadRegisteredTokens (nai?: string, precision?: number, page = 1, forceRefresh = false) {
+    async loadRegisteredTokens (assetNum?: string | number, page = 1, forceRefresh = false) {
       if (this.isLoadingRegisteredTokens && !forceRefresh) return;
 
       this.isLoadingRegisteredTokens = true;
@@ -198,10 +204,10 @@ export const useTokensStore = defineStore('tokens', {
       try {
         const wax = await getWax();
         // Get raw tokens from API
-        const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai, precision });
+        const tokens = await wax.restApi.ctokensApi.tokens(assetNum ? { 'asset-num': Number(assetNum) } : {});
 
         // Transform tokens to display format
-        const transformedTokens = tokens.flatMap(token => ([
+        const transformedTokens = tokens.items!.flatMap(token => ([
           transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>),
           transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>)
         ]));
@@ -212,9 +218,11 @@ export const useTokensStore = defineStore('tokens', {
         else
           this.registeredTokens.push(...transformedTokens);
 
+        // TODO: Implement proper pagination handling
+
         return {
           tokens: transformedTokens,
-          hasMore: tokens.length === 100 // API returns 100 results per page
+          hasMore: tokens.items!.length === 100 // API returns 100 results per page
         };
       } catch (error) {
         console.error('Failed to load registered tokens:', error);
@@ -238,17 +246,11 @@ export const useTokensStore = defineStore('tokens', {
         token.nai === nai && (precision === undefined || token.precision === precision)
       );
     },
-    async getBalanceHistory (nai: string, precision: number, page = 1): Promise<CtokensAppBalanceHistory[]> {
-      const operationalKey = CTokensProvider.getOperationalPublicKey();
-      if (!operationalKey)
-        throw new Error('No operational key available');
+    async getTopHolders (assetNum: number | string, page = 1): Promise<CtokensAppTopHolder[]> {
+      const wax = await getWax();
+      const response = await wax.restApi.ctokensApi.topHolders({ 'asset-num': Number(assetNum), page });
 
-      const wax = await getWax();
-      return wax.restApi.ctokensApi.balanceHistory({ user: operationalKey, nai, precision, page });
-    },
-    async getTopHolders (nai: string, precision: number, page = 1): Promise<CtokensAppTopHolder[]> {
-      const wax = await getWax();
-      return wax.restApi.ctokensApi.topHolders({ nai, precision, page });
+      return response.items || [];
     },
     getTokenByNAI (nai: string): CtokensAppBalance | undefined {
       return this.balances.find(balance => balance.nai === nai);
@@ -260,7 +262,7 @@ export const useTokensStore = defineStore('tokens', {
       await Promise.all([
         this.loadBalances(true),
         this.loadTokenDefinitions(undefined, true),
-        this.loadRegisteredTokens(undefined, undefined, 1, true)
+        this.loadRegisteredTokens(undefined, 1, true)
       ]);
     },
     clearError () {
@@ -276,21 +278,20 @@ export const useTokensStore = defineStore('tokens', {
         throw new Error('No operational key available');
 
       // Get operational account from settings
-      const settingsStore = await import('@/stores/settings.store').then(m => m.useSettingsStore());
+      const settingsStore = useSettingsStore();
       const operationalAccount = settingsStore.settings.account;
 
       if (!operationalAccount)
         throw new Error('No operational account configured');
 
       // Get L1 wallet for signing the transaction
-      const walletStore = await import('@/stores/wallet.store').then(m => m.useWalletStore());
+      const walletStore = useWalletStore();
       await walletStore.createWalletFor(settingsStore.settings, 'posting');
 
       if (!walletStore.wallet)
         throw new Error('No L1 wallet available');
 
       const wax = await getWax();
-      const { HtmTransaction } = await import('@mtyszczak-cargo/htm');
 
       // Create CTokensProvider instance for L2 signing (owner role for metadata updates)
       const l2Wallet = await CTokensProvider.for(wax, 'owner');

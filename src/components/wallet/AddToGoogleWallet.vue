@@ -16,7 +16,7 @@ const addToGoogleWallet = async () => {
     const baseUrl = window.location.origin;
     const res = await fetch('/api/google-wallet', {
       method: 'POST',
-      // eslint-disable-next-line @typescript-eslint/naming-convention
+
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ operationalPublicKey, baseUrl })
     });

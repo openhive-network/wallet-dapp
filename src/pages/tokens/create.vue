@@ -27,7 +27,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { generateNAI as generateHTMNAI, toVesting } from '@/utils/nai-tokens';
+import { generateNAI as generateHTMNAI, toVesting, assetNumFromNAI } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -277,7 +277,9 @@ const createToken = async () => {
       'Token creation'
     );
 
-    const redirectUrl = `/tokens/token?nai=${generatedNAI.value}&precision=${precision.value}`;
+    const assetNum = assetNumFromNAI(generatedNAI.value, identifierPrecision);
+
+    const redirectUrl = `/tokens/token?asset-num=${assetNum}`;
 
     resetForm();
 

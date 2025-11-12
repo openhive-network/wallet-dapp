@@ -31,15 +31,15 @@ interface Props {
   tokenData?: CtokensAppToken | null;
   queryAmount?: string;
   queryMemo?: string;
-  nai: string;
+  assetNum: string;
   precision: string;
-  selectedTokenNai?: string;
+  selectedTokenAssetNum?: string;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  updateSelectedTokenNai: [value: string];
+  updateSelectedTokenAssetNum: [value: string];
   transferCompleted: [summary: { amount: string; tokenLabel: string; receiver: string; remainingBalance?: string; timestamp?: string }];
   updateAmount: [value: string];
   updateMemo: [value: string];
@@ -56,9 +56,9 @@ const form = ref({
   memo: props.queryMemo || ''
 });
 
-const selectedTokenNai = computed({
-  get: () => props.selectedTokenNai || '',
-  set: (value: string) => emit('updateSelectedTokenNai', value)
+const selectedTokenAssetNum = computed({
+  get: () => props.selectedTokenAssetNum || '',
+  set: (value: string) => emit('updateSelectedTokenAssetNum', value)
 });
 const showDetails = ref(false);
 const isUpdating = ref(false);
@@ -149,7 +149,7 @@ const isFormValid = computed(() => {
     if (form.value.amount.trim() === '') return true;
     return amountValidation.value.isValid;
   }
-  if (props.shouldShowTokenSelector && !selectedTokenNai.value) return false;
+  if (props.shouldShowTokenSelector && !selectedTokenAssetNum.value) return false;
   if (form.value.amount.trim() === '') return true;
   return amountValidation.value.isValid;
 });
@@ -224,8 +224,6 @@ const handleSend = async () => {
       } satisfies htm_operation]),
       'Transfer'
     );
-
-    toast.success('Token sent successfully!');
 
     transferCompleted.value = true;
 
@@ -306,7 +304,7 @@ watch(() => form.value.memo, (newValue) => {
       <TokenSelectorWithAmount
         v-if="shouldShowTokenSelector"
         v-model="form.amount"
-        v-model:selected-token-nai="selectedTokenNai"
+        v-model:selected-token-asset-num="selectedTokenAssetNum"
         :token-symbol="tokenSymbol"
         :token-name="tokenName"
         :token-precision="props?.precision"
@@ -321,7 +319,7 @@ watch(() => form.value.memo, (newValue) => {
         class="flex items-center justify-between"
       >
         <div class="text-xs text-muted-foreground">
-          Token NAI / precision
+          Asset num / precision
         </div>
         <Button
           size="sm"
@@ -338,12 +336,12 @@ watch(() => form.value.memo, (newValue) => {
         class="grid grid-cols-2 gap-2"
       >
         <Input
-          id="nai"
+          id="asset-num"
           type="text"
-          placeholder="NAI"
+          placeholder="Asset number"
           class="transition-colors"
           disabled
-          :value="nai"
+          :value="assetNum"
         />
         <Input
           id="precision"
@@ -364,7 +362,7 @@ watch(() => form.value.memo, (newValue) => {
         :token-name="tokenName"
         :token-symbol="tokenSymbol"
         :token-image="tokenImage"
-        :token-nai="tokenData?.nai"
+        :token-asset-num="assetNum"
         :precision="tokenData?.precision"
         :is-valid="amountValidation.isValid"
         :validation-error="amountValidation.error"
@@ -401,7 +399,7 @@ watch(() => form.value.memo, (newValue) => {
           :receiver-name="receiverName"
           :remaining-balance="sentSummary?.remainingBalance"
           :timestamp="sentSummary?.timestamp"
-          :nai="nai"
+          :asset-num="assetNum"
           :precision="precision"
           :memo="form.memo"
         />

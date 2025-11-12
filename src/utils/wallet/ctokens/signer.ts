@@ -76,9 +76,9 @@ export class CTokensProvider extends AEncryptionProvider {
   }
 
   private async publicKeyHasAccount (): Promise<boolean> {
-    const response = await this.extendedChain.restApi.ctokensApi.registeredUsers({ user: this.publicKey });
+    const response = await this.extendedChain.restApi.ctokensApi.users({ user: this.publicKey });
 
-    return response.length > 0;
+    return !!response?.management_key;
   }
 
   public async destroy () {

@@ -7,8 +7,7 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 import { Card, CardContent } from '../ui/card';
 
 const props = defineProps<{
-  nai: string;
-  precision: string;
+  assetNum: number | string;
   amount?: string;
   memo?: string;
 }>();
@@ -22,8 +21,7 @@ const generateQRCode = async () => {
   try {
     const baseUrl = window.location.origin;
     const params = new URLSearchParams({
-      nai: props.nai,
-      precision: props.precision,
+      'asset-num': String(props.assetNum),
       to: userOperationalKey.value || ''
     });
 
@@ -45,6 +43,7 @@ const generateQRCode = async () => {
       }
     });
     qrCodeDataUrl.value = dataUrl;
+    console.log('Generated QR code for URL:', url);
   } catch (error) {
     console.error('Failed to generate QR code:', error);
     qrCodeDataUrl.value = '';
@@ -56,7 +55,7 @@ onMounted(() => {
   generateQRCode();
 });
 
-watch([() => props.nai, () => props.precision, () => props.amount, () => props.memo, userOperationalKey], () => {
+watch([() => props.assetNum, () => props.amount, () => props.memo, userOperationalKey], () => {
   generateQRCode();
 });
 </script>

@@ -12,15 +12,17 @@ import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button as CopyButton } from '@/components/ui/copybutton';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { isVesting } from '@/utils/nai-tokens';
+import { isVesting, toLiquid, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
@@ -63,8 +65,7 @@ const stakeForm = ref({
 });
 
 // Get NAI from route parameter
-const nai = computed(() => route.query.nai as string);
-const precision = computed(() => route.query.precision);
+const assetNum = computed(() => route.query['asset-num'] as string);
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
@@ -211,15 +212,17 @@ const loadTokenDetails = async () => {
 
     // Fetch token details by NAI
     // First try with just NAI, if that doesn't work, get all tokens and filter
-    const tokens = await wax.restApi.ctokensApi.registeredTokens({ nai: nai.value, precision: Number(precision.value!) });
+    const tokens = await wax.restApi.ctokensApi.tokens({ 'asset-num': Number(assetNum.value) });
 
-    if (!tokens || tokens.length === 0)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
 
-    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
+    if (!remoteToken)
+      throw new Error(`Token with asset num ${assetNum.value} not found`);
+
+    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken?.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
 
     if (!token.value)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+      throw new Error(`Token with asset num ${assetNum.value} not found`);
 
     isStaked.value = isVesting(token.value.nai!, token.value.precision || 0);
 
@@ -232,7 +235,7 @@ const loadTokenDetails = async () => {
       try {
         // Get user balances from the store
         await tokensStore.loadBalances();
-        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
         if (userBalance.value)
           await updateFormattedValues();
 
@@ -253,8 +256,7 @@ const loadTopHolders = async () => {
   try {
     isLoadingHolders.value = true;
     topHolders.value = await tokensStore.getTopHolders(
-      token.value.nai!,
-      token.value.precision || 0
+      assetNum.value
     );
   } catch (error) {
     console.warn('Failed to load top holders:', error);
@@ -405,7 +407,7 @@ const handleTransfer = async () => {
       loadTokenDetails(),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
   } catch (error) {
     toastError('Transfer failed', error);
   } finally {
@@ -455,6 +457,11 @@ const handleStake = async () => {
     // Convert decimal amount to base units (add precision zeros)
     const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
 
+    let nai = token.value!.nai!;
+    const isVestingNai = isVesting(token.value.nai!, token.value.precision || 0);
+    if (isVestingNai)
+      nai = toLiquid(token.value.nai!, token.value.precision || 0);
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -463,7 +470,7 @@ const handleStake = async () => {
           receiver: stakeForm.value.receiver || undefined,
           amount: {
             amount: baseAmount,
-            nai: token.value!.nai!,
+            nai,
             precision: token.value!.precision || 0
           }
         }
@@ -483,7 +490,7 @@ const handleStake = async () => {
       loadTokenDetails(),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
   } catch (error) {
     toastError('Staking failed', error);
   } finally {
@@ -533,6 +540,11 @@ const handleUnstake = async () => {
     // Convert decimal amount to base units (add precision zeros)
     const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
 
+    let nai = token.value!.nai!;
+    const isVestingNai = isVesting(token.value.nai!, token.value.precision || 0);
+    if (!isVestingNai)
+      nai = toVesting(token.value.nai!, token.value.precision || 0);
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -541,7 +553,7 @@ const handleUnstake = async () => {
           receiver: stakeForm.value.receiver || undefined,
           amount: {
             amount: baseAmount,
-            nai: token.value!.nai!,
+            nai,
             precision: token.value!.precision || 0
           }
         }
@@ -561,7 +573,7 @@ const handleUnstake = async () => {
       loadTokenDetails(),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === nai.value) || null;
+    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
   } catch (error) {
     toastError('Unstaking failed', error);
   } finally {
@@ -578,14 +590,14 @@ const goBack = () => {
 const editToken = () => {
   router.push({
     path: '/tokens/edit',
-    query: { nai: token.value?.nai, precision: token.value?.precision }
+    query: { 'asset-num': assetNum.value }
   });
 };
 
 const showQRCode = () => {
   router.push({
     path: '/tokens/send-token',
-    query: { nai: token.value?.nai, precision: token.value?.precision }
+    query: { 'asset-num': assetNum.value }
   });
 };
 
@@ -787,7 +799,7 @@ onMounted(async () => {
                     v-if="token.is_nft"
                     class="inline-flex items-center rounded-md bg-purple-500/10 text-[16px]/[18px] px-2 font-medium text-purple-500 border border-purple-500/20"
                   >
-                    nft
+                    NFT
                   </span>
                   <span
                     v-if="isStaked"
@@ -1419,9 +1431,21 @@ onMounted(async () => {
                   </div>
 
                   <div class="flex-1 min-w-0">
-                    <p class="font-semibold text-foreground truncate">
-                      {{ holder.user }}
-                    </p>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1">
+                      <p class="font-semibold text-foreground truncate">
+                        {{ holder.metadata?.name || holder.user }}
+                      </p>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <CopyButton :value="holder.user" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Copy holder address</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                     <p class="text-sm text-muted-foreground">
                       Rank #{{ holder.rank }}
                     </p>

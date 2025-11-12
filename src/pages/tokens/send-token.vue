@@ -40,12 +40,12 @@ const form = ref({
 });
 
 // Selected token NAI from TokenSelector (used when only 'to' is provided)
-const selectedTokenNai = ref<string>('');
+const selectedTokenAssetNum = ref<string>('');
 
 // Get NAI and precision from route parameters or form or selected token
-const nai = computed(() => {
-  if (route.query.nai) return route.query.nai as string;
-  if (selectedTokenNai.value) return selectedTokenNai.value;
+const assetNum = computed(() => {
+  if (route.query['asset-num']) return route.query['asset-num'] as string;
+  if (selectedTokenAssetNum.value) return selectedTokenAssetNum.value;
   return form.value.nai;
 });
 const precision = computed(() => route.query.precision as string || form.value.precision);
@@ -107,14 +107,14 @@ const receiverDisplayName = computed(() => {
 });
 
 // Watch selected token NAI changes to load token details
-watch(selectedTokenNai, async (newNai, oldNai) => {
-  if (newNai && newNai !== oldNai && shouldShowTokenSelector.value) {
+watch(selectedTokenAssetNum, async (newAssetNum, oldAssetNum) => {
+  if (newAssetNum && newAssetNum !== oldAssetNum && shouldShowTokenSelector.value) {
     isLoading.value = true;
     // Get precision from the selected token's balance
-    const balance = tokensStore.balances.find(b => b.nai === newNai);
+    const balance = tokensStore.balances.find(b => String(b.asset_num) === newAssetNum);
     if (balance) {
       form.value.precision = balance.precision?.toString() || '';
-      form.value.nai = newNai;
+      form.value.nai = balance.nai!;
       await loadTokenDetails();
     } else
       token.value = null;
@@ -125,23 +125,24 @@ watch(selectedTokenNai, async (newNai, oldNai) => {
 
 // Load token details
 const loadTokenDetails = async () => {
-  if (!nai.value) return;
+  if (!assetNum.value) return;
 
   try {
     const wax = await getWax();
 
     // Fetch token details by NAI
-    const params: { nai: string; precision?: number } = { nai: nai.value };
-    if (precision.value) params.precision = Number(precision.value);
-    const tokens = await wax.restApi.ctokensApi.registeredTokens(params);
+    const params: { 'asset-num': number; precision?: number } = { 'asset-num': Number(assetNum.value) };
+    const tokens = await wax.restApi.ctokensApi.tokens(params);
 
-    if (!tokens || tokens.length === 0)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+    const remoteToken = tokens && tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
 
-    token.value = tokens[0]!.liquid?.nai === nai.value ? tokens[0]!.liquid! : tokens[0]?.vesting?.nai === nai.value ? tokens[0]!.vesting! : null;
+    if (!remoteToken)
+      throw new Error(`Token with asset number ${assetNum.value} not found`);
+
+    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
 
     if (!token.value)
-      throw new Error(`Token with NAI ${nai.value} not found`);
+      throw new Error(`Token with asset number ${assetNum.value} not found`);
 
     // Update precision if not set from balance
     if (token.value && !form.value.precision)
@@ -156,7 +157,7 @@ const loadTokenDetails = async () => {
 const goBack = () => {
   router.push({
     path: '/tokens/token',
-    query: { nai: nai.value, precision: precision.value }
+    query: { 'asset-num': assetNum.value }
   });
 };
 
@@ -180,6 +181,7 @@ onMounted(async () => {
 
   // Initialize form with query params
   form.value.nai = route.query.nai as string || '';
+  selectedTokenAssetNum.value = route.query['asset-num'] as string || '';
   form.value.precision = route.query.precision as string || '';
 
   // Initialize form with query params if in receive mode
@@ -188,8 +190,8 @@ onMounted(async () => {
     form.value.memo = queryMemo.value || '';
   }
 
-  // Load token details if NAI and precision are available
-  if (nai.value && precision.value)
+  // Load token details if asset number and precision are available
+  if (assetNum.value)
     await loadTokenDetails();
 
   isLoading.value = false;
@@ -209,7 +211,7 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     await fetchHTMUserData();
 
     // If nai/precision available, load token details
-    if (nai.value && precision.value)
+    if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
     // swallow - errors are handled inside the helpers (toastError)
@@ -230,7 +232,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     await tokensStore.loadBalances();
     await fetchHTMUserData();
 
-    if (nai.value && precision.value)
+    if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
     console.error('Error reloading data after tokensStore.wallet changed', e);
@@ -246,7 +248,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
         <Button
-          v-if="hasNaiFromUrl || selectedTokenNai"
+          v-if="hasNaiFromUrl || selectedTokenAssetNum"
           variant="ghost"
           size="sm"
           class="gap-2 hover:bg-accent"
@@ -312,19 +314,18 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           :token-data="token"
           :query-amount="queryAmount"
           :query-memo="queryMemo"
-          :nai="nai"
+          :asset-num="assetNum"
           :precision="precision"
-          :selected-token-nai="selectedTokenNai"
-          @update-selected-token-nai="selectedTokenNai = $event"
+          :selected-token-asset-num="selectedTokenAssetNum"
+          @update-selected-token-asset-num="selectedTokenAssetNum = $event"
           @update-amount="form.amount = $event"
           @update-memo="form.memo = $event"
         />
 
-        <!-- QR Code Card (visible when NAI and precision are available) -->
+        <!-- QR Code Card (visible when asset number is available) -->
         <QRCodeCard
-          v-if="nai && precision && !isReceiveMode"
-          :nai="nai"
-          :precision="precision"
+          v-if="assetNum && !isReceiveMode"
+          :asset-num="assetNum"
           :amount="form.amount"
           :memo="form.memo"
         />
