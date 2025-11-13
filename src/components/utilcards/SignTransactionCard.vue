@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ITransaction, TRole, TTransactionRequiredAuthorities } from '@hiveio/wax/vite';
+import type { ITransaction, TRole, TTransactionRequiredAuthorities } from '@hiveio/wax';
 import { mdiFileSign } from '@mdi/js';
 import { AlertCircle } from 'lucide-vue-next';
 import { computed, onMounted, ref } from 'vue';

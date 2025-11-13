@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TRole } from '@hiveio/wax/vite';
+import type { TRole } from '@hiveio/wax';
 import { mdiAccountPlusOutline, mdiHelpCircleOutline, mdiShieldCheckOutline } from '@mdi/js';
 import { computed, ref } from 'vue';
 
