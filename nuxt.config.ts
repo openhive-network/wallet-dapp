@@ -27,6 +27,11 @@ export default defineNuxtConfig({
       ]
     }
   },
+  vite: {
+    esbuild: {
+      target: 'es2022'
+    }
+  },
   dir: {
     app: 'src',
     assets: 'src/assets',
@@ -35,9 +40,13 @@ export default defineNuxtConfig({
     middleware: 'src/middleware',
     plugins: 'src/plugins'
   },
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode', '@nuxt/eslint', '@pinia/nuxt'],
+  modules: [
+    '@nuxtjs/tailwindcss',
+    '@nuxtjs/color-mode',
+    '@nuxt/eslint',
+    '@pinia/nuxt'
+  ],
   alias: {
-
     '@': path.resolve(import.meta.dirname, './src')
   },
   eslint: {
