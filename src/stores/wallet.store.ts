@@ -1,4 +1,4 @@
-import type { AEncryptionProvider, TRole } from '@hiveio/wax/vite';
+import type { AEncryptionProvider, TRole } from '@hiveio/wax';
 import KeychainProvider from '@hiveio/wax-signers-keychain';
 import MetaMaskProvider from '@hiveio/wax-signers-metamask';
 import PeakVaultProvider from '@hiveio/wax-signers-peakvault';

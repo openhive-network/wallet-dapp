@@ -1,6 +1,6 @@
-import type { IBeekeeperInstance, IBeekeeperOptions, IBeekeeperUnlockedWallet } from '@hiveio/beekeeper/vite';
-import type { IHiveChainInterface, ISignatureTransaction, TPublicKey, TRole, TSignature, TWaxRestExtended } from '@hiveio/wax/vite';
-import { AEncryptionProvider } from '@hiveio/wax/vite';
+import type { IBeekeeperInstance, IBeekeeperUnlockedWallet } from '@hiveio/beekeeper';
+import type { IHiveChainInterface, ISignatureTransaction, TPublicKey, TRole, TSignature, TWaxRestExtended } from '@hiveio/wax';
+import { AEncryptionProvider } from '@hiveio/wax';
 
 import RestApi from './api';
 
@@ -89,8 +89,8 @@ export class CTokensProvider extends AEncryptionProvider {
   private static async prepareBeekeeper () {
     if (!CTokensProvider.#beekeeper) {
       // XXX: Fix dynamic beekeeeper import
-      CTokensProvider.#beekeeper = await (import('@hiveio/beekeeper/vite') as unknown as Promise<{ createBeekeeper: (options: Partial<IBeekeeperOptions>) => Promise<IBeekeeperInstance> }>).then(async bk => {
-        return await bk.createBeekeeper({ inMemory: false, enableLogs: false, unlockTimeout: /* 1 day: */ 1440 });
+      CTokensProvider.#beekeeper = await (import('@hiveio/beekeeper')).then(async bk => {
+        return await bk.default({ inMemory: false, enableLogs: false, unlockTimeout: /* 1 day: */ 1440 });
       });
     }
   }
