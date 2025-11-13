@@ -38,5 +38,7 @@ COPY .output/ .output/
 # Expose the Nuxt server port
 EXPOSE 8080
 
+# warning: while starting this image, external env file must be mapped as /app/mapped.env
+
 # Run the Nuxt server from the generated .output
-CMD ["node", ".output/server/index.mjs"]
+CMD ["node", "--env-file=/app/mapped.env", ".output/server/index.mjs"]
