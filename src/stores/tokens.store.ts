@@ -1,4 +1,4 @@
-import type { IWaxBaseInterface } from '@hiveio/wax/vite';
+import type { IWaxBaseInterface } from '@hiveio/wax';
 import { HtmTransaction } from '@mtyszczak-cargo/htm';
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';

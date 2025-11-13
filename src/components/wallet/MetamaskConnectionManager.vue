@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { TRole } from '@hiveio/wax/vite';
+import type { TRole } from '@hiveio/wax';
 import MetaMaskProvider from '@hiveio/wax-signers-metamask';
 import { computed, ref, onMounted, watch, readonly } from 'vue';
 import { toast } from 'vue-sonner';

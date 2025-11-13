@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { IWaxBaseInterface } from '@hiveio/wax/vite';
+import type { IWaxBaseInterface } from '@hiveio/wax';
 import { computed, onMounted, ref } from 'vue';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';

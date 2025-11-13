@@ -1,4 +1,4 @@
-import type { ApiAccount, IManabarData } from '@hiveio/wax/vite';
+import type { ApiAccount, IManabarData } from '@hiveio/wax';
 import { defineStore } from 'pinia';
 
 import { getWax } from '@/stores/wax.store';

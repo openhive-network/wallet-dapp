@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { TRole } from '@hiveio/wax/vite';
-import { AccountAuthorityUpdateOperation } from '@hiveio/wax/vite';
+import type { TRole } from '@hiveio/wax';
+import { AccountAuthorityUpdateOperation } from '@hiveio/wax';
 import { mdiClose } from '@mdi/js';
 import { Check, Search } from 'lucide-vue-next';
 import { ref } from 'vue';

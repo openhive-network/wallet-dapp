@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AccountAuthorityUpdateOperation } from '@hiveio/wax/vite';
+import { AccountAuthorityUpdateOperation } from '@hiveio/wax';
 import { mdiAccountArrowUpOutline } from '@mdi/js';
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
