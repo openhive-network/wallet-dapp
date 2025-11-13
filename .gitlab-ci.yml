@@ -34,7 +34,7 @@ build:
     - pnpm build
   artifacts:
     paths:
-      - dist
+      - .output
     when: always
     expire_in: 1 week
 
@@ -77,17 +77,6 @@ push_protected_app_image:
         IMAGE_TAG: "$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA"
       when: on_success
     - when: never
-
-pages:
-  stage: deploy
-  script:
-    - echo "The site will be deployed to $CI_PAGES_URL"
-  publish: dist
-  artifacts:
-    paths:
-      - dist
-  only:
-    - main
 
 deploy_dev_environment:
   extends: .webapp_deploy_template
