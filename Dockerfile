@@ -1,17 +1,7 @@
-FROM caddy AS app
-COPY ./dist/ /usr/share/caddy/
-COPY ./.env.example /usr/share/caddy/.env
+FROM node:22-slim AS app
+WORKDIR /app
 
-RUN cat > /etc/caddy/Caddyfile <<EOF
-
-:8080 {
-  root * /usr/share/caddy
-  file_server
-  try_files {path} /
-}
-
-EOF
-
+# Metadata from original Dockerfile (kept as labels/args)
 ARG BUILD_TIME
 ARG GIT_COMMIT_SHA
 ARG GIT_CURRENT_BRANCH
@@ -28,12 +18,25 @@ LABEL org.opencontainers.image.revision="$GIT_COMMIT_SHA"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.ref.name="Metamask dApp providing a bridge to Hive blockchain"
 LABEL org.opencontainers.image.title="Hive Bridge Application Image"
-LABEL org.opencontainers.image.description="Runs Hive Bridge applicaton)"
+LABEL org.opencontainers.image.description="Runs Hive Bridge application"
 LABEL io.hive.image.branch="$GIT_CURRENT_BRANCH"
 LABEL io.hive.image.commit.log_message="$GIT_LAST_LOG_MESSAGE"
 LABEL io.hive.image.commit.author="$GIT_LAST_COMMITTER"
 LABEL io.hive.image.commit.date="$GIT_LAST_COMMIT_DATE"
 
-ENV VITE_CTOKENS_API_URL=
-ENV VITE_HIVE_NODE_ENDPOINT=
-ENV VITE_HIVE_CHAIN_ID=
+# Runtime environment defaults
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV HOST=0.0.0.0
+ENV NUXT_PUBLIC_CTOKENS_API_URL=
+ENV NUXT_PUBLIC_HIVE_NODE_ENDPOINT=
+ENV NUXT_PUBLIC_HIVE_CHAIN_ID=
+
+# .output contains the server and public assets built by Nuxt.
+COPY .output/ .output/
+
+# Expose the Nuxt server port
+EXPOSE 8080
+
+# Run the Nuxt server from the generated .output
+CMD ["node", ".output/server/index.mjs"]
