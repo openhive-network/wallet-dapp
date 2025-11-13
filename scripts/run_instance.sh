@@ -1,6 +1,6 @@
 #! /bin/bash
 
-set -e
+set -xe
 
 print_help () {
     cat <<-EOF
@@ -74,7 +74,8 @@ RUN_OPTIONS=(
 )
 
 if [ -n "${CUSTOM_ENV_FILE}" ]; then
-    RUN_OPTIONS+=("-v" "${CUSTOM_ENV_FILE}:/usr/share/caddy/.env")
+    RUN_OPTIONS+=("-v" "${CUSTOM_ENV_FILE}:/app/mapped.env")
+    RUN_OPTIONS+=("--env-file" "${CUSTOM_ENV_FILE}")
 else
     echo "ERROR: Env file must be specified at command line using option: --env-file"
     exit 2
