@@ -270,9 +270,6 @@ const registerHTMAccount = async () => {
       registrationData.value.walletPassword
     );
 
-    if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
-      throw new Error('Setting HTM Account via proxy is not supported yet. Please log in using your L1 wallet first.');
-
     const explicitWallet = await CTokensProvider.for(wax, 'owner', false);
 
     // Wait for transaction status
@@ -305,7 +302,7 @@ const registerHTMAccount = async () => {
 
     // After successful registration, redirect to login
     showRegistrationForm.value = false;
-    showHTMLogin();
+    showLoginSuccess.value = true;
   } catch (error) {
     toastError('Failed to create HTM account', error);
   } finally {

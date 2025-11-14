@@ -14,7 +14,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
-import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -48,7 +47,6 @@ const emit = defineEmits<{
 const router = useRouter();
 const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
-const walletStore = useWalletStore();
 
 // Form state
 const form = ref({
@@ -200,9 +198,6 @@ const handleSend = async () => {
     toastError('Invalid amount', new Error(amountValidation.value.error || 'Invalid amount format'));
     return;
   }
-
-  if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
-    throw new Error('Transferring via proxy is not supported yet. Please log in using your L1 wallet first.');
 
   try {
     isSending.value = true;
