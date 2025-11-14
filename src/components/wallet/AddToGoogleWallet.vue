@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 
 import { Button } from '@/components/ui/button';
+import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -12,13 +13,23 @@ const addToGoogleWallet = async () => {
   googleWalletLoading.value = true;
 
   try {
+    const wax = await getWax();
+
     const operationalPublicKey = CTokensProvider.getOperationalPublicKey();
+    if (!operationalPublicKey)
+      throw new Error('Operational public key not found');
+
+    const { metadata } = await wax.restApi.ctokensApi.users({ user: operationalPublicKey });
     const baseUrl = window.location.origin;
     const res = await fetch('/api/google-wallet', {
       method: 'POST',
 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ operationalPublicKey, baseUrl })
+      body: JSON.stringify({
+        operationalPublicKey,
+        displayName: metadata?.name || 'User',
+        baseUrl
+      })
     });
     const data = await res.text();
     const parsed = JSON.parse(data);
