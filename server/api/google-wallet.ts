@@ -29,6 +29,9 @@ export default defineEventHandler(async (event) => {
     return { error: 'Missing operationalPublicKey' };
 
   const credentials = init();
+  const displayName = body.displayName || 'User';
+
+  // XXX: For security reasons baseUrl should not come from the client side in production
   const barcodeValue = `${body.baseUrl}/tokens/send-token?to=${operationalPublicKey}`;
 
   console.log('Creating QR code leading to:', barcodeValue);
@@ -38,7 +41,7 @@ export default defineEventHandler(async (event) => {
 
   // Use service account email for object suffix
   const objectSuffix = `${credentials.client_email.replace(/[^\w.-]/g, '_')}`;
-  const objectId = `${issuerId}.${objectSuffix}`;
+  const objectId = `${issuerId}.${objectSuffix}.${operationalPublicKey}`;
 
   const genericObject = {
     'id': `${objectId}`,
@@ -46,6 +49,7 @@ export default defineEventHandler(async (event) => {
     'genericType': 'GENERIC_TYPE_UNSPECIFIED',
     'hexBackgroundColor': '#e62525',
     'logo': {
+      // TODO: Change this to BASE_URL/logo.png or similar later on
       'sourceUri': {
         'uri': 'https://media.licdn.com/dms/image/v2/C560BAQEj8gDq4ohhoQ/company-logo_200_200/company-logo_200_200/0/1630629402152?e=2147483647&v=beta&t=WZow0_vCgExHDDmERSks6s_teABUIkfcaQDuA5oBegM'
       }
@@ -53,19 +57,19 @@ export default defineEventHandler(async (event) => {
     'cardTitle': {
       'defaultValue': {
         'language': 'en',
-        'value': 'hallmann at HTM'
+        'value': `${displayName} at HTM`
       }
     },
     'subheader': {
       'defaultValue': {
         'language': 'en',
-        'value': 'HTM Account'
+        'value': 'HTM Operational Key'
       }
     },
     'header': {
       'defaultValue': {
         'language': 'en',
-        'value': 'hallmann'
+        'value': 'Operational Key for HTM'
       }
     },
     'barcode': {
