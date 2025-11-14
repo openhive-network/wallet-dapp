@@ -84,12 +84,10 @@ const broadcastHtmOperation = async (
   const wax = await getWax();
   const walletStore = useWalletStore();
 
-  // Remove later on. No checks for other wallets or any connection type here as users may not be connected yet, but want to register an account
-  if (walletStore.isL2Wallet)
-    throw new Error('HTM transactions are not supported with Layer 2 wallets at this time.');
+  const hasL1Wallet = typeof settingsStore.settings.account !== 'undefined' && !walletStore.isL2Wallet;
 
   // Set proxy account for HTM transactions
-  HtmTransaction.HiveProxyAccount = settingsStore.settings.account!;
+  HtmTransaction.HiveProxyAccount = hasL1Wallet ? settingsStore.settings.account! : 'htm.proxy'; // TODO: Move this to .env config later
 
   // Create Layer 2 HTM transaction for user signup
   const l2Transaction = new HtmTransaction(wax);
@@ -101,10 +99,16 @@ const broadcastHtmOperation = async (
 
   // We are in the scope of the automated function for retrieving status of HTM transactions.
   // Therefore, we must ensure that no custom, injected HTM operations are mixed with proper, observable operations in the same transaction.
-  for(const op of l1Transaction.transaction.operations)
-  {if (op.custom_json_operation?.id === PROTOCOL_OPERATION_ID)
-    throw new Error('Custom, injected HTM operations cannot be mixed with other operations in the same transaction.');
+  for(const op of l1Transaction.transaction.operations) {
+    if (op.custom_json_operation?.id === PROTOCOL_OPERATION_ID)
+      throw new Error('Custom, injected HTM operations cannot be mixed with other operations in the same transaction.');
   }
+
+  // TODO: Add specific command to check if active authority is required
+  const requiresActive = (l2Transaction.toLayer1Operation().custom_json_operation?.required_auths.length ?? 0) > 0;
+
+  if (requiresActive && hasL1Wallet)
+    throw new Error('Requested active authority action - involving transfers on L1 Hive blockchain. This action is not supported by proxy. Please log in using your L1 wallet first.');
 
   await (l2Wallet ?? tokensStore.wallet!).signTransaction(l2Transaction);
 
@@ -112,17 +116,22 @@ const broadcastHtmOperation = async (
 
   l1Transaction.pushOperation(l1Op);
 
-  if (!walletStore.wallet)
-    throw new Error('No wallet available for signing the transaction. Currently, you are required to connect a Layer 1 wallet to perform HTM transactions.');
+  if (hasL1Wallet) {
+    // Sign Layer 1 transaction with the Hive active key
+    await walletStore.createWalletFor(settingsStore.settings, l1Op.custom_json_operation!.required_auths.length > 0 ? 'active' : 'posting');
+    await walletStore.wallet!.signTransaction(l1Transaction);
 
-  // Sign Layer 1 transaction with the Hive active key
-  await walletStore.createWalletFor(settingsStore.settings, l1Op.custom_json_operation!.required_auths.length > 0 ? 'active' : 'posting');
-  await walletStore.wallet!.signTransaction(l1Transaction);
+    // Broadcast the transaction
+    await wax.broadcast(l1Transaction);
+  } else { // Use proxy
+    const { 'ref-id': refId } = await wax.restApi.ctokensApi.broadcastProxy({
+      trx: l2Transaction.transaction
+    });
 
-  // Broadcast the transaction
-  await wax.broadcast(l1Transaction);
+    return refId!;
+  }
 
-  return `${l1Transaction.legacy_id}_${l1Transaction.transaction.operations.length - 1}`;
+  return l2Transaction.getRefId(l1Transaction);
 };
 
 /**

@@ -368,9 +368,6 @@ const handleTransfer = async () => {
     return;
   }
 
-  if (typeof settingsStore.settings.account === 'undefined' || walletStore.isL2Wallet)
-    throw new Error('Transferring via proxy is not supported yet. Please log in using your L1 wallet first.');
-
   try {
     isTransferring.value = true;
 
