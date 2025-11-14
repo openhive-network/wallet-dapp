@@ -67,7 +67,7 @@ export class CTokensProvider extends AEncryptionProvider {
     this.extendedChain = chain.extendRest(RestApi);
     this.extendedChain.restApi.ctokensApi.endpointUrl = endpointUrl;
 
-    const publicKey = role === 'owner' ? CTokensProvider.lastOperationalPk : CTokensProvider.lastManagementPk;
+    const publicKey = role === 'owner' ? CTokensProvider.lastManagementPk : CTokensProvider.lastOperationalPk;
 
     if (!publicKey)
       throw new WaxCTokensEncryptionProviderError('The requested wallet does not have a public key.');

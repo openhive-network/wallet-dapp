@@ -4,6 +4,11 @@ import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
+import { useTokensStore } from '@/stores/tokens.store';
+import { useUserStore } from '@/stores/user.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -24,6 +29,34 @@ const managementKey = ref('');
 const operationalKey = ref('');
 const password = ref('');
 const repeatPassword = ref('');
+
+const walletStore = useWalletStore();
+const settingsStore = useSettingsStore();
+const userStore = useUserStore();
+const tokensStore = useTokensStore();
+
+const handleConditionalSiteLogin = async (operationalKey: string) => {
+  const wax = await getWax();
+
+  if (walletStore.wallet !== undefined && !walletStore.isL2Wallet) {
+    // Already logged in using L1 wallet, so just add another layer on top of that
+    await tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
+
+    return;
+  }
+
+  // Not logged in using any wallet so allow user log in using HTM wallet
+
+  // Set settings with the operational key as account and CTOKENS wallet
+  settingsStore.setSettings({
+    account: operationalKey,
+    wallet: UsedWallet.CTOKENS_IMPLEMENTATION
+  });
+
+  // Create wallet provider and parse user data
+  await walletStore.createWalletFor(settingsStore.settings, 'posting');
+  await userStore.parseUserData(operationalKey);
+};
 
 const connect = async () => {
   try {
@@ -48,6 +81,8 @@ const connect = async () => {
 
     await CTokensProvider.login(password.value);
 
+    await handleConditionalSiteLogin(operational);
+
     emit('setaccount', operational);
   } catch (error) {
     toastError('Failed to connect to HTM', error);
@@ -67,11 +102,11 @@ const connect = async () => {
         v-else
         class="text-sm text-muted-foreground"
       >
-        Create your HTM wallet by providing your keys and setting a password:
+        Connect your HTM wallet by providing your keys and setting a password:
       </p>
 
-      <div class="space-y-2">
-        <div class="space-y-1">
+      <div>
+        <div class="mb-1 space-y-1">
           <Label for="operationalKey">Operational Private Key</Label>
           <Input
             id="operationalKey"
@@ -80,7 +115,7 @@ const connect = async () => {
             placeholder="Enter your operational key"
           />
         </div>
-        <div class="space-y-1">
+        <div class="mb-5 space-y-1">
           <Label for="managementKey">Management Private Key (optional)</Label>
           <Input
             id="managementKey"
@@ -89,7 +124,8 @@ const connect = async () => {
             placeholder="Enter your management key"
           />
         </div>
-        <div class="space-y-1">
+        <Separator />
+        <div class="mt-3 mb-1 space-y-1">
           <Label for="password">Password</Label>
           <Input
             id="password"
@@ -111,7 +147,7 @@ const connect = async () => {
 
       <div v-if="showSteps">
         <p>Step 2: Click this button to verify your configuration and connect to the wallet:</p>
-        <div class="flex justify-center">
+        <div class="flex justify-center mt-4">
           <Button
             :disabled="isLoading"
             variant="outline"
@@ -130,7 +166,7 @@ const connect = async () => {
           @click="connect"
         >
           <span v-if="isLoading">Creating Wallet...</span>
-          <span v-else>Create HTM Wallet</span>
+          <span v-else>Import to HTM Wallet</span>
         </Button>
       </div>
     </div>

@@ -12,7 +12,6 @@ import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
@@ -45,7 +44,6 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
-const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 
 // Form state
@@ -65,7 +63,7 @@ const transferCompleted = ref(false);
 const sentSummary = ref<{ amount: string; tokenLabel: string; receiver: string; remainingBalance?: string; timestamp?: string } | null>(null);
 
 // Check if user is logged in
-const isLoggedIn = computed(() => !!settingsStore.settings.account);
+const isLoggedIn = computed(() => !!tokensStore.wallet);
 
 const tokenName = computed(() => {
   if (!props.tokenData) return 'Unknown Token';
@@ -181,10 +179,7 @@ const handleSend = async () => {
   if (!isLoggedIn.value || !CTokensProvider.getOperationalPublicKey()) {
     toast.error('Please log in to your wallet first');
     router.push({
-      path: '/',
-      query: {
-        redirect: router.currentRoute.value.fullPath
-      }
+      path: '/tokens/list'
     });
     return;
   }

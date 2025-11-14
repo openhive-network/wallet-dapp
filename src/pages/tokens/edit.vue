@@ -198,7 +198,7 @@ const goBack = () => {
 onMounted(async () => {
   if (!isLoggedIn.value) {
     toast.error('You must be logged in to edit tokens');
-    router.push('/');
+    router.push('/tokens/register-account');
     return;
   }
 

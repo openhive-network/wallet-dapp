@@ -2,6 +2,8 @@
 import {
   mdiCheckCircle,
   mdiDownload,
+  mdiInformationSlabCircle,
+  mdiLockOpen,
   mdiNumeric1Circle,
   mdiNumeric2Circle,
   mdiNumeric3Circle,
@@ -12,6 +14,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import HTMLoginContent from '@/components/HTMLoginContent.vue';
+import HTMProvidePasswordContent from '@/components/HTMProvidePasswordContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,6 +39,9 @@ const router = useRouter();
 
 const showLoginSuccess = ref(false);
 const showRegistrationForm = ref(false);
+const showLoginForm = ref(false);
+const showLoginUsingPassword = ref(false);
+const showLoginUsingOtherAccount = ref(false);
 const isLoading = ref(false);
 const hasConfirmedDownload = ref(false);
 const keysGenerated = ref(false);
@@ -195,18 +202,15 @@ const resetProcess = () => {
     managementPrivateKey: '',
     managementPublicKey: ''
   };
-  toast.info('Process reset. You can generate new keys.');
-};
-
-// Show HTM login success
-const showHTMLogin = () => {
-  showLoginSuccess.value = true;
 };
 
 // Go back to main options
 const goBack = () => {
   showLoginSuccess.value = false;
   showRegistrationForm.value = false;
+  showLoginForm.value = false;
+  showLoginUsingPassword.value = false;
+  showLoginUsingOtherAccount.value = false;
   // Reset form data
   registrationData.value = {
     name: '',
@@ -219,11 +223,21 @@ const goBack = () => {
   resetProcess();
 };
 
+// Show HTM login success
+const showHTMLogin = () => {
+  showLoginForm.value = true;
+};
+
 // Handle successful login
 const goToMyAccount = () => {
-  showLoginSuccess.value = false;
+  goBack();
   // Redirect to my balance page after successful login
   router.push('/tokens/my-balance');
+};
+
+const successShow = () => {
+  goBack();
+  showLoginSuccess.value = true;
 };
 
 // @internal
@@ -276,7 +290,7 @@ const registerHTMAccount = async () => {
     await waitForTransactionStatus(
       () => ([{
         user_signup_operation: {
-          hive_account: settingsStore.settings.account,
+          hive_account: walletStore.isL2Wallet ? undefined : settingsStore.settings.account,
           management_key: keys.management!,
           operational_key: keys.operational
         }
@@ -301,8 +315,7 @@ const registerHTMAccount = async () => {
     tokensStore.reset(await CTokensProvider.for(wax, 'posting', false));
 
     // After successful registration, redirect to login
-    showRegistrationForm.value = false;
-    showLoginSuccess.value = true;
+    successShow();
   } catch (error) {
     toastError('Failed to create HTM account', error);
   } finally {
@@ -310,8 +323,16 @@ const registerHTMAccount = async () => {
   }
 };
 
+const canLogIntoL2 = computed(() => {
+  return !!CTokensProvider.getOperationalPublicKey();
+});
+
+const isLoggedIntoL2 = computed(() => {
+  return !!tokensStore.wallet;
+});
+
 onMounted(() => {
-  if (walletStore.wallet) {
+  if (walletStore.wallet && !walletStore.isL2Wallet) {
     // If already logged in using L1 wallet,
     // show the registration page in case someone wants to create another account
     showRegistrationForm.value = true;
@@ -321,9 +342,182 @@ onMounted(() => {
 
 <template>
   <div class="container mx-auto py-12 px-4 max-w-2xl">
+    <Card
+      v-if="showLoginForm && canLogIntoL2 && !showLoginUsingPassword && !showLoginUsingOtherAccount"
+      class="w-full"
+    >
+      <CardContent class="pt-6">
+        <div class="flex flex-col items-center text-center space-y-6">
+          <!-- Info Icon -->
+          <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+            <svg
+              width="32"
+              height="32"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="text-blue-600 dark:text-blue-400"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiInformationSlabCircle"
+              />
+            </svg>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+              Detected existing HTM Wallet
+            </h2>
+            <p class="text-muted-foreground">
+              You already have an HTM account.
+              You can log in using your wallet password or choose to log in to a different account.
+            </p>
+          </div>
+
+          <div v-if="!isLoggedIntoL2" class="flex flex-col w-full space-y-6">
+            <Button
+              size="lg"
+              class="mt-4 w-full"
+              @click="showLoginUsingPassword = true"
+            >
+              Provide your password
+            </Button>
+
+            <div class="relative w-full">
+              <div class="absolute inset-0 flex items-center">
+                <span class="w-full border-t" />
+              </div>
+              <div class="relative flex justify-center text-xs uppercase">
+                <span class="bg-background px-2 text-muted-foreground">
+                  Or
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Button -->
+          <div class="flex flex-row gap-4 w-full">
+            <Button
+              variant="outline"
+              size="lg"
+              class="mt-4 flex-1"
+              @click="goBack()"
+            >
+              Go Back
+            </Button>
+            <Button
+              size="lg"
+              class="mt-4 flex-1"
+              @click="showLoginUsingOtherAccount = true"
+            >
+              Log in to other account
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card
+      v-else-if="showLoginUsingPassword"
+      class="w-full"
+    >
+      <CardContent class="pt-6">
+        <div class="flex flex-col items-center text-center space-y-6">
+          <!-- Info Icon -->
+          <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+            <svg
+              width="32"
+              height="32"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="text-blue-600 dark:text-blue-400"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiLockOpen"
+              />
+            </svg>
+          </div>
+
+          <div class="space-y-2">
+            <h2 class="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+              Unlock your wallet
+            </h2>
+            <p class="text-muted-foreground">
+              You already have an HTM account.
+              Please login using your wallet password to access your tokens and manage your account.
+            </p>
+          </div>
+
+          <HTMProvidePasswordContent embed @success="successShow()" />
+
+          <!-- Action Button -->
+          <div class="flex flex-row gap-4 w-full">
+            <Button
+              variant="outline"
+              size="lg"
+              class="mt-4 flex-1"
+              @click="goBack()"
+            >
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card
+      v-else-if="showLoginForm || showLoginUsingOtherAccount"
+      class="w-full"
+    >
+      <CardContent class="pt-6">
+        <div class="flex flex-col items-center space-y-6">
+          <!-- Info Icon -->
+          <div class="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+            <svg
+              width="32"
+              height="32"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="text-blue-600 dark:text-blue-400"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiLockOpen"
+              />
+            </svg>
+          </div>
+
+          <div class="space-y-2 text-center">
+            <h2 class="text-2xl font-semibold text-blue-600 dark:text-blue-400">
+              Log in to your HTM account
+            </h2>
+            <p class="text-muted-foreground">
+              You already have an HTM account.
+              Provide your credentials to import them to the underlying wallet and access your tokens and manage your account.
+            </p>
+          </div>
+
+          <HTMLoginContent :show-steps="false" @setaccount="successShow()" />
+
+          <!-- Action Button -->
+          <div class="flex flex-row gap-4 w-full">
+            <Button
+              variant="outline"
+              size="lg"
+              class="mt-4 flex-1"
+              @click="goBack()"
+            >
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
     <!-- Show HTM Login Success -->
     <Card
-      v-if="showLoginSuccess"
+      v-else-if="showLoginSuccess"
       class="w-full"
     >
       <CardContent class="pt-6">
