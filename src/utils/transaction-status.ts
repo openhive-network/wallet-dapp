@@ -75,6 +75,21 @@ export async function pollTransactionStatus (
   };
 }
 
+let isChainSerializationVerified = false;
+const _verifyChainSerialization = async () => {
+  if (isChainSerializationVerified) return;
+
+  const wax = await getWax();
+
+  const { last_hardfork } = await wax.api.database_api.get_hardfork_properties({});
+
+  HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = last_hardfork < 25;
+  if (HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION)
+    console.warn('Using LEGACY HIVE SERIALIZATION for L1 transactions');
+
+  isChainSerializationVerified = true;
+};
+
 const broadcastHtmOperation = async (
   operationsFactory: (tx: ITransaction) => htm_operation[],
   l2Wallet: AEncryptionProvider | undefined = undefined
@@ -107,7 +122,7 @@ const broadcastHtmOperation = async (
   // TODO: Add specific command to check if active authority is required
   const requiresActive = (l2Transaction.toLayer1Operation().custom_json_operation?.required_auths.length ?? 0) > 0;
 
-  if (requiresActive && hasL1Wallet)
+  if (requiresActive && !hasL1Wallet)
     throw new Error('Requested active authority action - involving transfers on L1 Hive blockchain. This action is not supported by proxy. Please log in using your L1 wallet first.');
 
   await (l2Wallet ?? tokensStore.wallet!).signTransaction(l2Transaction);
@@ -131,6 +146,11 @@ const broadcastHtmOperation = async (
     return refId!;
   }
 
+  // await verifyChainSerialization();
+  // XXX: For some reason even though proper hardfork is applied, still need to set legacy serialization to true...
+  HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = true;
+
+  // Return HTM transaction reference ID in proper serialization (legacy_id / id)
   return l2Transaction.getRefId(l1Transaction);
 };
 

@@ -19,6 +19,12 @@ export interface WaxApi {
         };
       };
     };
+    get_hardfork_properties: {
+      params: {};
+      result: {
+        last_hardfork: number;
+      };
+    };
   };
   bridge: {
     get_profile: {

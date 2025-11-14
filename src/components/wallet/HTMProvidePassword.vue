@@ -1,71 +1,20 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { toast } from 'vue-sonner';
 
-import { Button } from '@/components/ui/button';
+import HTMProvidePasswordContent from '@/components/HTMProvidePasswordContent.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
+import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
-import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { getWax } from '@/stores/wax.store';
-import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-const router = useRouter();
 const walletStore = useWalletStore();
-const userStore = useUserStore();
-const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
-
-const isLoading = ref(false);
 
 const close = (ignoreLogIn = false) => {
   if (ignoreLogIn) // Do not show log in dialog every time if user ignored it
     tokensStore.ignoreLogIn = true;
 
   walletStore.isProvideWalletPasswordModalOpen = false;
-};
-
-const password = ref('');
-
-const connect = async () => {
-  try {
-    isLoading.value = true;
-
-    const wax = await getWax();
-
-    await CTokensProvider.login(password.value);
-
-    try {
-      if (walletStore.hasWallet) {
-        const ctokensWallet = await CTokensProvider.for(wax, 'posting');
-
-        await tokensStore.reset(ctokensWallet);
-      } else {
-        await walletStore.createWalletFor(settingsStore.settings, 'posting');
-        await userStore.parseUserData(settingsStore.settings!.account!);
-      }
-
-      toast.success('Logged in successfully!');
-      close(false);
-    } catch (error) {
-      toastError('Failed to create wallet', error);
-    }
-  } catch (error) {
-    toastError('Failed to connect to HTM', error);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const openRegistration = () => {
-  close();
-  router.push('/tokens/register-account');
 };
 </script>
 
@@ -104,40 +53,7 @@ const openRegistration = () => {
           <CardDescription>Follow these instructions to log into Hive Token Machine wallet</CardDescription>
         </CardHeader>
         <CardContent class="text-sm space-y-4">
-          <div class="space-y-4">
-            <p>Provide your HTM wallet password:</p>
-
-            <div class="space-y-2">
-              <div class="space-y-1">
-                <Label for="password">Password</Label>
-                <Input
-                  id="password"
-                  v-model="password"
-                  type="password"
-                  placeholder="Enter a password to encrypt the wallet"
-                />
-              </div>
-            </div>
-
-            <div class="flex justify-center">
-              <Button
-                :disabled="isLoading"
-                variant="outline"
-                size="lg"
-                class="px-8 py-4 border-[#FBA510] border-[2px]"
-                @click="connect"
-              >
-                <span class="text-md font-bold">Connect</span>
-              </Button>
-            </div>
-            <Button
-              variant="link"
-              class="w-full justify-center text-sm"
-              @click="openRegistration"
-            >
-              Create a new HTM wallet instead
-            </Button>
-          </div>
+          <HTMProvidePasswordContent @success="close()" />
         </CardContent>
         <CardFooter />
       </Card>

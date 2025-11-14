@@ -33,7 +33,7 @@ const isLoading = ref(true);
 
 // Form state
 const form = ref({
-  nai: '',
+  assetNum: '',
   precision: '',
   amount: '',
   memo: ''
@@ -46,7 +46,7 @@ const selectedTokenAssetNum = ref<string>('');
 const assetNum = computed(() => {
   if (route.query['asset-num']) return route.query['asset-num'] as string;
   if (selectedTokenAssetNum.value) return selectedTokenAssetNum.value;
-  return form.value.nai;
+  return form.value.assetNum;
 });
 const precision = computed(() => route.query.precision as string || form.value.precision);
 const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
@@ -54,7 +54,7 @@ const queryAmount = computed(() => route.query.amount as string | undefined);
 const queryMemo = computed(() => route.query.memo as string | undefined);
 
 // Check if NAI is provided in URL
-const hasNaiFromUrl = computed(() => !!route.query.nai);
+const hasNaiFromUrl = computed(() => !!route.query['asset-num']);
 
 // Check if we're in receive mode (when 'to' is in query params)
 // When 'to' is present, we're actually sending (confirming a transfer request)
@@ -84,7 +84,7 @@ const shouldShowTokenSelector = computed(() => {
 const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
 
 // Check if user is logged in
-const isLoggedIn = computed(() => !!settingsStore.settings.account);
+const isLoggedIn = computed(() => !!tokensStore.wallet);
 
 // Receiver display helpers (compact UI)
 const receiverDisplayName = computed(() => {
@@ -114,7 +114,7 @@ watch(selectedTokenAssetNum, async (newAssetNum, oldAssetNum) => {
     const balance = tokensStore.balances.find(b => String(b.asset_num) === newAssetNum);
     if (balance) {
       form.value.precision = balance.precision?.toString() || '';
-      form.value.nai = balance.nai!;
+      form.value.assetNum = balance.asset_num!.toString();
       await loadTokenDetails();
     } else
       token.value = null;
@@ -180,7 +180,7 @@ onMounted(async () => {
   }
 
   // Initialize form with query params
-  form.value.nai = route.query.nai as string || '';
+  form.value.assetNum = route.query['asset-num'] as string || '';
   selectedTokenAssetNum.value = route.query['asset-num'] as string || '';
   form.value.precision = route.query.precision as string || '';
 
@@ -290,7 +290,6 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 
       <!-- Send Form -->
       <div
-        v-else-if="(token && isLoggedIn) || isReceiveMode"
         class="space-y-6"
       >
         <!-- Page Title -->

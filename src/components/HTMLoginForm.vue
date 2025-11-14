@@ -107,8 +107,6 @@ const handleConditionalSiteLogin = async (operationalKey: string) => {
 // Handle account creation from HTMLoginContent
 const handleSetAccount = async (account: string) => {
   try {
-    await handleConditionalSiteLogin(account);
-
     toast.success('HTM wallet created successfully!');
     hasStoredHTMWallet.value = true;
     switchToLoginMode();
