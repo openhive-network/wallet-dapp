@@ -76,7 +76,7 @@ export async function pollTransactionStatus (
 }
 
 let isChainSerializationVerified = false;
-const _verifyChainSerialization = async () => {
+const verifyChainSerialization = async () => {
   if (isChainSerializationVerified) return;
 
   const wax = await getWax();
@@ -146,9 +146,9 @@ const broadcastHtmOperation = async (
     return refId!;
   }
 
-  // await verifyChainSerialization();
+  await verifyChainSerialization();
   // XXX: For some reason even though proper hardfork is applied, still need to set legacy serialization to true...
-  HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = true;
+  // HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = true;
 
   // Return HTM transaction reference ID in proper serialization (legacy_id / id)
   return l2Transaction.getRefId(l1Transaction);
