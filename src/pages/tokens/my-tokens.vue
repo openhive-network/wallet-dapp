@@ -12,7 +12,7 @@ import HTMView from '@/components/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { transformTokenToDisplayFormat, type CTokenDisplay } from '@/stores/tokens.store';
+import { transformTokenToDisplayFormat, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
@@ -21,13 +21,13 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 const router = useRouter();
 
 // State
-const tokensFullList = ref<CTokenDisplay[]>([]);
+const tokensFullList = ref<CTokenDefinitionDisplay[]>([]);
 const isLoading = ref(false);
 const currentPage = ref(0);
 const hasMorePages = ref(true);
 
 // Navigate to token detail page
-const viewTokenDetails = (token: CTokenDisplay) => {
+const viewTokenDetails = (token: CTokenDefinitionDisplay) => {
   router.push(`/tokens/token?asset-num=${token.assetNum}`);
 };
 

@@ -1,10 +1,9 @@
 <script lang="ts" setup>
-import QRCode from 'qrcode';
 import { computed, onMounted, ref, watch } from 'vue';
 
+import { Card, CardContent } from '@/components/ui/card';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import { Card, CardContent } from '../ui/card';
 
 const props = defineProps<{
   assetNum: number | string;
@@ -15,6 +14,9 @@ const props = defineProps<{
 const qrCodeDataUrl = ref<string>('');
 
 const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
+
+/* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
+let qrCode: undefined | typeof import('qrcode') = undefined;
 
 const generateQRCode = async () => {
   // Generate QR code even without amount (amount is optional)
@@ -34,7 +36,11 @@ const generateQRCode = async () => {
       params.append('memo', props.memo);
 
     const url = `${baseUrl}/tokens/send-token?${params.toString()}`;
-    const dataUrl = await QRCode.toDataURL(url, {
+
+    if (!qrCode)
+      qrCode = await import('qrcode');
+
+    const dataUrl = await qrCode.toDataURL(url, {
       width: 300,
       margin: 2,
       color: {

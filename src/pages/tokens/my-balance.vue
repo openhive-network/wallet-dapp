@@ -10,7 +10,7 @@ import {
   mdiImageMultiple
 } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
-import { computed, onMounted, ref, watch } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
@@ -25,53 +25,31 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
-import { useTokensStore } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
-import { toVesting } from '@/utils/nai-tokens';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const router = useRouter();
 const tokensStore = useTokensStore();
 
-// Wax formatter reference
-const formatter = ref<{ formatNumber: (value: string, precision: number) => string } | null>(null);
-
-interface AggregatedBalance {
-  key: string;
-  nai: string;
-  precision: number;
-  liquid: CtokensAppBalance | null;
-  vesting: CtokensAppBalance | null;
-  metadata?: Record<string, unknown>;
-}
-
-type BalanceLike = AggregatedBalance | CtokensAppBalance | null | undefined;
-
 // State
 const isLoading = ref(false);
 const searchQuery = ref('');
-const failedImages = ref<Set<string>>(new Set());
-
-// Pagination state
-const itemsPerPage = ref(10);
-const displayedItemsCount = ref(10);
 
 // Transfer dialog state
 const isTransferDialogOpen = ref(false);
 const transferAmount = ref('');
 const transferRecipient = ref('');
 const transferMemo = ref('');
-const selectedTokenForTransfer = ref<CtokensAppBalance | null>(null);
+const selectedTokenForTransfer = ref<CTokenBalanceDisplay | null>(null);
 const isTransferLoading = ref(false);
 
 // Transform dialog state
 const isTransformDialogOpen = ref(false);
 const transformAmount = ref('');
 const transformDirection = ref<'liquid-to-staked' | 'staked-to-liquid'>('liquid-to-staked');
-const selectedToken = ref<CtokensAppBalance | null>(null);
+const selectedToken = ref<CTokenBalanceDisplay | null>(null);
 const isTransformLoading = ref(false);
 
 // Account statistics
@@ -79,6 +57,8 @@ const createdTokensCount = ref(0);
 const ownedTokensCount = ref(0);
 const nftCollectionsCount = ref(0);
 const stakedTokensCount = ref(0);
+
+const fetchedBalances = ref<TokenStoreApiResponse<CTokenPairBalanceDefinition> | null>(null);
 
 // Helper function to format count with >100, >60 etc
 const formatCount = (count: number): string => {
@@ -89,92 +69,6 @@ const formatCount = (count: number): string => {
   return count.toString();
 };
 
-// Helper functions for extracting data from metadata
-const isVesting = (nai: string, precision: number): boolean => {
-  return (((Number(nai.slice(2, -1)) << 5) | 0x10 | precision) & 0x20) !== 0;
-};
-
-const isAggregatedBalance = (balance: BalanceLike): balance is AggregatedBalance => {
-  return Boolean(balance && typeof (balance as AggregatedBalance).key === 'string');
-};
-
-const getBalanceMetadata = (balance: BalanceLike): Record<string, string> | undefined => {
-  if (!balance) return undefined;
-
-  if (isAggregatedBalance(balance)) {
-    const metadata = balance.metadata as Record<string, string> | undefined;
-    if (metadata) return metadata;
-
-    const liquidMetadata = balance.liquid?.metadata as Record<string, string> | undefined;
-    if (liquidMetadata) return liquidMetadata;
-
-    return balance.vesting?.metadata as Record<string, string> | undefined;
-  }
-
-  return balance.metadata as Record<string, string> | undefined;
-};
-
-const getBalanceNai = (balance: BalanceLike): string => {
-  if (!balance) return '';
-  if (isAggregatedBalance(balance)) return balance.nai;
-  return balance.nai || '';
-};
-
-const getTokenSymbol = (balance: BalanceLike): string => {
-  const metadata = getBalanceMetadata(balance);
-  const nai = getBalanceNai(balance);
-  return metadata?.symbol || metadata?.name || nai.replace('@@', '') || 'Unknown';
-};
-
-const getTokenName = (balance: BalanceLike): string => {
-  const metadata = getBalanceMetadata(balance);
-  return metadata?.display_name || metadata?.name || getTokenSymbol(balance);
-};
-
-const getTokenLogoUrl = (balance: BalanceLike): string | undefined => {
-  const metadata = getBalanceMetadata(balance);
-  return metadata?.logo_url || metadata?.image;
-};
-
-const aggregatedBalances = computed<AggregatedBalance[]>(() => {
-  const map = new Map<string, AggregatedBalance>();
-  const order: string[] = [];
-
-  tokensStore.balances.forEach((balance) => {
-    if (!balance.nai)
-      return;
-
-    const precision = balance.precision ?? 0;
-    const isBalanceVesting = isVesting(balance.nai, precision);
-    const baseNai = isBalanceVesting ? toVesting(balance.nai, precision) : balance.nai;
-    const key = `${baseNai}:${precision}`;
-
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
-        nai: baseNai,
-        precision,
-        liquid: null,
-        vesting: null,
-        metadata: balance.metadata as Record<string, unknown> | undefined
-      });
-      order.push(key);
-    }
-
-    const entry = map.get(key)!;
-
-    if (isBalanceVesting)
-      entry.vesting = balance;
-    else
-      entry.liquid = balance;
-
-    if (!entry.metadata && balance.metadata)
-      entry.metadata = balance.metadata as Record<string, unknown>;
-  });
-
-  return order.map(key => map.get(key)!);
-});
-
 // Parse asset amount - convert decimal to base units (integer with precision zeros)
 const parseAssetAmount = (amountStr: string, precision: number): string => {
   const [integerPart, fractionalPart = ''] = amountStr.split('.');
@@ -182,298 +76,25 @@ const parseAssetAmount = (amountStr: string, precision: number): string => {
   return integerPart + normalizedFractional;
 };
 
-// Format token amount using wax formatter (accepts base units from API)
-const formatCTokenAmount = (amount: string, precision: number): string => {
-  // Use wax formatter if available - it handles conversion from base units
-  if (formatter.value)
-    return formatter.value.formatNumber(amount, precision);
-
-  // Fallback formatting - manually convert from base units to decimal
-  const num = parseFloat(amount);
-  return (num / Math.pow(10, precision)).toFixed(precision);
-};
-
-// Get numeric value from base units (for calculations)
-const getNumericBalance = (amount: string, precision: number): number => {
-  const num = parseFloat(amount);
-  return num / Math.pow(10, precision);
-};
-
-const formatBalanceAmount = (amount: string | undefined, precision: number | undefined): string => {
-  if (!amount || amount === '0') return '0';
-  return formatCTokenAmount(amount, precision ?? 0);
-};
-
-const getLiquidBalance = (balance: BalanceLike): string => {
-  if (!balance) return '0';
-
-  if (isAggregatedBalance(balance))
-    return formatBalanceAmount(balance.liquid?.amount, balance.liquid?.precision ?? balance.precision);
-
-  if (isVesting(balance.nai || '', balance.precision || 0))
-    return '0';
-
-  return formatBalanceAmount(balance.amount, balance.precision);
-};
-
-// Get liquid balance as numeric value
-const getLiquidBalanceNumeric = (balance: BalanceLike): number => {
-  if (!balance) return 0;
-
-  if (isAggregatedBalance(balance)) {
-    if (!balance.liquid?.amount) return 0;
-    return getNumericBalance(balance.liquid.amount, balance.liquid.precision ?? balance.precision);
-  }
-
-  if (isVesting(balance.nai || '', balance.precision || 0))
-    return 0;
-
-  if (!balance.amount) return 0;
-  return getNumericBalance(balance.amount, balance.precision || 0);
-};
-
-const getStakedBalance = (balance: BalanceLike): string => {
-  if (!balance) return '0';
-
-  if (isAggregatedBalance(balance))
-    return formatBalanceAmount(balance.vesting?.amount, balance.vesting?.precision ?? balance.precision);
-
-  if (isVesting(balance.nai || '', balance.precision || 0))
-    return formatBalanceAmount(balance.amount, balance.precision);
-
-  return '0';
-};
-
-// Get staked balance as numeric value
-const getStakedBalanceNumeric = (balance: BalanceLike): number => {
-  if (!balance) return 0;
-
-  if (isAggregatedBalance(balance)) {
-    if (!balance.vesting?.amount) return 0;
-    return getNumericBalance(balance.vesting.amount, balance.vesting.precision ?? balance.precision);
-  }
-
-  if (isVesting(balance.nai || '', balance.precision || 0)) {
-    if (!balance.amount) return 0;
-    return getNumericBalance(balance.amount, balance.precision || 0);
-  }
-
-  return 0;
-};
-
-// Get total balance as numeric value (for conditions)
-const getTotalBalanceNumeric = (balance: BalanceLike): number => {
-  if (!balance) return 0;
-
-  if (isAggregatedBalance(balance)) {
-    const precision = balance.precision;
-    const liquidAmount = balance.liquid?.amount ? getNumericBalance(balance.liquid.amount, balance.liquid.precision ?? precision) : 0;
-    const stakedAmount = balance.vesting?.amount ? getNumericBalance(balance.vesting.amount, balance.vesting.precision ?? precision) : 0;
-    return liquidAmount + stakedAmount;
-  }
-
-  const amount = balance.amount || '0';
-  const precision = balance.precision || 0;
-  return getNumericBalance(amount, precision);
-};
-
-const formatDisplayAmount = (amount: string | undefined, precision: number | undefined): string => {
-  if (!amount || amount === '0') return '0';
-
-  // Use wax formatter directly for display - it already handles thousand separators
-  if (formatter.value) {
-    const formatted = formatter.value.formatNumber(amount, precision ?? 0);
-    // Trim trailing zeros after decimal point
-    return formatted.replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
-  }
-
-  // Fallback: manual formatting
-  const normalized = formatBalanceAmount(amount, precision);
-  if (!normalized || normalized === '0')
-    return '0';
-
-  const [integerPart, decimalPart] = normalized.split('.');
-  if (!integerPart)
-    return '0';
-
-  const withSeparators = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-
-  if (!decimalPart)
-    return withSeparators;
-
-  const trimmedDecimal = decimalPart.replace(/0+$/, '');
-
-  if (!trimmedDecimal)
-    return withSeparators;
-
-  return `${withSeparators}.${trimmedDecimal}`;
-};
-
-const getLiquidBalanceDisplay = (balance: BalanceLike): string => {
-  if (!balance) return '0';
-
-  if (isAggregatedBalance(balance))
-    return formatDisplayAmount(balance.liquid?.amount, balance.liquid?.precision ?? balance.precision);
-
-  if (isVesting(balance.nai || '', balance.precision || 0))
-    return '0';
-
-  return formatDisplayAmount(balance.amount, balance.precision);
-};
-
-const getStakedBalanceDisplay = (balance: BalanceLike): string => {
-  if (!balance) return '0';
-
-  if (isAggregatedBalance(balance))
-    return formatDisplayAmount(balance.vesting?.amount, balance.vesting?.precision ?? balance.precision);
-
-  if (isVesting(balance.nai || '', balance.precision || 0))
-    return formatDisplayAmount(balance.amount, balance.precision);
-
-  return '0';
-};
-
-const getTotalBalanceDisplay = (balance: BalanceLike): string => {
-  if (!balance) return '0';
-
-  if (isAggregatedBalance(balance)) {
-    const precision = balance.precision;
-    const liquidAmount = balance.liquid?.amount ? BigInt(balance.liquid.amount) : 0n;
-    const stakedAmount = balance.vesting?.amount ? BigInt(balance.vesting.amount) : 0n;
-    return formatDisplayAmount((liquidAmount + stakedAmount).toString(), precision);
-  }
-
-  return formatDisplayAmount(balance.amount, balance.precision);
-};
-
-const getBalancePercent = (balance: BalanceLike, type: 'liquid' | 'staked'): number => {
-  if (!balance) return 0;
-
-  let liquid = 0;
-  let staked = 0;
-
-  if (isAggregatedBalance(balance)) {
-    const precision = balance.precision;
-    if (balance.liquid?.amount)
-      liquid = getNumericBalance(balance.liquid.amount, balance.liquid.precision ?? precision);
-    if (balance.vesting?.amount)
-      staked = getNumericBalance(balance.vesting.amount, balance.vesting.precision ?? precision);
-  } else {
-    const isVestingToken = isVesting(balance.nai || '', balance.precision || 0);
-    if (balance.amount) {
-      if (isVestingToken)
-        staked = getNumericBalance(balance.amount, balance.precision || 0);
-      else
-        liquid = getNumericBalance(balance.amount, balance.precision || 0);
-    }
-  }
-
-  const total = liquid + staked;
-
-  if (!total)
-    return 0;
-
-  if (type === 'liquid')
-    return Number(((liquid / total) * 100).toFixed(1));
-
-  const stakedRatio = 100 - (liquid / total) * 100;
-  return Number(stakedRatio.toFixed(1));
-};
-
-
-// Filter balances based on search query
-const filteredBalancesAll = computed(() => {
-  const balances = aggregatedBalances.value;
-
-  if (!searchQuery.value) return balances;
-
-  return balances.filter(balance => {
-    const symbol = getTokenSymbol(balance);
-    const name = getTokenName(balance);
-    const nai = balance.nai || '';
-    const liquidNai = isAggregatedBalance(balance) ? balance.liquid?.nai || '' : '';
-    const vestingNai = isAggregatedBalance(balance) ? balance.vesting?.nai || '' : '';
-
-    return symbol.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      nai.includes(searchQuery.value) ||
-      liquidNai.includes(searchQuery.value) ||
-      vestingNai.includes(searchQuery.value);
-  });
-});
-
-// Paginated balances (displayed items)
-const filteredBalances = computed(() => {
-  return filteredBalancesAll.value.slice(0, displayedItemsCount.value);
-});
-
-// Check if there are more items to load
-const hasMoreItems = computed(() => {
-  return displayedItemsCount.value < filteredBalancesAll.value.length;
-});
-
-// Load more items
-const loadMoreItems = () => {
-  displayedItemsCount.value = Math.min(
-    displayedItemsCount.value + itemsPerPage.value,
-    filteredBalancesAll.value.length
-  );
-};
-
-// Reset pagination when search changes
-watch(searchQuery, () => {
-  displayedItemsCount.value = itemsPerPage.value;
-});
-
-// Methods
-const loadAccountStatistics = async () => {
-  try {
-    const operationalKey = CTokensProvider.getOperationalPublicKey();
-
-    if (!operationalKey) {
-      console.warn('No operational key available');
-      return;
-    }
-
-    const wax = await getWax();
-
-    // Get all tokens created by this user (owner field matches operational key)
-    const createdTokens = await wax.restApi.ctokensApi.tokens({ owner: operationalKey });
-    createdTokensCount.value = createdTokens.items?.length || 0;
-
-    // Get owned tokens (tokens with balance)
-    const balances = await wax.restApi.ctokensApi.balances({ user: operationalKey });
-    const uniqueBalanceKeys = new Set<string>();
-    const stakedTokenKeys = new Set<string>();
-
-    balances.items!.forEach(({ liquid, vesting }) => {
-      if (liquid)
-        uniqueBalanceKeys.add(`${liquid.nai}:${liquid.precision}`);
-      if (vesting)
-        stakedTokenKeys.add(`${vesting.nai}:${vesting.precision}`);
-    });
-
-    ownedTokensCount.value = uniqueBalanceKeys.size;
-
-    // Get NFT collections (created NFT tokens)
-    const nftTokens = createdTokens.items!.filter(token => token.liquid?.is_nft);
-    nftCollectionsCount.value = nftTokens.length;
-
-    // Get staked tokens (tokens with vesting bit set)
-    stakedTokensCount.value = stakedTokenKeys.size;
-  } catch (error) {
-    console.error('Failed to load account statistics:', error);
-  }
-};
-
-const loadAccountBalances = async () => {
+const loadAccountBalances = async (page = 1) => {
   try {
     isLoading.value = true;
 
-    await Promise.all([
-      tokensStore.loadBalances(true),
-      loadAccountStatistics()
+    const [createdTokens, balances] = await Promise.all([
+      tokensStore.loadCreatedTokens(),
+      tokensStore.loadBalances(page)
     ]);
+    createdTokensCount.value = createdTokens.total;
+
+    ownedTokensCount.value = balances.total;
+
+    fetchedBalances.value = balances;
+
+    // Get NFT collections (created NFT tokens)
+    nftCollectionsCount.value = 0; // TOOD: Implement NFTs
+
+    // Get staked tokens (tokens with vesting bit set)
+    stakedTokensCount.value = 0; // TODO: Implement staked tokens I own
   } catch (error) {
     toastError('Failed to load account balances', error);
   } finally {
@@ -481,13 +102,18 @@ const loadAccountBalances = async () => {
   }
 };
 
-const openTransferDialog = (balance: AggregatedBalance) => {
-  if (!balance.liquid) {
+// Load more items
+const loadMoreItems = () => {
+  void loadAccountBalances(fetchedBalances.value!.page + 1);
+};
+
+const openTransferDialog = (balance: CTokenBalanceDisplay) => {
+  if (balance.isStaked) {
     toast.error('No liquid balance available for transfer');
     return;
   }
 
-  selectedTokenForTransfer.value = balance.liquid;
+  selectedTokenForTransfer.value = balance;
   transferAmount.value = '';
   transferRecipient.value = '';
   transferMemo.value = '';
@@ -533,16 +159,9 @@ const transferTokens = async () => {
   }
 };
 
-const openTransformDialog = (balance: AggregatedBalance, direction: 'liquid-to-staked' | 'staked-to-liquid') => {
-  const tokenEntry = direction === 'liquid-to-staked' ? balance.liquid : balance.vesting;
-
-  if (!tokenEntry) {
-    toast.error(direction === 'liquid-to-staked' ? 'No liquid balance available to stake' : 'No staked balance available to unstake');
-    return;
-  }
-
-  selectedToken.value = tokenEntry;
-  transformDirection.value = direction;
+const openTransformDialog = (balance: CTokenBalanceDisplay) => {
+  selectedToken.value = balance;
+  transformDirection.value = balance.isStaked ? 'staked-to-liquid' : 'liquid-to-staked';
   transformAmount.value = '';
   isTransformDialogOpen.value = true;
 };
@@ -565,7 +184,7 @@ const transformTokens = async () => {
         token_transform_operation: {
           amount: {
             amount: baseAmount,
-            nai: transformDirection.value === 'liquid-to-staked' ? selectedToken.value!.nai! : toVesting(selectedToken.value!.nai!, selectedToken.value!.precision!),
+            nai: selectedToken.value!.nai!,
             precision: selectedToken.value!.precision!
           },
           holder: CTokensProvider.getOperationalPublicKey()!
@@ -584,24 +203,12 @@ const transformTokens = async () => {
   }
 };
 
-// Handle image load error
-const handleImageError = (nai: string) => {
-  failedImages.value.add(nai);
-};
-
-// Check if image should be shown
-const shouldShowImage = (balance: BalanceLike): boolean => {
-  const logoUrl = getTokenLogoUrl(balance);
-  const nai = getBalanceNai(balance);
-  return !!logoUrl && !failedImages.value.has(nai);
-};
-
 // Navigate to token details page
-const navigateToToken = (balance: AggregatedBalance) => {
+const navigateToToken = (balance: CTokenBalanceDisplay) => {
   router.push({
     path: '/tokens/token',
     query: {
-      'asset-num': balance.liquid?.asset_num || balance.vesting?.asset_num || ''
+      'asset-num': balance.assetNum
     }
   });
 };
@@ -610,34 +217,18 @@ const navigateToToken = (balance: AggregatedBalance) => {
 const setMaxTransferAmount = async () => {
   if (!selectedTokenForTransfer.value) return;
 
-  try {
-    transferAmount.value = selectedTokenForTransfer.value.amount || '0';
-  } catch (error) {
-    console.error('Failed to set max transfer amount:', error);
-  }
+  transferAmount.value = String(selectedTokenForTransfer.value.balance);
 };
 
 // Set max transform amount - use raw amount without precision formatting
 const setMaxTransformAmount = async () => {
   if (!selectedToken.value) return;
 
-  try {
-    transformAmount.value = selectedToken.value.amount || '0';
-  } catch (error) {
-    console.error('Failed to set max transform amount:', error);
-  }
+  transformAmount.value = String(selectedToken.value.balance);
 };
 
 // Initialize
 onMounted(async () => {
-  // Initialize wax formatter
-  try {
-    const wax = await getWax();
-    formatter.value = wax.formatter;
-  } catch (error) {
-    console.error('Failed to initialize wax formatter:', error);
-  }
-
   loadAccountBalances();
 });
 </script>
@@ -660,7 +251,7 @@ onMounted(async () => {
           <Button
             variant="outline"
             :disabled="isLoading"
-            @click="loadAccountBalances"
+            @click="loadAccountBalances()"
           >
             <svg
               width="16"
@@ -821,7 +412,7 @@ onMounted(async () => {
 
       <!-- Loading State -->
       <div
-        v-if="tokensStore.isLoadingBalances"
+        v-if="tokensStore.isLoading"
         class="space-y-4"
       >
         <Card
@@ -858,7 +449,7 @@ onMounted(async () => {
 
       <!-- Balances Table -->
       <div
-        v-else-if="filteredBalances.length > 0"
+        v-else-if="fetchedBalances && fetchedBalances.items.length > 0"
         class="space-y-4"
       >
         <Card>
@@ -883,36 +474,35 @@ onMounted(async () => {
                 </thead>
                 <tbody>
                   <tr
-                    v-for="balance in filteredBalances"
-                    :key="balance.key"
+                    v-for="balance in fetchedBalances.items"
+                    :key="balance.liquid.assetNum"
                     class="border-b hover:bg-muted/50 transition-colors cursor-pointer"
-                    @click="navigateToToken(balance)"
+                    @click="navigateToToken(balance.liquid)"
                   >
                     <!-- Asset Info -->
                     <td class="p-4">
                       <div class="flex items-center gap-3">
                         <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                           <img
-                            v-if="shouldShowImage(balance)"
-                            :src="getTokenLogoUrl(balance)"
-                            :alt="getTokenSymbol(balance)"
+                            v-if="balance.liquid.image"
+                            :src="balance.liquid.image"
+                            :alt="balance.liquid.symbol"
                             class="h-full w-full object-cover"
-                            @error="handleImageError(balance.nai || '')"
                           >
                           <span
                             v-else
                             class="text-sm font-medium text-primary"
                           >
-                            {{ getTokenSymbol(balance).charAt(0).toUpperCase() }}
+                            {{ balance.liquid.symbol!.charAt(0).toUpperCase() }}
                           </span>
                         </div>
                         <div>
                           <div class="flex items-center gap-2">
                             <span class="font-semibold">
-                              {{ getTokenName(balance) }}
+                              {{ balance.liquid.name }}
                             </span>
                             <span
-                              v-if="getStakedBalanceNumeric(balance) > 0"
+                              v-if="balance.vesting.balance > 0n"
                               class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
                             >
                               <svg
@@ -930,10 +520,10 @@ onMounted(async () => {
                             </span>
                           </div>
                           <div class="text-sm text-muted-foreground">
-                            {{ getTokenSymbol(balance) }}
+                            {{ balance.liquid.symbol }}
                           </div>
                           <div class="text-xs text-muted-foreground font-mono">
-                            {{ balance.nai }}
+                            {{ balance.liquid.assetNum }}
                           </div>
                         </div>
                       </div>
@@ -946,7 +536,7 @@ onMounted(async () => {
                           <span
                             :class="[
                               'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
-                              getLiquidBalanceNumeric(balance) === 0
+                              balance.liquid.balance === 0n
                                 ? 'bg-muted text-muted-foreground border-transparent'
                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             ]"
@@ -956,10 +546,10 @@ onMounted(async () => {
                           <span
                             :class="[
                               'font-medium tabular-nums',
-                              getLiquidBalanceNumeric(balance) === 0 ? 'text-muted-foreground' : 'text-foreground'
+                              balance.liquid.balance === 0n ? 'text-muted-foreground' : 'text-foreground'
                             ]"
                           >
-                            {{ getLiquidBalanceDisplay(balance) }}
+                            {{ balance.liquid.displayBalance }}
                           </span>
                         </div>
 
@@ -967,7 +557,7 @@ onMounted(async () => {
                           <span
                             :class="[
                               'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
-                              getStakedBalanceNumeric(balance) === 0
+                              balance.vesting.balance === 0n
                                 ? 'bg-muted text-muted-foreground border-transparent'
                                 : 'bg-sky-50 text-sky-700 border-sky-200'
                             ]"
@@ -977,29 +567,29 @@ onMounted(async () => {
                           <span
                             :class="[
                               'font-medium tabular-nums',
-                              getStakedBalanceNumeric(balance) === 0 ? 'text-muted-foreground' : 'text-foreground'
+                              balance.vesting.balance === 0n ? 'text-muted-foreground' : 'text-foreground'
                             ]"
                           >
-                            {{ getStakedBalanceDisplay(balance) }}
+                            {{ balance.vesting.displayBalance }}
                           </span>
                         </div>
 
-                        <template v-if="getTotalBalanceNumeric(balance) > 0">
+                        <template v-if="balance.liquid.balance > 0n || balance.vesting.balance > 0n">
                           <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
                             <div
                               class="h-full bg-emerald-500 transition-all"
-                              :style="{ width: `${getBalancePercent(balance, 'liquid')}%` }"
+                              :style="{ width: `${(balance.liquid.balance * 100n / (balance.liquid.balance + balance.vesting.balance))}%` }"
                             />
                             <div
                               class="h-full bg-sky-500 transition-all"
-                              :style="{ width: `${getBalancePercent(balance, 'staked')}%` }"
+                              :style="{ width: `${(balance.vesting.balance * 100n / (balance.liquid.balance + balance.vesting.balance))}%` }"
                             />
                           </div>
                           <div class="flex items-center justify-between text-xs text-muted-foreground">
                             <span>Distribution</span>
                             <span class="tabular-nums">
-                              {{ getBalancePercent(balance, 'liquid').toFixed(1) }}% liquid ·
-                              {{ getBalancePercent(balance, 'staked').toFixed(1) }}% staked
+                              {{ (Number((balance.liquid.balance * 10000n / (balance.liquid.balance + balance.vesting.balance))) / 100).toFixed(1) }}% liquid ·
+                              {{ (Number((balance.vesting.balance * 10000n / (balance.liquid.balance + balance.vesting.balance))) / 100).toFixed(1) }}% staked
                             </span>
                           </div>
                         </template>
@@ -1016,7 +606,7 @@ onMounted(async () => {
                     <!-- Total Balance -->
                     <td class="p-4 text-right">
                       <div class="font-semibold tabular-nums">
-                        {{ getTotalBalanceDisplay(balance) }}
+                        {{ balance.liquid.balance + balance.vesting.balance /* Maybe beautify this display somehow */ }}
                       </div>
                     </td>
 
@@ -1026,9 +616,9 @@ onMounted(async () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="getLiquidBalanceNumeric(balance) === 0"
+                          :disabled="balance.liquid.balance === 0n"
                           title="Transfer tokens"
-                          @click.stop="openTransferDialog(balance)"
+                          @click.stop="openTransferDialog(balance.liquid)"
                         >
                           <svg
                             width="14"
@@ -1046,9 +636,9 @@ onMounted(async () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="getLiquidBalanceNumeric(balance) === 0"
+                          :disabled="balance.liquid.balance === 0n"
                           title="Stake tokens"
-                          @click.stop="openTransformDialog(balance, 'liquid-to-staked')"
+                          @click.stop="openTransformDialog(balance.liquid)"
                         >
                           <svg
                             width="14"
@@ -1066,9 +656,9 @@ onMounted(async () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          :disabled="getStakedBalanceNumeric(balance) === 0"
+                          :disabled="balance.vesting.balance === 0n"
                           title="Unstake tokens"
-                          @click.stop="openTransformDialog(balance, 'staked-to-liquid')"
+                          @click.stop="openTransformDialog(balance.vesting)"
                         >
                           <svg
                             width="14"
@@ -1093,7 +683,7 @@ onMounted(async () => {
 
         <!-- Load More Button -->
         <div
-          v-if="hasMoreItems"
+          v-if="fetchedBalances.hasMore"
           class="flex justify-center pt-4"
         >
           <Button
@@ -1103,7 +693,7 @@ onMounted(async () => {
           >
             Load More
             <span class="ml-2 text-muted-foreground">
-              ({{ displayedItemsCount }} / {{ filteredBalancesAll.length }})
+              ({{ fetchedBalances.page }} / {{ fetchedBalances.pages }})
             </span>
           </Button>
         </div>
@@ -1134,7 +724,7 @@ onMounted(async () => {
         </p>
         <Button
           v-if="!searchQuery"
-          @click="loadAccountBalances"
+          @click="loadAccountBalances()"
         >
           <svg
             width="16"
@@ -1159,23 +749,22 @@ onMounted(async () => {
             <div class="flex items-center gap-3 mb-2">
               <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 <img
-                  v-if="selectedTokenForTransfer && shouldShowImage(selectedTokenForTransfer)"
-                  :src="getTokenLogoUrl(selectedTokenForTransfer)"
-                  :alt="getTokenSymbol(selectedTokenForTransfer)"
+                  v-if="selectedTokenForTransfer && selectedTokenForTransfer.image"
+                  :src="selectedTokenForTransfer.image"
+                  :alt="selectedTokenForTransfer.symbol"
                   class="h-full w-full object-cover"
-                  @error="handleImageError(selectedTokenForTransfer.nai || '')"
                 >
                 <span
                   v-else
                   class="text-base font-medium text-primary"
                 >
-                  {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer).charAt(0).toUpperCase() : '' }}
+                  {{ selectedTokenForTransfer ? selectedTokenForTransfer.symbol!.charAt(0).toUpperCase() : '' }}
                 </span>
               </div>
-              <DialogTitle>Transfer {{ selectedTokenForTransfer ? getTokenName(selectedTokenForTransfer) : '' }}</DialogTitle>
+              <DialogTitle>Transfer {{ selectedTokenForTransfer ? selectedTokenForTransfer.name : '' }}</DialogTitle>
             </div>
             <DialogDescription>
-              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? getLiquidBalanceDisplay(selectedTokenForTransfer) : '0' }} {{ selectedTokenForTransfer ? getTokenSymbol(selectedTokenForTransfer) : '' }}
+              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? selectedTokenForTransfer.displayBalance : '0' }} {{ selectedTokenForTransfer ? selectedTokenForTransfer.symbol : '' }}
             </DialogDescription>
           </DialogHeader>
 
@@ -1191,14 +780,14 @@ onMounted(async () => {
 
             <TokenAmountInput
               v-model="transferAmount"
-              :token-name="getTokenName(selectedTokenForTransfer!)"
-              :token-symbol="getTokenSymbol(selectedTokenForTransfer!)"
-              :token-image="getTokenLogoUrl(selectedTokenForTransfer!)"
+              :token-name="selectedTokenForTransfer!.name"
+              :token-symbol="selectedTokenForTransfer!.symbol"
+              :token-image="selectedTokenForTransfer!.image"
               :token-nai="selectedTokenForTransfer?.nai"
               :precision="selectedTokenForTransfer?.precision"
               :disabled="isTransferLoading"
-              :available-balance="getLiquidBalanceDisplay(selectedTokenForTransfer!)"
-              :show-max-button="!!(selectedTokenForTransfer && getLiquidBalanceNumeric(selectedTokenForTransfer) > 0)"
+              :available-balance="selectedTokenForTransfer!.displayBalance"
+              :show-max-button="selectedTokenForTransfer!.balance > 0n"
               @max="setMaxTransferAmount"
             />
 
@@ -1261,27 +850,25 @@ onMounted(async () => {
             <div class="flex items-center gap-3 mb-2">
               <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 <img
-                  v-if="selectedToken && shouldShowImage(selectedToken)"
-                  :src="getTokenLogoUrl(selectedToken)"
-                  :alt="getTokenSymbol(selectedToken)"
-                  class="h-full w-full object-cover"
-                  @error="handleImageError(selectedToken.nai || '')"
+                  v-if="selectedToken && selectedToken.image"
+                  :src="selectedToken.image"
+                  :alt="selectedToken.symbol"
                 >
                 <span
                   v-else
                   class="text-base font-medium text-primary"
                 >
-                  {{ selectedToken ? getTokenSymbol(selectedToken).charAt(0).toUpperCase() : '' }}
+                  {{ selectedToken ? selectedToken.symbol!.charAt(0).toUpperCase() : '' }}
                 </span>
               </div>
               <DialogTitle>
-                {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken ? getTokenName(selectedToken) : '' }}
+                {{ transformDirection === 'liquid-to-staked' ? 'Stake' : 'Unstake' }} {{ selectedToken ? selectedToken.name : '' }}
               </DialogTitle>
             </div>
             <DialogDescription>
               {{ transformDirection === 'liquid-to-staked'
-                ? `Stake tokens to earn rewards. Available: ${selectedToken ? getLiquidBalanceDisplay(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
-                : `Unstake tokens to make them liquid. Available: ${selectedToken ? getStakedBalanceDisplay(selectedToken) : '0'} ${selectedToken ? getTokenSymbol(selectedToken) : ''}`
+                ? `Stake tokens to earn rewards. Available: ${selectedToken ? selectedToken.displayBalance : '0'} ${selectedToken ? selectedToken.symbol : ''}`
+                : `Unstake tokens to make them liquid. Available: ${selectedToken ? selectedToken.displayBalance : '0'} ${selectedToken ? selectedToken.symbol : ''}`
               }}
             </DialogDescription>
           </DialogHeader>
@@ -1289,14 +876,14 @@ onMounted(async () => {
           <div class="grid gap-4 py-4">
             <TokenAmountInput
               v-model="transformAmount"
-              :token-name="getTokenName(selectedToken!)"
-              :token-symbol="getTokenSymbol(selectedToken!)"
-              :token-image="getTokenLogoUrl(selectedToken!)"
+              :token-name="selectedToken?.name"
+              :token-symbol="selectedToken?.symbol"
+              :token-image="selectedToken?.image"
               :token-nai="selectedToken?.nai"
               :precision="selectedToken?.precision"
               :disabled="isTransformLoading"
-              :available-balance="transformDirection === 'liquid-to-staked' ? getLiquidBalanceDisplay(selectedToken!) : getStakedBalanceDisplay(selectedToken!)"
-              :show-max-button="!!(selectedToken && Number(transformDirection === 'liquid-to-staked' ? getLiquidBalance(selectedToken) : getStakedBalance(selectedToken)) > 0)"
+              :available-balance="selectedToken!.displayBalance"
+              :show-max-button="selectedToken!.balance > 0n"
               @max="setMaxTransformAmount"
             />
           </div>

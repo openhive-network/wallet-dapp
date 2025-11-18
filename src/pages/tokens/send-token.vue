@@ -5,19 +5,19 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/HTMView.vue';
+import QRCodeCard from '@/components/tokens/QRCodeCard.vue';
 import TransferDetailsCard from '@/components/TransferDetailsCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import QRCodeCard from '~/src/components/tokens/QRCodeCard.vue';
 
 // Router
 const route = useRoute();
@@ -111,10 +111,19 @@ watch(selectedTokenAssetNum, async (newAssetNum, oldAssetNum) => {
   if (newAssetNum && newAssetNum !== oldAssetNum && shouldShowTokenSelector.value) {
     isLoading.value = true;
     // Get precision from the selected token's balance
-    const balance = tokensStore.balances.find(b => String(b.asset_num) === newAssetNum);
+    let balance: CTokenBalanceDisplay | undefined;
+    for(const storeBalance of tokensStore.fungibleBalances) {
+      if (storeBalance.liquid.assetNum === Number(newAssetNum)) {
+        balance = storeBalance.liquid;
+        break;
+      } else if (storeBalance.vesting.assetNum === Number(newAssetNum)) {
+        balance = storeBalance.vesting;
+        break;
+      }
+    } // TODO: Load more balances if not found?
     if (balance) {
       form.value.precision = balance.precision?.toString() || '';
-      form.value.assetNum = balance.asset_num!.toString();
+      form.value.assetNum = balance.assetNum!.toString();
       await loadTokenDetails();
     } else
       token.value = null;
