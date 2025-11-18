@@ -1,4 +1,6 @@
 // Helper functions for token transformation
+// We should move these to wax to avoid duplication across projects
+
 // Note: We are using BigInt to both: handle large numbers and avoid floating point precision issues during bitwise operations.
 export const isVesting = (nai: string, precision: number): boolean =>
   (((BigInt(nai.slice(2, -1)) << 5n) | 0x10n | BigInt(precision)) & 0x20n) !== 0n;
@@ -69,7 +71,7 @@ export const toVesting = (nai: string, precision: number): string => {
   return `@@${naiVesting}${dammDigit(naiVesting)}`;
 };
 
-/// @alias toVesting
+/// @alias toVesting - those two functions are identical as liquid/vesting is just a bit flag flip
 export const toLiquid = (nai: string, precision: number): string => toVesting(nai, precision);
 
 /**

@@ -75,21 +75,6 @@ export async function pollTransactionStatus (
   };
 }
 
-let isChainSerializationVerified = false;
-const verifyChainSerialization = async () => {
-  if (isChainSerializationVerified) return;
-
-  const wax = await getWax();
-
-  const { last_hardfork } = await wax.api.database_api.get_hardfork_properties({});
-
-  HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = last_hardfork < 25;
-  if (HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION)
-    console.warn('Using LEGACY HIVE SERIALIZATION for L1 transactions');
-
-  isChainSerializationVerified = true;
-};
-
 const broadcastHtmOperation = async (
   operationsFactory: (tx: ITransaction) => htm_operation[],
   l2Wallet: AEncryptionProvider | undefined = undefined
@@ -145,10 +130,6 @@ const broadcastHtmOperation = async (
 
     return refId!;
   }
-
-  await verifyChainSerialization();
-  // XXX: For some reason even though proper hardfork is applied, still need to set legacy serialization to true...
-  // HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = true;
 
   // Return HTM transaction reference ID in proper serialization (legacy_id / id)
   return l2Transaction.getRefId(l1Transaction);
