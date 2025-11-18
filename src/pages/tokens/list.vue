@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore, type CTokenDisplay } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
 // Router
@@ -24,13 +24,13 @@ const currentPage = ref(0);
 const hasMorePages = ref(true);
 
 // Navigate to token detail page (placeholder for now)
-const viewTokenDetails = (token: CTokenDisplay) => {
+const viewTokenDetails = (token: CTokenDisplayBase) => {
   router.push(`/tokens/token?asset-num=${token.assetNum}`);
 };
 
 const loadTokens = async (page: number = 1) => {
   try {
-    const result = await tokensStore.loadRegisteredTokens(undefined, page);
+    const result = await tokensStore.loadTokens(page);
 
     if (result) {
       hasMorePages.value = result.hasMore;
@@ -42,7 +42,7 @@ const loadTokens = async (page: number = 1) => {
 };
 
 const loadMore = () => {
-  if (!hasMorePages.value || tokensStore.isLoadingRegisteredTokens) return;
+  if (!hasMorePages.value || tokensStore.isLoading) return;
   void loadTokens(currentPage.value + 1);
 };
 
@@ -74,7 +74,7 @@ onMounted(() => {
         <div class="flex gap-2">
           <Button
             variant="outline"
-            :disabled="tokensStore.isLoadingRegisteredTokens"
+            :disabled="tokensStore.isLoading"
             @click="loadMore"
           >
             <svg
@@ -82,7 +82,7 @@ onMounted(() => {
               height="16"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              :class="{ 'animate-spin': tokensStore.isLoadingRegisteredTokens }"
+              :class="{ 'animate-spin': tokensStore.isLoading }"
               class="mr-2"
             >
               <path
@@ -116,7 +116,7 @@ onMounted(() => {
 
       <!-- Loading Skeletons -->
       <div
-        v-if="tokensStore.isLoadingRegisteredTokens && tokensStore.registeredTokens.length === 0"
+        v-if="tokensStore.isLoading && tokensStore.fungibleTokenDefinitions.length === 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <Card
@@ -146,29 +146,39 @@ onMounted(() => {
 
       <!-- Tokens Grid -->
       <div
-        v-else-if="tokensStore.registeredTokens.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        v-else-if="tokensStore.fungibleTokenDefinitions.length > 0"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        <HTMTokenCard
-          v-for="token in tokensStore.registeredTokens"
-          :key="token.nai"
-          :token="token"
-          @click="viewTokenDetails"
-        />
+        <div
+          v-for="token in tokensStore.fungibleTokenDefinitions"
+          :key="token.liquid.assetNum"
+          class="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          <HTMTokenCard
+            :key="token.liquid.assetNum"
+            :token="token.liquid"
+            @click="viewTokenDetails"
+          />
+          <HTMTokenCard
+            :key="token.vesting.assetNum"
+            :token="token.vesting"
+            @click="viewTokenDetails"
+          />
+        </div>
       </div>
 
       <!-- Load More Button -->
       <div
-        v-if="tokensStore.registeredTokens.length > 0 && hasMorePages"
+        v-if="tokensStore.fungibleTokenDefinitions.length > 0 && hasMorePages"
         class="text-center pt-4"
       >
         <Button
           variant="outline"
-          :disabled="tokensStore.isLoadingRegisteredTokens"
+          :disabled="tokensStore.isLoading"
           @click="loadMore"
         >
           <svg
-            v-if="tokensStore.isLoadingRegisteredTokens"
+            v-if="tokensStore.isLoading"
             width="16"
             height="16"
             xmlns="http://www.w3.org/2000/svg"
@@ -180,12 +190,12 @@ onMounted(() => {
               d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"
             />
           </svg>
-          {{ tokensStore.isLoadingRegisteredTokens ? 'Loading...' : 'Load More Tokens' }}
+          {{ tokensStore.isLoading ? 'Loading...' : 'Load More Tokens' }}
         </Button>
       </div>
 
       <!-- Empty State -->
-      <Card v-else-if="tokensStore.registeredTokens.length === 0 && !tokensStore.isLoadingRegisteredTokens">
+      <Card v-else-if="tokensStore.fungibleTokenDefinitions.length === 0 && !tokensStore.isLoading">
         <CardContent class="text-center py-12">
           <svg
             width="64"

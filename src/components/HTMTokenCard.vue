@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import HTMTokenPreview from '@/components/HTMTokenPreview.vue';
-import type { CTokenDisplay } from '@/stores/tokens.store';
+import type { CTokenDefinitionDisplay } from '@/stores/tokens.store';
 
 interface Props {
-  token: CTokenDisplay;
+  token: CTokenDefinitionDisplay;
 }
 
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  click: [token: CTokenDisplay];
+  click: [token: CTokenDefinitionDisplay];
 }>();
 
 // Handle card click

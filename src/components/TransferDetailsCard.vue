@@ -13,10 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useTokensStore } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppBalance, CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 interface Props {
@@ -156,20 +155,6 @@ const parseAssetAmount = (amountStr: string, precision: number): string => {
   return integerPart + normalizedFractional;
 };
 
-const formatAmount = (amount: string, precision: number, symbol?: string) => {
-  try {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return amount;
-
-    const parts = num.toFixed(precision).split('.');
-    parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    const formatted = parts.join('.');
-    return symbol ? `${formatted} ${symbol}` : formatted;
-  } catch {
-    return amount;
-  }
-};
-
 const handleSend = async () => {
   if (!props.tokenData) {
     toastError('Token not loaded', new Error('Token details not available'));
@@ -199,6 +184,8 @@ const handleSend = async () => {
 
     const baseAmount = parseAssetAmount(form.value.amount, props.tokenData.precision || 0);
 
+    const sender = CTokensProvider.getOperationalPublicKey()!;
+
     await waitForTransactionStatus(
       () => ([{
         token_transfer_operation: {
@@ -208,7 +195,7 @@ const handleSend = async () => {
             precision: props.tokenData!.precision || 0
           },
           receiver: props.receiverKey!,
-          sender: CTokensProvider.getOperationalPublicKey()!,
+          sender,
           memo: form.value.memo
         }
       } satisfies htm_operation]),
@@ -217,22 +204,10 @@ const handleSend = async () => {
 
     transferCompleted.value = true;
 
-    await tokensStore.loadBalances(true);
+    const balanceObj = await tokensStore.getBalanceSingleToken(sender, props.tokenData.asset_num!);
 
     const receiverLabel = props.receiverName || props.receiverKey || 'Recipient';
     const tokenLabel = tokenSymbol.value || tokenName.value || props.tokenData!.nai || '';
-
-    let remaining = '';
-    const balanceObj = tokensStore.balances.find((b: CtokensAppBalance) => b.nai === props.tokenData!.nai) as CtokensAppBalance | undefined;
-    if (balanceObj && balanceObj.amount) {
-      try {
-        const wax = await getWax();
-        const formatted = wax.formatter.formatNumber(balanceObj.amount!, props.tokenData!.precision || 0);
-        remaining = tokenSymbol.value ? `${formatted} ${tokenSymbol.value}` : formatted;
-      } catch (_e) {
-        remaining = formatAmount(balanceObj.amount!, props.tokenData!.precision || 0, tokenSymbol.value || tokenName.value);
-      }
-    }
 
     const ts = new Date().toISOString();
 
@@ -240,7 +215,7 @@ const handleSend = async () => {
       amount: form.value.amount,
       tokenLabel,
       receiver: receiverLabel,
-      remainingBalance: remaining,
+      remainingBalance: balanceObj.displayBalance,
       timestamp: ts
     };
 

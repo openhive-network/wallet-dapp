@@ -1,33 +1,10 @@
 <script setup lang="ts">
-import type { IWaxBaseInterface } from '@hiveio/wax';
-import { computed, onMounted, ref } from 'vue';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CTokenDisplay } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
-
-interface TokenPreviewData {
-  name?: string;
-  symbol?: string;
-  description?: string;
-  nai?: string;
-  image?: string;
-  totalSupply?: string | bigint;
-  maxSupply?: string | bigint;
-  displayTotalSupply?: string;
-  displayMaxSupply?: string;
-  precision?: number | string;
-  capped?: boolean;
-  isNft?: boolean;
-  isStaked?: boolean;
-  othersCanStake?: boolean;
-  othersCanUnstake?: boolean;
-  ownerPublicKey?: string;
-}
+import type { CTokenDefinitionDisplay } from '@/stores/tokens.store';
 
 interface Props {
-  token: TokenPreviewData | CTokenDisplay;
+  token: CTokenDefinitionDisplay;
   clickable?: boolean;
   showViewIcon?: boolean;
 }
@@ -38,11 +15,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  click: [token: TokenPreviewData | CTokenDisplay];
+  click: [token: CTokenDefinitionDisplay];
 }>();
 
 // Get avatar fallback text
-const getAvatarFallback = (token: TokenPreviewData | CTokenDisplay): string => {
+const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
   if (token.symbol)
     return token.symbol.slice(0, 2).toUpperCase();
 
@@ -60,50 +37,6 @@ const handleClick = () => {
   if (props.clickable)
     emit('click', props.token);
 };
-
-// Check if token is a full CTokenDisplay
-const isFullToken = (token: TokenPreviewData | CTokenDisplay): token is CTokenDisplay => {
-  return 'displayTotalSupply' in token && 'displayMaxSupply' in token;
-};
-
-const formatter = ref<IWaxBaseInterface['formatter'] | undefined>(undefined);
-
-// Format number with precision
-const formatTokenAmount = (amount: string | bigint | undefined, precision: number | string = 3): string => {
-  if (!amount) return '0';
-
-  precision = typeof precision === 'string' ? parseInt(precision) : precision;
-
-  return formatter.value?.formatNumber(amount, precision) || '0';
-};
-
-const displayTotalSupply = computed(() => {
-  if (isFullToken(props.token))
-    return props.token.displayTotalSupply;
-
-  const formatted = formatTokenAmount(props.token.totalSupply, props.token.precision);
-  const symbol = props.token.symbol || props.token.name;
-  return symbol ? `${formatted} ${symbol}` : formatted;
-});
-
-const displayMaxSupply = computed(() => {
-  if (isFullToken(props.token))
-    return props.token.displayMaxSupply;
-
-  const formatted = formatTokenAmount(props.token.maxSupply, props.token.precision);
-  const symbol = props.token.symbol || props.token.name;
-  return symbol ? `${formatted} ${symbol}` : formatted;
-});
-
-onMounted(async () => {
-  const wax = await getWax();
-
-  formatter.value = wax.formatter.extend({ asset: {
-    appendTokenName: false,
-    displayAsNai: false,
-    formatAmount: true
-  }});
-});
 </script>
 
 <template>
@@ -217,7 +150,7 @@ onMounted(async () => {
         <div class="flex items-center justify-between">
           <span class="text-muted-foreground">Total Supply:</span>
           <span class="font-semibold text-foreground">
-            {{ displayTotalSupply }}
+            {{ token.displayTotalSupply }}
           </span>
         </div>
 
@@ -225,7 +158,7 @@ onMounted(async () => {
           <span class="text-muted-foreground">Max Supply:</span>
           <span class="font-semibold text-foreground flex items-center gap-1">
             <template v-if="token.capped">
-              {{ displayMaxSupply }}
+              {{ token.displayMaxSupply }}
             </template>
             <template v-else>
               ∞ (Unlimited)

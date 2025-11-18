@@ -5,13 +5,12 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList, ComboboxTrigger } from '@/components/ui/combobox';
-import { useTokensStore } from '@/stores/tokens.store';
-import type { CtokensAppBalance } from '@/utils/wallet/ctokens/api';
+import { useTokensStore, type CTokenBalanceDisplay } from '@/stores/tokens.store';
 
-import { isVesting } from '~/src/utils/nai-tokens';
+import { toastError } from '~/src/utils/parse-error';
 
 interface TokenOption {
-  balance: CtokensAppBalance;
+  balance: CTokenBalanceDisplay;
   displayName: string;
   displayBalance: string;
 }
@@ -46,40 +45,14 @@ watch(() => props.modelValue, (newValue) => {
 
 // Get user's token balances with positive amounts
 const ownedTokens = computed((): TokenOption[] => {
-  return tokensStore.balances
-    .filter(balance => isVesting(balance.nai!, balance.precision!) === false) // Exclude vesting tokens
-    .filter(balance => {
-      // Filter out zero balances
-      const amount = BigInt(balance.amount || '0');
-      return amount > 0;
-    })
-    .map(balance => {
-      // Get token metadata for display name
-      const tokenDef = tokensStore.getTokenDefinitionByNAI(balance.nai!);
-      const metadata = balance.metadata as Record<string, string> | undefined;
-      const tokenMetadata = tokenDef?.metadata as Record<string, string> | undefined;
-
-      // Use symbol from balance metadata, then token definition, then fallback to NAI
-      const symbol = metadata?.symbol || tokenMetadata?.symbol || balance.nai || 'Unknown';
-
-      // Format balance amount with proper precision
-      let formattedBalance = '0';
-      try {
-        const numAmount = parseFloat(balance.amount || '0');
-        const precision = balance.precision || 0;
-        formattedBalance = numAmount.toFixed(Math.min(precision, 6)); // Limit to 6 decimal places for display
-      } catch (error) {
-        console.warn('Failed to format balance:', error);
-        formattedBalance = balance.amount || '0';
-      }
-
-      return {
-        balance,
-        displayName: symbol,
-        displayBalance: formattedBalance
-      };
-    })
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  return tokensStore.fungibleBalances
+    .filter(balance => balance.liquid.balance > 0n)
+    .map(balance => ({
+      balance: balance.liquid,
+      displayName: balance.liquid.name || balance.liquid.symbol!,
+      displayBalance: balance.liquid.displayBalance
+    } satisfies TokenOption))
+    .sort((a, b) => b.balance.balance - a.balance.balance > 0n ? 1 : -1);
 });
 
 // Filtered tokens based on search query
@@ -90,35 +63,30 @@ const filteredTokens = computed((): TokenOption[] => {
   const query = searchQuery.value.toLowerCase();
   return ownedTokens.value.filter(token => {
     return token.displayName.toLowerCase().includes(query) ||
-        token.balance.metadata?.symbol?.toLowerCase().includes(query) ||
-        String(token.balance.asset_num).includes(query);
+        token.balance?.symbol!.toLowerCase().includes(query) ||
+        String(token.balance.assetNum).includes(query);
   }
   );
 });
 
 // Selected token
 const selectedToken = computed(() => {
-  return ownedTokens.value.find(token => String(token.balance.asset_num) === selectedValue.value);
+  return ownedTokens.value.find(token => String(token.balance.assetNum) === selectedValue.value);
 });
 
-// Token image URL
-const tokenImage = computed(() => {
-  if (!selectedToken.value) return undefined;
-  const metadata = selectedToken.value.balance.metadata as { image?: string } | undefined;
-  const tokenDef = tokensStore.getTokenDefinitionByNAI(selectedToken.value.balance.nai!);
-  const tokenMetadata = tokenDef?.metadata as { image?: string } | undefined;
-  return metadata?.image || tokenMetadata?.image || '';
-});
-
-// Watch for changes in balances to ensure we have the latest data
-watch(() => tokensStore.balances, () => {
-  // Balances updated, component will re-compute ownedTokens
-}, { deep: true, immediate: true });
+const fetchBalances = async () => {
+  try { // TODO: Add pagination / search support later
+    await tokensStore.loadBalances();
+  } catch (error) {
+    toastError('Failed to load token balances:', error);
+  }
+};
 
 // Load balances on mount if not already loaded
-onMounted(async () => {
-  if (tokensStore.balances.length === 0)
-    await tokensStore.loadBalances();
+onMounted(() => {
+  if (tokensStore.fungibleBalances.length === 0)
+    void fetchBalances();
+
 });
 </script>
 
@@ -131,9 +99,9 @@ onMounted(async () => {
             v-if="selectedToken"
             class="flex items-center gap-2 truncate flex-1 min-w-0"
           >
-            <Avatar v-if="tokenImage" class="h-6 w-6">
+            <Avatar v-if="selectedToken.balance.image" class="h-6 w-6">
               <AvatarImage
-                :src="tokenImage"
+                :src="selectedToken.balance.image"
                 :alt="selectedToken.displayName"
               />
             </Avatar>
@@ -177,8 +145,8 @@ onMounted(async () => {
         <ComboboxGroup class="max-h-48 overflow-y-auto">
           <ComboboxItem
             v-for="token in filteredTokens"
-            :key="String(token.balance.asset_num)"
-            :value="String(token.balance.asset_num)"
+            :key="String(token.balance.assetNum)"
+            :value="String(token.balance.assetNum)"
             class="cursor-pointer px-4 py-3 hover:bg-accent hover:text-accent-foreground transition-colors focus:bg-accent focus:text-accent-foreground"
           >
             <div class="flex w-full items-center justify-between gap-3">

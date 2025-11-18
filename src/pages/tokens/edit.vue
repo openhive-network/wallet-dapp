@@ -16,7 +16,6 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -28,7 +27,6 @@ const route = useRoute();
 const router = useRouter();
 
 // Stores
-const tokensStore = useTokensStore();
 const settingsStore = useSettingsStore();
 
 // State
@@ -169,9 +167,6 @@ const handleUpdateToken = async () => {
       } satisfies htm_operation]),
       'Token metadata update'
     );
-
-    // Refresh token data after update
-    await tokensStore.loadRegisteredTokens(assetNum.value, 1, true);
 
     router.push({
       path: '/tokens/token',

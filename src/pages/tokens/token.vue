@@ -18,14 +18,13 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay, type CTokenUserRanked } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
 import { isVesting, toLiquid, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppToken, CtokensAppBalance, CtokensAppTopHolder } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
@@ -38,9 +37,9 @@ const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 
 // State
-const token = ref<CtokensAppToken | null>(null);
-const userBalance = ref<CtokensAppBalance | null>(null);
-const topHolders = ref<CtokensAppTopHolder[]>([]);
+const token = ref<CTokenDefinitionDisplay | null>(null);
+const userBalance = ref<CTokenBalanceDisplay | null>(null);
+const topHolders = ref<CTokenUserRanked[]>([]);
 const isLoading = ref(true);
 const isLoadingHolders = ref(false);
 const isTransferring = ref(false);
@@ -65,15 +64,15 @@ const stakeForm = ref({
 });
 
 // Get NAI from route parameter
-const assetNum = computed(() => route.query['asset-num'] as string);
+const assetNum = computed(() => Number(route.query['asset-num'] as string));
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
-  return token.value.owner === CTokensProvider.getOperationalPublicKey();
+  if (!token.value?.ownerPublicKey || !CTokensProvider.getOperationalPublicKey()) return false;
+  return token.value.ownerPublicKey === CTokensProvider.getOperationalPublicKey();
 });
 
 // Connect to HTM
@@ -112,99 +111,6 @@ const amountValidation = computed(() => {
   return validateAmountPrecision(transferForm.value.amount, token.value.precision || 0);
 });
 
-// Computed properties
-const tokenName = computed(() => {
-  if (!token.value) return 'Unknown Token';
-  const metadata = token.value.metadata as { name?: string } | undefined;
-  return metadata?.name || token.value.nai || 'Unknown Token';
-});
-
-const tokenSymbol = computed(() => {
-  if (!token.value) return '';
-  const metadata = token.value.metadata as { symbol?: string } | undefined;
-  return metadata?.symbol || '';
-});
-
-const tokenDescription = computed(() => {
-  if (!token.value) return '';
-  const metadata = token.value.metadata as { description?: string } | undefined;
-  return metadata?.description || '';
-});
-
-const tokenImage = computed(() => {
-  if (!token.value) return '';
-  const metadata = token.value.metadata as { image?: string } | undefined;
-  return metadata?.image || '';
-});
-
-const tokenOwnerShort = computed(() => {
-  if (!token.value?.owner) return '';
-  const owner = token.value.owner;
-  if (owner.length <= 16) return owner;
-  return `${owner.slice(0, 8)}...${owner.slice(-8)}`;
-});
-
-const formattedTotalSupply = ref('0');
-const formattedMaxSupply = ref('0');
-const formattedUserBalance = ref('0.000');
-
-// Formatted top holders with proper balance display
-const formattedTopHolders = computed(() => {
-  if (!token.value || topHolders.value.length === 0) return [];
-
-  return topHolders.value.map(holder => {
-    return {
-      ...holder,
-      formattedAmount: formatAmount(holder.amount || '0', token.value!.precision || 0)
-    };
-  });
-});
-
-// Helper to format amount synchronously (fallback for top holders)
-const formatAmount = (amount: string, precision: number): string => {
-  try {
-    const num = parseFloat(amount);
-    if (isNaN(num)) return amount;
-
-    // Format with precision and add thousand separators
-    const parts = num.toFixed(precision).split('.');
-    parts[0] = parts[0]!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return parts.join('.');
-  } catch {
-    return amount;
-  }
-};
-
-// Parse asset amount - convert decimal to base units (integer with precision zeros)
-const parseAssetAmount = (amountStr: string, precision: number): string => {
-  const [integerPart, fractionalPart = ''] = amountStr.split('.');
-  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
-  return integerPart + normalizedFractional;
-};
-
-// Update formatted values
-const updateFormattedValues = async () => {
-  if (!token.value) return;
-
-  try {
-    const wax = await getWax();
-    const formatAsset = (value: string, precision: number, name?: string): string => {
-      const formatted = wax.formatter.formatNumber(value, precision);
-      return name ? `${formatted} ${name}` : formatted;
-    };
-
-    formattedTotalSupply.value = formatAsset(token.value.total_supply!, token.value.precision || 0, tokenSymbol.value);
-    formattedMaxSupply.value = token.value.max_supply === '0'
-      ? '∞ (Unlimited)'
-      : formatAsset(token.value.max_supply!, token.value.precision || 0, tokenSymbol.value);
-
-    if (userBalance.value)
-      formattedUserBalance.value = formatAsset(userBalance.value.amount!, token.value.precision || 0, tokenSymbol.value);
-  } catch (error) {
-    console.error('Failed to format values:', error);
-  }
-};
-
 // Load token details
 const loadTokenDetails = async () => {
   try {
@@ -219,31 +125,17 @@ const loadTokenDetails = async () => {
     if (!remoteToken)
       throw new Error(`Token with asset num ${assetNum.value} not found`);
 
-    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken?.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
+    token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
-    if (!token.value)
-      throw new Error(`Token with asset num ${assetNum.value} not found`);
-
-    isStaked.value = isVesting(token.value.nai!, token.value.precision || 0);
-
-    // Update formatted values
-    await updateFormattedValues();
+    isStaked.value = token.value.isStaked;
 
     // Load user balance if user is logged in
-    // FIX THIS
     if (isLoggedIn.value) {
-      try {
-        // Get user balances from the store
-        await tokensStore.loadBalances();
-        userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
-        if (userBalance.value)
-          await updateFormattedValues();
-
-      } catch (error) {
-        console.warn('Failed to load user balance:', error);
-      }
+      userBalance.value = await tokensStore.getBalanceSingleToken(
+        CTokensProvider.getOperationalPublicKey()!,
+        assetNum.value
+      );
     }
-
   } catch (error) {
     toastError('Failed to load token details', error);
   }
@@ -255,11 +147,10 @@ const loadTopHolders = async () => {
 
   try {
     isLoadingHolders.value = true;
-    topHolders.value = await tokensStore.getTopHolders(
-      assetNum.value
-    );
+    topHolders.value = (await tokensStore.getTopHolders(
+      token.value
+    )).items;
   } catch (error) {
-    console.warn('Failed to load top holders:', error);
     toastError('Failed to load top holders', error);
   } finally {
     isLoadingHolders.value = false;
@@ -272,9 +163,9 @@ const setMaxAmount = async () => {
 
   try {
     // Use the raw amount directly from the balance
-    transferForm.value.amount = userBalance.value.amount!;
+    transferForm.value.amount = userBalance.value.balance.toString();
   } catch (error) {
-    console.error('Failed to set max amount:', error);
+    toastError('Failed to set max amount:', error);
   }
 };
 
@@ -331,7 +222,7 @@ const validateAmountPrecision = (amount: string, precision: number): { isValid: 
     // Check if user has sufficient balance
     // Note: Based on API response, userBalance.value.amount appears to be a decimal value
     if (userBalance.value) {
-      const userBalanceDecimal = parseFloat(userBalance.value.amount!);
+      const userBalanceDecimal = parseFloat(userBalance.value.balance.toString());
       // Compare decimal values directly (both numAmount and userBalanceDecimal are decimal)
       if (numAmount > userBalanceDecimal)
         return { isValid: false, error: 'Insufficient balance for this transfer' };
@@ -341,6 +232,13 @@ const validateAmountPrecision = (amount: string, precision: number): { isValid: 
   } catch (_error) {
     return { isValid: false, error: 'Invalid amount format' };
   }
+};
+
+// Parse asset amount - convert decimal to base units (integer with precision zeros)
+const parseAssetAmount = (amountStr: string, precision: number): string => {
+  const [integerPart, fractionalPart = ''] = amountStr.split('.');
+  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
+  return integerPart + normalizedFractional;
 };
 
 // Handle transfer (simplified for now)
@@ -399,12 +297,11 @@ const handleTransfer = async () => {
     };
 
     // Reload user balance
-    await Promise.allSettled([
-      tokensStore.loadBalances(true),
-      loadTokenDetails(),
+    const [tokenUserBalanceData] = await Promise.all([
+      tokensStore.getBalanceSingleToken(CTokensProvider.getOperationalPublicKey()!, assetNum.value),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
+    userBalance.value = tokenUserBalanceData;
   } catch (error) {
     toastError('Transfer failed', error);
   } finally {
@@ -430,7 +327,7 @@ const handleStake = async () => {
   }
 
   // Check if staking is allowed
-  if (!token.value.others_can_stake && !isTokenOwner.value) {
+  if (!token.value.othersCanStake && !isTokenOwner.value) {
     toastError('Staking is not allowed for this token', new Error('Staking disabled'));
     return;
   }
@@ -482,12 +379,11 @@ const handleStake = async () => {
     };
 
     // Reload user balance
-    await Promise.allSettled([
-      tokensStore.loadBalances(true),
-      loadTokenDetails(),
+    const [tokenUserBalanceData] = await Promise.all([
+      tokensStore.getBalanceSingleToken(CTokensProvider.getOperationalPublicKey()!, assetNum.value),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
+    userBalance.value = tokenUserBalanceData;
   } catch (error) {
     toastError('Staking failed', error);
   } finally {
@@ -513,7 +409,7 @@ const handleUnstake = async () => {
   }
 
   // Check if unstaking is allowed
-  if (!token.value.others_can_unstake && !isTokenOwner.value) {
+  if (!token.value.othersCanUnstake && !isTokenOwner.value) {
     toastError('Unstaking is not allowed for this token', new Error('Unstaking disabled'));
     return;
   }
@@ -565,12 +461,11 @@ const handleUnstake = async () => {
     };
 
     // Reload user balance
-    await Promise.allSettled([
-      tokensStore.loadBalances(true),
-      loadTokenDetails(),
+    const [tokenUserBalanceData] = await Promise.all([
+      tokensStore.getBalanceSingleToken(CTokensProvider.getOperationalPublicKey()!, assetNum.value),
       loadTopHolders()
     ]);
-    userBalance.value = tokensStore.balances.find((b: CtokensAppBalance) => String(b.asset_num) === assetNum.value) || null;
+    userBalance.value = tokenUserBalanceData;
   } catch (error) {
     toastError('Unstaking failed', error);
   } finally {
@@ -600,17 +495,17 @@ const showQRCode = () => {
 
 // Copy owner address to clipboard
 const copyOwnerAddress = () => {
-  if (!token.value?.owner) return;
+  if (!token.value?.ownerPublicKey) return;
 
   try {
-    copyText(token.value.owner);
+    copyText(token.value.ownerPublicKey);
     toast.success('Owner address copied to clipboard');
     isCopied.value = true;
     setTimeout(() => {
       isCopied.value = false;
     }, 1000);
-  } catch (_error) {
-    toast.error('Failed to copy address');
+  } catch (error) {
+    toastError('Failed to copy address', error);
   }
 };
 
@@ -625,15 +520,14 @@ const copyNAI = () => {
     setTimeout(() => {
       isNaiCopied.value = false;
     }, 1000);
-  } catch (_error) {
-    toast.error('Failed to copy NAI');
+  } catch (error) {
+    toastError('Failed to copy NAI', error);
   }
 };
 
 watch(isLoggedIn, (newValue) => {
   if (newValue)
     void loadTokenDetails();
-
 });
 
 // Initialize
@@ -760,13 +654,13 @@ onMounted(async () => {
             <div class="flex flex-col sm:flex-row items-start gap-6 mb-6">
               <Avatar class="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0">
                 <AvatarImage
-                  v-if="tokenImage"
-                  :src="tokenImage"
-                  :alt="tokenName"
+                  v-if="token.image"
+                  :src="token.image"
+                  :alt="token.name"
                 />
                 <AvatarFallback>
                   <svg
-                    v-if="!tokenImage"
+                    v-if="!token.image"
                     width="48"
                     height="48"
                     xmlns="http://www.w3.org/2000/svg"
@@ -782,7 +676,7 @@ onMounted(async () => {
                     v-else
                     class="text-xl sm:text-2xl font-bold text-primary"
                   >
-                    {{ tokenSymbol ? tokenSymbol.slice(0, 2).toUpperCase() : tokenName.slice(0, 2).toUpperCase() }}
+                    {{ token.symbol ? token.symbol.slice(0, 2).toUpperCase() : token.name ? token.name.slice(0, 2).toUpperCase() : '' }}
                   </span>
                 </AvatarFallback>
               </Avatar>
@@ -790,10 +684,10 @@ onMounted(async () => {
               <div class="flex-1 min-w-0">
                 <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
                   <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
-                    {{ tokenName }}
+                    {{ token.name }}
                   </h1>
                   <span
-                    v-if="token.is_nft"
+                    v-if="token.isNft"
                     class="inline-flex items-center rounded-md bg-purple-500/10 text-[16px]/[18px] px-2 font-medium text-purple-500 border border-purple-500/20"
                   >
                     NFT
@@ -807,11 +701,11 @@ onMounted(async () => {
                 </div>
 
                 <p
-                  v-if="tokenDescription"
+                  v-if="token.description"
                   class="text-muted-foreground text-base mb-4 leading-relaxed whitespace-pre-line"
                   style="word-break:break-word"
                 >
-                  {{ tokenDescription }}
+                  {{ token.description }}
                 </p>
 
                 <!-- Technical Details - Compact -->
@@ -849,7 +743,7 @@ onMounted(async () => {
                       class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono hover:bg-muted/80 transition-colors inline-flex items-center gap-1.5"
                       @click="copyOwnerAddress"
                     >
-                      {{ tokenOwnerShort }}
+                      {{ token.ownerPublicKey.slice(0, 6) }}...{{ token.ownerPublicKey.slice(-6) }}
                       <svg
                         width="14"
                         height="14"
@@ -871,26 +765,26 @@ onMounted(async () => {
                   <span
                     :class="[
                       'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                      token.is_nft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      token.isNft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     ]"
                   >
-                    {{ token.is_nft ? 'NFT' : 'Fungible' }}
+                    {{ token.isNft ? 'NFT' : 'Fungible' }}
                   </span>
                   <span
                     :class="[
                       'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                      token.others_can_stake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                      token.othersCanStake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
                     ]"
                   >
-                    {{ token.others_can_stake ? 'Staking ✓' : 'Staking ✗' }}
+                    {{ token.othersCanStake ? 'Staking ✓' : 'Staking ✗' }}
                   </span>
                   <span
                     :class="[
                       'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                      token.others_can_unstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                      token.othersCanUnstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
                     ]"
                   >
-                    {{ token.others_can_unstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
+                    {{ token.othersCanUnstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
                   </span>
                 </div>
               </div>
@@ -921,7 +815,7 @@ onMounted(async () => {
                     <span class="text-xs font-medium text-muted-foreground">Total Supply</span>
                   </div>
                   <div class="text-sm font-bold text-foreground truncate">
-                    {{ formattedTotalSupply }}
+                    {{ token.displayTotalSupply }}
                   </div>
                 </div>
 
@@ -932,7 +826,7 @@ onMounted(async () => {
                     <span class="text-xs font-medium text-muted-foreground">Max Supply</span>
                   </div>
                   <div class="text-sm font-bold text-foreground truncate">
-                    {{ formattedMaxSupply }}
+                    {{ token.displayMaxSupply }}
                   </div>
                 </div>
 
@@ -943,7 +837,7 @@ onMounted(async () => {
                     <span class="text-xs font-medium text-muted-foreground">Your Balance</span>
                   </div>
                   <div class="text-sm font-bold text-foreground truncate">
-                    {{ isLoggedIn ? formattedUserBalance : '—' }}
+                    {{ isLoggedIn ? userBalance?.displayBalance : '—' }}
                   </div>
                 </div>
 
@@ -983,7 +877,7 @@ onMounted(async () => {
                 Transfer Tokens
               </CardTitle>
               <CardDescription>
-                Send {{ tokenSymbol || tokenName }} to another account
+                Send {{ token.symbol || token.name || '' }} to another account
               </CardDescription>
             </CardHeader>
             <CardContent class="space-y-6 flex-1">
@@ -1019,7 +913,7 @@ onMounted(async () => {
 
               <!-- No balance / token not owned state -->
               <div
-                v-else-if="!userBalance || Number(userBalance.amount) === 0"
+                v-else-if="!userBalance || userBalance.balance === 0n"
                 class="text-center py-12 space-y-4"
               >
                 <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
@@ -1041,7 +935,7 @@ onMounted(async () => {
                     You don't own this token
                   </p>
                   <p class="text-sm text-muted-foreground">
-                    Your account doesn't have any {{ tokenSymbol || tokenName }} tokens to transfer.
+                    Your account doesn't have any {{ token.symbol || token.name || '' }} tokens to transfer.
                   </p>
                 </div>
               </div>
@@ -1079,14 +973,14 @@ onMounted(async () => {
 
                 <TokenAmountInput
                   v-model="transferForm.amount"
-                  :token-name="tokenName"
-                  :token-symbol="tokenSymbol"
-                  :token-image="tokenImage"
+                  :token-name="token.name"
+                  :token-symbol="token.symbol"
+                  :token-image="token.image"
                   :token-nai="token.nai"
                   :precision="token.precision"
                   :disabled="isTransferring"
-                  :available-balance="formattedUserBalance"
-                  :show-max-button="userBalance && Number(userBalance.amount) > 0"
+                  :available-balance="userBalance?.displayBalance || '0'"
+                  :show-max-button="userBalance && userBalance.balance > 0n"
                   :is-valid="amountValidation.isValid"
                   :validation-error="amountValidation.error"
                   @max="setMaxAmount"
@@ -1139,7 +1033,7 @@ onMounted(async () => {
 
           <!-- Stake/Unstake Section -->
           <Card
-            v-if="token && (token.others_can_stake || token.others_can_unstake || isTokenOwner)"
+            v-if="token && (token.othersCanStake || token.othersCanUnstake || isTokenOwner)"
             class="flex flex-col h-full"
           >
             <CardHeader>
@@ -1195,7 +1089,7 @@ onMounted(async () => {
 
               <!-- No balance state -->
               <div
-                v-else-if="!userBalance || Number(userBalance.amount) === 0"
+                v-else-if="!userBalance || userBalance.balance === 0n"
                 class="text-center py-12 space-y-4"
               >
                 <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
@@ -1217,7 +1111,7 @@ onMounted(async () => {
                     You don't own this token
                   </p>
                   <p class="text-sm text-muted-foreground">
-                    Your account doesn't have any {{ tokenSymbol || tokenName }} tokens to stake/unstake.
+                    Your account doesn't have any {{ token.symbol || token.name || '' }} tokens to stake/unstake.
                   </p>
                 </div>
               </div>
@@ -1229,9 +1123,9 @@ onMounted(async () => {
               >
                 <TokenAmountInput
                   v-model="stakeForm.amount"
-                  :token-name="tokenName"
-                  :token-symbol="tokenSymbol"
-                  :token-image="tokenImage"
+                  :token-name="token.name"
+                  :token-symbol="token.symbol"
+                  :token-image="token.image"
                   :token-nai="token.nai"
                   :precision="token.precision"
                   :disabled="isStaking || isUnstaking"
@@ -1258,7 +1152,7 @@ onMounted(async () => {
 
                 <div class="grid grid-cols-2 gap-3">
                   <Button
-                    v-if="token.others_can_stake || isTokenOwner"
+                    v-if="token.othersCanStake || isTokenOwner"
                     size="lg"
                     :disabled="isStaking || isUnstaking || !stakeForm.amount"
                     @click="handleStake"
@@ -1293,7 +1187,7 @@ onMounted(async () => {
                   </Button>
 
                   <Button
-                    v-if="token.others_can_unstake || isTokenOwner"
+                    v-if="token.othersCanUnstake || isTokenOwner"
                     variant="outline"
                     size="lg"
                     :disabled="isStaking || isUnstaking || !stakeForm.amount"
@@ -1330,7 +1224,7 @@ onMounted(async () => {
                 </div>
 
                 <Alert
-                  v-if="!token.others_can_stake && !isTokenOwner"
+                  v-if="!token.othersCanStake && !isTokenOwner"
                   class="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
                 >
                   <AlertDescription class="text-amber-800 dark:text-amber-200 text-sm">
@@ -1339,7 +1233,7 @@ onMounted(async () => {
                 </Alert>
 
                 <Alert
-                  v-if="!token.others_can_unstake && !isTokenOwner"
+                  v-if="!token.othersCanUnstake && !isTokenOwner"
                   class="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
                 >
                   <AlertDescription class="text-amber-800 dark:text-amber-200 text-sm">
@@ -1369,7 +1263,7 @@ onMounted(async () => {
                 Top Holders
               </CardTitle>
               <CardDescription>
-                Accounts with the largest {{ tokenSymbol || tokenName }} balances
+                Accounts with the largest {{ token.symbol || token.name || '' }} balances
               </CardDescription>
             </CardHeader>
             <CardContent class="flex-1">
@@ -1399,8 +1293,8 @@ onMounted(async () => {
                 class="space-y-2"
               >
                 <div
-                  v-for="(holder, index) in formattedTopHolders.slice(0, 10)"
-                  :key="holder.user"
+                  v-for="(holder, index) in topHolders.slice(0, 10)"
+                  :key="holder.operationalKey"
                   class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors"
                 >
                   <div class="relative flex-shrink-0">
@@ -1430,12 +1324,12 @@ onMounted(async () => {
                   <div class="flex-1 min-w-0">
                     <div class="flex flex-col sm:flex-row sm:items-center gap-1">
                       <p class="font-semibold text-foreground truncate">
-                        {{ holder.metadata?.name || holder.user }}
+                        {{ holder.displayName }}
                       </p>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger>
-                            <CopyButton :value="holder.user" />
+                            <CopyButton :value="holder.operationalKey" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Copy holder address</p>
@@ -1450,10 +1344,10 @@ onMounted(async () => {
 
                   <div class="text-right flex-shrink-0">
                     <p class="font-bold text-foreground">
-                      {{ holder.formattedAmount }}
+                      {{ holder.displayAmount }}
                     </p>
                     <p class="text-xs text-muted-foreground">
-                      {{ tokenSymbol || 'tokens' }}
+                      {{ token.symbol || 'tokens' }}
                     </p>
                   </div>
                 </div>
