@@ -4,6 +4,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -11,7 +12,6 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 
-import HTMView from '~/src/components/htm/HTMView.vue';
 
 // Router
 const route = useRoute();

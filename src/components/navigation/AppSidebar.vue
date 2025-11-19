@@ -9,6 +9,7 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, Si
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
 
 const { public: { commitHash, snapOrigin, snapVersion } } = useRuntimeConfig();
 
@@ -154,7 +155,7 @@ onMounted(async () => {
 
     waxVersion.value = wax.getVersion();
   } catch(error) {
-    console.error('Failed to get WAX instance:', error);
+    toastError('Failed to get WAX instance:', error);
   }
 });
 </script>

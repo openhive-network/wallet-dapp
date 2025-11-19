@@ -6,8 +6,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList, ComboboxTrigger } from '@/components/ui/combobox';
 import { useTokensStore, type CTokenBalanceDisplay } from '@/stores/tokens.store';
-
-import { toastError } from '~/src/utils/parse-error';
+import { toastError } from '@/utils/parse-error';
 
 interface TokenOption {
   balance: CTokenBalanceDisplay;

@@ -3,6 +3,7 @@ import { mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
+import HTMView from '@/components/htm/HTMView.vue';
 import ReceiveTransferCard from '@/components/ReceiveTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -15,7 +16,6 @@ import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import HTMView from '~/src/components/htm/HTMView.vue';
 
 
 // Router
@@ -131,7 +131,7 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
-    console.error('Error reloading data after login', e);
+    toastError('Error reloading data after login', e);
   } finally {
     isLoading.value = false;
   }
@@ -150,7 +150,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
-    console.error('Error reloading data after tokensStore.wallet changed', e);
+    toastError('Error reloading data after tokensStore.wallet changed', e);
   } finally {
     isLoading.value = false;
   }

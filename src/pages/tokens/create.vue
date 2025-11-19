@@ -12,6 +12,8 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import HTMTokenPreview from '@/components/htm/HTMTokenPreview.vue';
+import HTMView from '@/components/htm/HTMView.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,8 +32,6 @@ import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import HTMTokenPreview from '~/src/components/htm/HTMTokenPreview.vue';
-import HTMView from '~/src/components/htm/HTMView.vue';
 
 const router = useRouter();
 

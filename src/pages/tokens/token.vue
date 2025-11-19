@@ -6,6 +6,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import HTMView from '@/components/htm/HTMView.vue';
+import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
 import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -25,8 +27,6 @@ import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import HTMView from '~/src/components/htm/HTMView.vue';
-import TokenAmountInput from '~/src/components/htm/tokens/TokenAmountInput.vue';
 
 // Router
 const route = useRoute();

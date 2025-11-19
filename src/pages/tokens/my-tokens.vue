@@ -7,6 +7,8 @@ import {
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
+import HTMTokenCard from '@/components/htm/HTMTokenCard.vue';
+import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,8 +18,6 @@ import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import HTMTokenCard from '~/src/components/htm/HTMTokenCard.vue';
-import HTMView from '~/src/components/htm/HTMView.vue';
 
 const router = useRouter();
 

@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
 import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,6 @@ import { waitForTransactionStatus } from '@/utils/transaction-status';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import TokenAmountInput from '~/src/components/htm/tokens/TokenAmountInput.vue';
 
 interface Props {
   receiverName?: string;
