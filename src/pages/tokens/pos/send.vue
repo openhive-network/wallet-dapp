@@ -238,9 +238,10 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 
         <!-- Send Transfer Card -->
         <SendTransferCard
+          v-if="token"
           :has-nai-from-url="hasNaiFromUrl"
           :should-show-token-selector="shouldShowTokenSelector"
-          :token-data="token"
+          :token="token"
           :selected-token-asset-num="selectedTokenAssetNum"
           @update-selected-token-asset-num="selectedTokenAssetNum = $event"
           @update-amount="form.amount = $event"

@@ -6,8 +6,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import { TokenAmountInput } from '@/components/htm/amount';
 import HTMView from '@/components/htm/HTMView.vue';
-import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
 import { AlertDescription, Alert } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -140,18 +140,6 @@ const loadTopHolders = async () => {
     toastError('Failed to load top holders', error);
   } finally {
     isLoadingHolders.value = false;
-  }
-};
-
-// Set max amount - use raw amount without precision formatting
-const setMaxAmount = async () => {
-  if (!userBalance.value || !token.value) return;
-
-  try {
-    // Use the raw amount directly from the balance
-    transferForm.value.amount = userBalance.value.balance.toString();
-  } catch (error) {
-    toastError('Failed to set max amount:', error);
   }
 };
 
@@ -845,7 +833,7 @@ onMounted(async () => {
         <!-- Actions Section -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <!-- Transfer Section -->
-          <Card class="flex flex-col h-full">
+          <Card v-if="!token.isStaked" class="flex flex-col h-full">
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
                 <svg
@@ -959,17 +947,10 @@ onMounted(async () => {
 
                 <TokenAmountInput
                   v-model="transferForm.amount"
-                  :token-name="token.name"
-                  :token-symbol="token.symbol"
-                  :token-image="token.image"
-                  :token-nai="token.nai"
-                  :precision="token.precision"
+                  :token="token"
                   :disabled="isTransferring"
                   :available-balance="userBalance?.displayBalance || '0'"
-                  :show-max-button="userBalance && userBalance.balance > 0n"
-                  :is-valid="amountValidation.isValid"
-                  :validation-error="amountValidation.error"
-                  @max="setMaxAmount"
+                  variant="explicit"
                 />
 
                 <CollapsibleMemoInput
@@ -1109,12 +1090,9 @@ onMounted(async () => {
               >
                 <TokenAmountInput
                   v-model="stakeForm.amount"
-                  :token-name="token.name"
-                  :token-symbol="token.symbol"
-                  :token-image="token.image"
-                  :token-nai="token.nai"
-                  :precision="token.precision"
+                  :token="token"
                   :disabled="isStaking || isUnstaking"
+                  variant="explicit"
                 />
 
                 <div class="space-y-2">
