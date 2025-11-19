@@ -16,12 +16,10 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
 
 // Router
 const route = useRoute();
@@ -29,9 +27,10 @@ const router = useRouter();
 
 // Stores
 const settingsStore = useSettingsStore();
+const tokensStore = useTokensStore();
 
 // State
-const token = ref<CtokensAppToken | null>(null);
+const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 const isUpdating = ref(false);
 
@@ -45,15 +44,15 @@ const form = ref({
 });
 
 // Get NAI and precision from route parameters
-const assetNum = computed(() => route.query['asset-num'] as string);
+const assetNum = computed(() => Number(route.query['asset-num']));
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!settingsStore.settings.account);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.owner || !CTokensProvider.getOperationalPublicKey()) return false;
-  return token.value.owner === CTokensProvider.getOperationalPublicKey();
+  if (!token.value?.ownerPublicKey || !CTokensProvider.getOperationalPublicKey()) return false;
+  return token.value.ownerPublicKey === CTokensProvider.getOperationalPublicKey();
 });
 
 // Computed properties for display
@@ -91,38 +90,14 @@ const hasChanges = computed(() => {
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    const wax = await getWax();
-
     // Fetch token details by NAI
-    const tokens = await wax.restApi.ctokensApi.tokens({
-      'asset-num': Number(assetNum.value)
-    });
+    token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
-    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
-
-    if (!remoteToken)
-      throw new Error(`Token with asset num ${assetNum.value} not found`);
-
-    token.value = String(remoteToken!.liquid?.asset_num) === assetNum.value ? remoteToken!.liquid! : String(remoteToken?.vesting?.asset_num) === assetNum.value ? remoteToken!.vesting! : null;
-
-    if (!token.value)
-      throw new Error(`Token with asset num ${assetNum.value} not found`);
-
-    // Populate form with existing metadata
-    const metadata = token.value.metadata as {
-      name?: string;
-      symbol?: string;
-      description?: string;
-      image?: string;
-      website?: string;
-    } | undefined;
-
-    form.value.name = metadata?.name || '';
-    form.value.symbol = metadata?.symbol || '';
-    form.value.description = metadata?.description || '';
-    form.value.image = metadata?.image || '';
-    form.value.website = metadata?.website || '';
-
+    form.value.name = token.value?.name || '';
+    form.value.symbol = token.value?.symbol || '';
+    form.value.description = token.value?.description || '';
+    form.value.image = token.value?.image || '';
+    form.value.website = token.value?.website || '';
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
@@ -172,7 +147,7 @@ const handleUpdateToken = async () => {
     router.push({
       path: '/tokens/token',
       query: {
-        'asset-num': token.value!.asset_num
+        'asset-num': token.value!.assetNum
       }
     });
   } catch (error) {
@@ -308,26 +283,26 @@ onMounted(async () => {
               <span
                 :class="[
                   'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.is_nft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  token?.isNft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 ]"
               >
-                {{ token?.is_nft ? 'NFT' : 'Fungible' }}
+                {{ token?.isNft ? 'NFT' : 'Fungible' }}
               </span>
               <span
                 :class="[
                   'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.others_can_stake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                  token?.othersCanStake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
                 ]"
               >
-                {{ token?.others_can_stake ? 'Staking ✓' : 'Staking ✗' }}
+                {{ token?.othersCanStake ? 'Staking ✓' : 'Staking ✗' }}
               </span>
               <span
                 :class="[
                   'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.others_can_unstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
+                  token?.othersCanUnstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
                 ]"
               >
-                {{ token?.others_can_unstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
+                {{ token?.othersCanUnstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
               </span>
             </div>
           </CardContent>
@@ -486,7 +461,7 @@ onMounted(async () => {
                 </div>
                 <div>
                   <span class="text-muted-foreground">Owner:</span>
-                  <span class="ml-1 font-mono text-xs">{{ token.owner }}</span>
+                  <span class="ml-1 font-mono text-xs">{{ token.ownerPublicKey }}</span>
                 </div>
               </div>
             </div>

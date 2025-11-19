@@ -4,7 +4,7 @@ import {
   mdiRefresh,
   mdiPlus
 } from '@mdi/js';
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import HTMTokenCard from '@/components/htm/HTMTokenCard.vue';
@@ -12,17 +12,15 @@ import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { transformTokenToDisplayFormat, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
 
 const router = useRouter();
 
+// Stores
+const tokensStore = useTokensStore();
+
 // State
-const tokensFullList = ref<CTokenDefinitionDisplay[]>([]);
 const isLoading = ref(false);
 const currentPage = ref(0);
 const hasMorePages = ref(true);
@@ -37,26 +35,9 @@ const loadTokens = async (page: number = 1) => {
   try {
     isLoading.value = true;
 
-    const userPublicKey = CTokensProvider.getOperationalPublicKey();
-    if (!userPublicKey) {
-      toastError('Unable to determine your public key', 'Please make sure you are connected to a wallet');
-      return;
-    }
+    const createdTokens = await tokensStore.loadCreatedTokens(page);
 
-    const wax = await getWax();
-    const tokens = await wax.restApi.ctokensApi.tokens({ owner: userPublicKey });
-
-    if (page === 1)
-      tokensFullList.value = [];
-
-    tokensFullList.value.push(...tokens.items!.flatMap(token => {
-      return [
-        transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>),
-        transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>)
-      ];
-    }));
-
-    hasMorePages.value = tokens.items!.length === 100; // API returns 100 results per page
+    hasMorePages.value = createdTokens.hasMore;
     currentPage.value = page;
   } catch (error) {
     toastError('Failed to load tokens', error);
@@ -69,11 +50,6 @@ const loadMore = () => {
   if (!hasMorePages.value || isLoading.value) return;
   void loadTokens(currentPage.value + 1);
 };
-
-// Computed
-const filteredTokens = computed(() => {
-  return tokensFullList.value; // No additional filtering needed since we already filter by owner
-});
 
 // Navigate to create token page
 const createNewToken = () => {
@@ -142,7 +118,7 @@ onMounted(() => {
 
       <!-- Loading Skeletons -->
       <div
-        v-if="isLoading && tokensFullList.length === 0"
+        v-if="isLoading && tokensStore.fungibleTokensCreatedByUser.length === 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
       >
         <Card
@@ -172,20 +148,30 @@ onMounted(() => {
 
       <!-- Tokens Grid -->
       <div
-        v-else-if="tokensFullList.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        v-else-if="tokensStore.fungibleTokensCreatedByUser.length > 0"
+        class="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        <HTMTokenCard
-          v-for="token in filteredTokens"
-          :key="token.nai"
-          :token="token"
-          @click="viewTokenDetails"
-        />
+        <div
+          v-for="token in tokensStore.fungibleTokensCreatedByUser"
+          :key="token.liquid.assetNum"
+          class="grid grid-cols-1 md:grid-cols-2 gap-6"
+        >
+          <HTMTokenCard
+            :key="token.liquid.assetNum"
+            :token="token.liquid"
+            @click="viewTokenDetails"
+          />
+          <HTMTokenCard
+            :key="token.vesting.assetNum"
+            :token="token.vesting"
+            @click="viewTokenDetails"
+          />
+        </div>
       </div>
 
       <!-- Load More Button -->
       <div
-        v-if="tokensFullList.length > 0 && hasMorePages"
+        v-if="tokensStore.fungibleTokensCreatedByUser.length > 0 && hasMorePages"
         class="text-center pt-4"
       >
         <Button
@@ -211,7 +197,7 @@ onMounted(() => {
       </div>
 
       <!-- Empty State -->
-      <Card v-else-if="tokensFullList.length === 0 && !isLoading">
+      <Card v-else-if="tokensStore.fungibleTokensCreatedByUser.length === 0 && !isLoading">
         <CardContent class="text-center py-12">
           <svg
             width="64"

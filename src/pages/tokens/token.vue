@@ -20,13 +20,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay, type CTokenUserRanked } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
 import { isVesting, toLiquid, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
 
 // Router
 const route = useRoute();
@@ -48,8 +46,6 @@ const isStaking = ref(false);
 const isUnstaking = ref(false);
 const isCopied = ref(false);
 const isNaiCopied = ref(false);
-
-const isStaked = ref(false);
 
 // Transfer form
 const transferForm = ref({
@@ -115,20 +111,9 @@ const amountValidation = computed(() => {
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    const wax = await getWax();
-
     // Fetch token details by NAI
     // First try with just NAI, if that doesn't work, get all tokens and filter
-    const tokens = await wax.restApi.ctokensApi.tokens({ 'asset-num': Number(assetNum.value) });
-
-    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
-
-    if (!remoteToken)
-      throw new Error(`Token with asset num ${assetNum.value} not found`);
-
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
-
-    isStaked.value = token.value.isStaked;
 
     // Load user balance if user is logged in
     if (isLoggedIn.value) {
@@ -694,7 +679,7 @@ onMounted(async () => {
                     NFT
                   </span>
                   <span
-                    v-if="isStaked"
+                    v-if="token.isStaked"
                     class="inline-flex items-center rounded-md bg-blue-500/10  text-[16px]/[18px] px-2 font-medium text-blue-500 border border-blue-500/20"
                   >
                     staked

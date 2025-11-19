@@ -2,9 +2,10 @@
 import { ref } from 'vue';
 
 import { Button } from '@/components/ui/button';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+const tokensStore = useTokensStore();
 
 // Google Wallet integration
 const googleWalletLoading = ref(false);
@@ -13,21 +14,15 @@ const addToGoogleWallet = async () => {
   googleWalletLoading.value = true;
 
   try {
-    const wax = await getWax();
-
-    const operationalPublicKey = CTokensProvider.getOperationalPublicKey();
-    if (!operationalPublicKey)
-      throw new Error('Operational public key not found');
-
-    const { metadata } = await wax.restApi.ctokensApi.users({ user: operationalPublicKey });
+    const { operationalKey, name } = await tokensStore.getCurrentUserMetadata();
     const baseUrl = window.location.origin;
     const res = await fetch('/api/google-wallet', {
       method: 'POST',
 
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        operationalPublicKey,
-        displayName: metadata?.name || 'User',
+        operationalPublicKey: operationalKey,
+        displayName: name || 'User',
         baseUrl
       })
     });

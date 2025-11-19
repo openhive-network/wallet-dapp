@@ -10,7 +10,7 @@ const props = defineProps<{
   tokenName?: string;
   tokenSymbol?: string;
   tokenImage?: string;
-  tokenAssetNum?: string;
+  tokenAssetNum?: number;
   precision?: number;
   disabled?: boolean;
   label?: string | null;

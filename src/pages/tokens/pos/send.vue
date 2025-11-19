@@ -10,12 +10,8 @@ import SendTransferCard from '@/components/SendTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTokensStore, type CTokenBalanceDisplay } from '@/stores/tokens.store';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
-
-
 
 // Router
 const route = useRoute();
@@ -24,7 +20,7 @@ const router = useRouter();
 const tokensStore = useTokensStore();
 
 // State
-const token = ref<CtokensAppToken | null>(null);
+const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 
 // Form state
@@ -40,9 +36,9 @@ const selectedTokenAssetNum = ref<string>('');
 
 // Get NAI and precision from route parameters or form or selected token
 const assetNum = computed(() => {
-  if (route.query['asset-num']) return route.query['asset-num'] as string;
-  if (selectedTokenAssetNum.value) return selectedTokenAssetNum.value;
-  return form.value.assetNum;
+  if (route.query['asset-num']) return Number(route.query['asset-num']);
+  if (selectedTokenAssetNum.value) return Number(selectedTokenAssetNum.value);
+  return Number(form.value.assetNum);
 });
 const precision = computed(() => route.query.precision as string || form.value.precision);
 
@@ -88,18 +84,10 @@ const loadTokenDetails = async () => {
   if (!assetNum.value) return;
 
   try {
-    const wax = await getWax();
-
     // Fetch token details by NAI
-    const params: { 'asset-num': number; precision?: number } = { 'asset-num': Number(assetNum.value) };
-    const tokens = await wax.restApi.ctokensApi.tokens(params);
+    const tokens = await tokensStore.getTokenByAssetNum(Number(assetNum.value));
 
-    const remoteToken = tokens && tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
-
-    if (!remoteToken)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
-
-    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
+    token.value = tokens;
 
     if (!token.value)
       throw new Error(`Token with asset number ${assetNum.value} not found`);
@@ -253,8 +241,6 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           :has-nai-from-url="hasNaiFromUrl"
           :should-show-token-selector="shouldShowTokenSelector"
           :token-data="token"
-          :asset-num="assetNum"
-          :precision="precision"
           :selected-token-asset-num="selectedTokenAssetNum"
           @update-selected-token-asset-num="selectedTokenAssetNum = $event"
           @update-amount="form.amount = $event"

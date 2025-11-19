@@ -11,7 +11,7 @@ interface Props {
   selectedTokenAssetNum: string;
   tokenSymbol?: string;
   tokenName: string;
-  tokenPrecision?: string;
+  tokenPrecision?: number;
   tokenImage?: string;
   isValid: boolean;
   validationError?: string;

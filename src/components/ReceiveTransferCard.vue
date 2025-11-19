@@ -10,10 +10,9 @@ import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTokensStore } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 
@@ -21,10 +20,10 @@ interface Props {
   receiverName?: string;
   receiverKey?: string;
   receiverAvatar?: string;
-  tokenData?: CtokensAppToken | null;
+  tokenData?: CTokenDisplayBase | null;
   queryAmount?: string;
   queryMemo?: string;
-  assetNum: string;
+  assetNum: number;
   precision: string;
 }
 
@@ -49,24 +48,6 @@ const sentSummary = ref<{ amount: string; tokenLabel: string; receiver: string; 
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
-
-const tokenName = computed(() => {
-  if (!props.tokenData) return 'Unknown Token';
-  const metadata = props.tokenData.metadata as { name?: string } | undefined;
-  return metadata?.name || props.tokenData.nai || 'Unknown Token';
-});
-
-const tokenSymbol = computed(() => {
-  if (!props.tokenData) return '';
-  const metadata = props.tokenData.metadata as { symbol?: string } | undefined;
-  return metadata?.symbol || '';
-});
-
-const tokenImage = computed(() => {
-  if (!props.tokenData) return '';
-  const metadata = props.tokenData.metadata as { image?: string } | undefined;
-  return metadata?.image || '';
-});
 
 const amountValidation = computed(() => {
   if (!form.value.amount)
@@ -185,10 +166,10 @@ const handleSend = async () => {
 
     transferCompleted.value = true;
 
-    const balanceObj = await tokensStore.getBalanceSingleToken(sender, props.tokenData.asset_num!);
+    const balanceObj = await tokensStore.getBalanceSingleToken(sender, props.tokenData.assetNum);
 
     const receiverLabel = props.receiverName || props.receiverKey || 'Recipient';
-    const tokenLabel = tokenSymbol.value || tokenName.value || props.tokenData!.nai || '';
+    const tokenLabel = props.tokenData.symbol || props.tokenData.name || String(props.tokenData.assetNum) || '';
 
     const ts = new Date().toISOString();
 
@@ -240,9 +221,9 @@ watch(() => props.queryMemo, (newValue) => {
       <!-- Amount compact -->
       <TokenAmountInput
         v-model="form.amount"
-        :token-name="tokenName"
-        :token-symbol="tokenSymbol"
-        :token-image="tokenImage"
+        :token-name="tokenData?.name"
+        :token-symbol="tokenData?.symbol"
+        :token-image="tokenData?.image"
         :token-asset-num="assetNum"
         :precision="tokenData?.precision"
         :is-valid="amountValidation.isValid"
@@ -272,8 +253,8 @@ watch(() => props.queryMemo, (newValue) => {
         <TransferCompletedSummary
           v-if="transferCompleted"
           :amount="sentSummary?.amount || form.amount"
-          :token-symbol="tokenSymbol"
-          :token-name="tokenName"
+          :token-symbol="tokenData?.symbol"
+          :token-name="tokenData!.name!"
           :is-receive-mode="true"
           :receiver-key="receiverKey"
           :receiver-name="receiverName"

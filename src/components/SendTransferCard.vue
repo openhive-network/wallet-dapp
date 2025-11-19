@@ -7,16 +7,14 @@ import TokenSelectorWithAmount from '@/components/htm/tokens/TokenSelectorWithAm
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 
 interface Props {
   hasNaiFromUrl: boolean;
   shouldShowTokenSelector: boolean;
-  tokenData?: CtokensAppToken | null;
-  assetNum: string;
-  precision: string;
+  tokenData: CTokenDisplayBase | null;
   selectedTokenAssetNum?: string;
   initialAmount?: string;
   initialMemo?: string;
@@ -156,8 +154,8 @@ watch(() => form.value.memo, (newValue) => {
         v-model:selected-token-asset-num="selectedTokenAssetNum"
         :token-symbol="tokenSymbol"
         :token-name="tokenName"
-        :token-precision="props?.precision"
-        :token-image="props.tokenData?.metadata?.image"
+        :token-precision="props.tokenData!.precision"
+        :token-image="props.tokenData!.image"
         :is-valid="amountValidation.isValid"
         :validation-error="amountValidation.error"
       />
@@ -190,7 +188,7 @@ watch(() => form.value.memo, (newValue) => {
           placeholder="Asset number"
           class="transition-colors"
           disabled
-          :value="assetNum"
+          :value="tokenData!.assetNum"
         />
         <Input
           id="precision"
@@ -200,7 +198,7 @@ watch(() => form.value.memo, (newValue) => {
           max="18"
           class="transition-colors"
           disabled
-          :value="precision"
+          :value="tokenData!.assetNum"
         />
       </div>
 
@@ -211,8 +209,8 @@ watch(() => form.value.memo, (newValue) => {
         :token-name="tokenName"
         :token-symbol="tokenSymbol"
         :token-image="tokenImage"
-        :token-asset-num="assetNum"
-        :precision="tokenData?.precision"
+        :token-asset-num="tokenData!.assetNum"
+        :precision="tokenData!.precision"
         :is-valid="amountValidation.isValid"
         :validation-error="amountValidation.error"
       />

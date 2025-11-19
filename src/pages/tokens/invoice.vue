@@ -8,17 +8,18 @@ import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { getWax } from '@/stores/wax.store';
+import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
-
 
 // Router
 const route = useRoute();
 const router = useRouter();
 
+// Stores
+const tokensStore = useTokensStore();
+
 // State
-const token = ref<CtokensAppToken | null>(null);
+const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 
 // Get params from route
@@ -27,7 +28,7 @@ const fromPk = computed(() => route.query.fromPk as string);
 const toName = computed(() => route.query.toName as string | undefined);
 const toPk = computed(() => route.query.toPk as string);
 const amount = computed(() => route.query.amount as string);
-const assetNum = computed(() => route.query['asset-num'] as string);
+const assetNum = computed(() => Number(route.query['asset-num']));
 const memo = computed(() => route.query.memo as string | undefined);
 
 // Invoice metadata
@@ -77,22 +78,8 @@ const goBack = () => {
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    const wax = await getWax();
-
     // Fetch token details by asset number
-    const tokens = await wax.restApi.ctokensApi.tokens({
-      'asset-num': Number(assetNum.value)
-    });
-
-    const remoteToken = tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
-
-    if (!remoteToken)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
-
-    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
-
-    if (!token.value)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
+    token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
