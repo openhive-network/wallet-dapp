@@ -80,7 +80,10 @@ export default withNuxt(
   ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**'],
   rules: {
     // Vue rules
-    'vue/multi-word-component-names': 'off'
+    'vue/multi-word-component-names': 'off',
+    // We use utility functions that assign default props, so sometimes those rules are triggered incorrectly
+    'vue/require-default-prop': 'off',
+    'vue/no-required-prop-with-default': 'off'
   }
 }).override('nuxt/typescript/rules', {
   ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**'],

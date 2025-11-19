@@ -2,11 +2,11 @@
 import { mdiClose } from '@mdi/js';
 
 import HTMProvidePasswordContent from '@/components/htm/HTMProvidePasswordContent.vue';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
-
 
 const walletStore = useWalletStore();
 const tokensStore = useTokensStore();

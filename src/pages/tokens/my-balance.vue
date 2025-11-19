@@ -15,8 +15,8 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import { TokenAmountInput } from '@/components/htm/amount';
 import HTMView from '@/components/htm/HTMView.vue';
-import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -780,15 +780,11 @@ onMounted(async () => {
             </div>
 
             <TokenAmountInput
+              v-if="selectedTokenForTransfer"
               v-model="transferAmount"
-              :token-name="selectedTokenForTransfer!.name"
-              :token-symbol="selectedTokenForTransfer!.symbol"
-              :token-image="selectedTokenForTransfer!.image"
-              :token-nai="selectedTokenForTransfer?.nai"
-              :precision="selectedTokenForTransfer?.precision"
+              :token="selectedTokenForTransfer"
               :disabled="isTransferLoading"
               :available-balance="selectedTokenForTransfer!.displayBalance"
-              :show-max-button="selectedTokenForTransfer!.balance > 0n"
               @max="setMaxTransferAmount"
             />
 
@@ -876,15 +872,11 @@ onMounted(async () => {
 
           <div class="grid gap-4 py-4">
             <TokenAmountInput
+              v-if="selectedToken"
               v-model="transformAmount"
-              :token-name="selectedToken?.name"
-              :token-symbol="selectedToken?.symbol"
-              :token-image="selectedToken?.image"
-              :token-nai="selectedToken?.nai"
-              :precision="selectedToken?.precision"
+              :token="selectedToken"
               :disabled="isTransformLoading"
-              :available-balance="selectedToken!.displayBalance"
-              :show-max-button="selectedToken!.balance > 0n"
+              :available-balance="selectedToken.displayBalance"
               @max="setMaxTransformAmount"
             />
           </div>

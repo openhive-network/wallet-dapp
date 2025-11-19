@@ -5,7 +5,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Combobox, ComboboxAnchor, ComboboxEmpty, ComboboxGroup, ComboboxInput, ComboboxItem, ComboboxItemIndicator, ComboboxList, ComboboxTrigger } from '@/components/ui/combobox';
-import { useTokensStore, type CTokenBalanceDisplay } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
 interface TokenOption {
@@ -15,31 +15,36 @@ interface TokenOption {
 }
 
 interface Props {
-  modelValue?: string; // Selected token asset number
+  modelValue?: CTokenDisplayBase | undefined; // Selected token asset number
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  modelValue: '',
+  modelValue: undefined,
   placeholder: 'Select a token...'
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: CTokenBalanceDisplay | undefined): void;
+}>();
 
 const tokensStore = useTokensStore();
 
 // Reactive state
 const searchQuery = ref('');
-const selectedValue = ref<string | null>(props.modelValue || null);
+const selectedValue = ref<string | null>(props.modelValue?.assetNum ? String(props.modelValue.assetNum) : null);
 
 // Watch selectedValue and emit changes
 watch(selectedValue, (newValue) => {
-  emit('update:modelValue', newValue);
+  const selectedToken = tokensStore.fungibleBalances.find(token => String(token.liquid.assetNum) === newValue);
+
+  emit('update:modelValue', selectedToken?.liquid);
 });
 
 // Watch props.modelValue and update selectedValue
 watch(() => props.modelValue, (newValue) => {
-  selectedValue.value = newValue || null;
+  selectedValue.value = newValue?.assetNum ? String(newValue.assetNum) : null;
 });
 
 // Get user's token balances with positive amounts
@@ -48,7 +53,7 @@ const ownedTokens = computed((): TokenOption[] => {
     .filter(balance => balance.liquid.balance > 0n)
     .map(balance => ({
       balance: balance.liquid,
-      displayName: balance.liquid.name || balance.liquid.symbol!,
+      displayName: balance.liquid.symbol!,
       displayBalance: balance.liquid.displayBalance
     } satisfies TokenOption))
     .sort((a, b) => b.balance.balance - a.balance.balance > 0n ? 1 : -1);
@@ -85,26 +90,25 @@ const fetchBalances = async () => {
 onMounted(() => {
   if (tokensStore.fungibleBalances.length === 0)
     void fetchBalances();
-
 });
 </script>
 
 <template>
-  <Combobox v-model="selectedValue">
+  <Combobox v-model="selectedValue" :disabled="disabled">
     <ComboboxAnchor class="relative w-full">
-      <ComboboxTrigger class="flex h-9 w-full items-center justify-between rounded-r-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+      <ComboboxTrigger class="flex h-9 w-full items-center justify-between rounded-r-md bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
         <div class="flex items-center justify-between flex-1 min-w-0">
           <div
             v-if="selectedToken"
             class="flex items-center gap-2 truncate flex-1 min-w-0"
           >
-            <Avatar v-if="selectedToken.balance.image" class="h-6 w-6">
+            <Avatar v-if="selectedToken.balance.image" class="h-6 w-6 mr-1">
               <AvatarImage
                 :src="selectedToken.balance.image"
                 :alt="selectedToken.displayName"
               />
             </Avatar>
-            <span class="font-semibold text-foreground truncate">{{ selectedToken.displayName }}</span>
+            <span class="text-sm font-medium">{{ selectedToken.displayName }}</span>
           </div>
           <span
             v-else
@@ -112,18 +116,18 @@ onMounted(() => {
           >
             {{ placeholder }}
           </span>
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="flex-shrink-0 text-muted-foreground"
-            >
-            <path
-              style="fill: currentColor"
-              :d="mdiArrowDown"
-            />
-          </svg>
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="flex-shrink-0 text-muted-foreground ml-2"
+          >
+          <path
+            style="fill: currentColor"
+            :d="mdiArrowDown"
+          />
+        </svg>
         </div>
       </ComboboxTrigger>
       <ComboboxList class="mt-1 bg-popover border border-border rounded-lg shadow-lg p-0 max-h-64 overflow-hidden">

@@ -2,19 +2,19 @@
 import { computed, ref, watch } from 'vue';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
-import TokenSelectorWithAmount from '@/components/htm/tokens/TokenSelectorWithAmount.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
+import TokenAmountInput from '~/src/components/htm/amount/Input.vue';
+
 
 interface Props {
   hasNaiFromUrl: boolean;
   shouldShowTokenSelector: boolean;
-  tokenData: CTokenDisplayBase | null;
+  token: CTokenDisplayBase;
   selectedTokenAssetNum?: string;
   initialAmount?: string;
   initialMemo?: string;
@@ -43,32 +43,14 @@ const showDetails = ref(false);
 
 const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
 
-const tokenName = computed(() => {
-  if (!props.tokenData) return 'Unknown Token';
-  const metadata = props.tokenData.metadata as { name?: string } | undefined;
-  return metadata?.name || props.tokenData.nai || 'Unknown Token';
-});
-
-const tokenSymbol = computed(() => {
-  if (!props.tokenData) return '';
-  const metadata = props.tokenData.metadata as { symbol?: string } | undefined;
-  return metadata?.symbol || '';
-});
-
-const tokenImage = computed(() => {
-  if (!props.tokenData) return '';
-  const metadata = props.tokenData.metadata as { image?: string } | undefined;
-  return metadata?.image || '';
-});
-
 const amountValidation = computed(() => {
   if (!form.value.amount)
     return { isValid: true, error: '' };
 
-  if (!props.tokenData)
+  if (!props.token)
     return { isValid: true, error: '' };
 
-  return validateAmountPrecision(form.value.amount, props.tokenData.precision || 0);
+  return validateAmountPrecision(form.value.amount, props.token.precision || 0);
 });
 
 const validateAmountPrecision = (amount: string, precision: number): { isValid: boolean; error?: string; parsedAmount?: string } => {
@@ -152,10 +134,10 @@ watch(() => form.value.memo, (newValue) => {
         v-if="shouldShowTokenSelector"
         v-model="form.amount"
         v-model:selected-token-asset-num="selectedTokenAssetNum"
-        :token-symbol="tokenSymbol"
-        :token-name="tokenName"
-        :token-precision="props.tokenData!.precision"
-        :token-image="props.tokenData!.image"
+        :token-symbol="token.symbol"
+        :token-name="token.name!"
+        :token-precision="props.token!.precision"
+        :token-image="props.token!.image"
         :is-valid="amountValidation.isValid"
         :validation-error="amountValidation.error"
       />
@@ -188,7 +170,7 @@ watch(() => form.value.memo, (newValue) => {
           placeholder="Asset number"
           class="transition-colors"
           disabled
-          :value="tokenData!.assetNum"
+          :value="token!.assetNum"
         />
         <Input
           id="precision"
@@ -198,7 +180,7 @@ watch(() => form.value.memo, (newValue) => {
           max="18"
           class="transition-colors"
           disabled
-          :value="tokenData!.assetNum"
+          :value="token!.assetNum"
         />
       </div>
 
@@ -206,13 +188,7 @@ watch(() => form.value.memo, (newValue) => {
       <TokenAmountInput
         v-if="!shouldShowTokenSelector"
         v-model="form.amount"
-        :token-name="tokenName"
-        :token-symbol="tokenSymbol"
-        :token-image="tokenImage"
-        :token-asset-num="tokenData!.assetNum"
-        :precision="tokenData!.precision"
-        :is-valid="amountValidation.isValid"
-        :validation-error="amountValidation.error"
+        :token="token"
       />
 
       <!-- Memo compact -->

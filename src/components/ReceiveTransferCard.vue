@@ -5,7 +5,6 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
 import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,8 @@ import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+import { TokenAmountInput } from '~/src/components/htm/amount';
 
 
 interface Props {
@@ -166,8 +167,9 @@ watch(() => props.queryMemo, (newValue) => {
 
       <!-- Amount compact -->
       <TokenAmountInput
+        id="token-amount"
         v-model="form.amount"
-        v-model:valid="tokenAmountInputValidation"
+        variant="selector"
         :token="tokenData"
       />
 
