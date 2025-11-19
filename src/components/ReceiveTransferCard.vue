@@ -20,7 +20,7 @@ interface Props {
   receiverName?: string;
   receiverKey?: string;
   receiverAvatar?: string;
-  tokenData?: CTokenDisplayBase | null;
+  tokenData: CTokenDisplayBase;
   queryAmount?: string;
   queryMemo?: string;
   assetNum: number;
@@ -49,66 +49,12 @@ const sentSummary = ref<{ amount: string; tokenLabel: string; receiver: string; 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
 
-const amountValidation = computed(() => {
-  if (!form.value.amount)
-    return { isValid: true, error: '' };
-
-  if (!props.tokenData)
-    return { isValid: true, error: '' };
-
-  return validateAmountPrecision(form.value.amount, props.tokenData.precision || 0);
-});
-
-const validateAmountPrecision = (amount: string, precision: number): { isValid: boolean; error?: string; parsedAmount?: string } => {
-  try {
-    const cleanAmount = amount.replace(/[,\s]/g, '');
-
-    if (!/^\d*\.?\d*$/.test(cleanAmount))
-      return { isValid: false, error: 'Amount must contain only digits and decimal point' };
-
-    const numAmount = parseFloat(cleanAmount);
-    if (isNaN(numAmount) || numAmount <= 0)
-      return { isValid: false, error: 'Amount must be a positive number' };
-
-    if (!isFinite(numAmount))
-      return { isValid: false, error: 'Amount value is too large' };
-
-    const decimalIndex = cleanAmount.indexOf('.');
-    if (decimalIndex !== -1) {
-      const decimalPlaces = cleanAmount.length - decimalIndex - 1;
-      if (decimalPlaces > precision) {
-        return {
-          isValid: false,
-          error: `Amount has too many decimal places. Maximum ${precision} decimal places allowed for this token.`
-        };
-      }
-    }
-
-    const multiplier = Math.pow(10, precision);
-    const baseUnits = numAmount * multiplier;
-
-    const MAX_SAFE_BASE_UNITS = Number.MAX_SAFE_INTEGER;
-    if (baseUnits > MAX_SAFE_BASE_UNITS)
-      return { isValid: false, error: 'Amount is too large and would cause overflow' };
-
-    const roundedBaseUnits = Math.round(baseUnits);
-    if (Math.abs(baseUnits - roundedBaseUnits) > 0.0001) {
-      return {
-        isValid: false,
-        error: `Amount precision mismatch. Please use at most ${precision} decimal places.`
-      };
-    }
-
-    return { isValid: true, parsedAmount: roundedBaseUnits.toString() };
-  } catch (_error) {
-    return { isValid: false, error: 'Invalid amount format' };
-  }
-};
+const tokenAmountInputValidation = ref<{ isValid: boolean; error?: string }>({ isValid: false });
 
 const isFormValid = computed(() => {
   if (!props.tokenData) return false;
   if (form.value.amount.trim() === '') return true;
-  return amountValidation.value.isValid;
+  return tokenAmountInputValidation.value.isValid;
 });
 
 const parseAssetAmount = (amountStr: string, precision: number): string => {
@@ -136,8 +82,8 @@ const handleSend = async () => {
     return;
   }
 
-  if (!amountValidation.value.isValid) {
-    toastError('Invalid amount', new Error(amountValidation.value.error || 'Invalid amount format'));
+  if (!tokenAmountInputValidation.value.isValid) {
+    toastError('Invalid amount', new Error(tokenAmountInputValidation.value.error || 'Invalid amount format'));
     return;
   }
 
@@ -221,13 +167,8 @@ watch(() => props.queryMemo, (newValue) => {
       <!-- Amount compact -->
       <TokenAmountInput
         v-model="form.amount"
-        :token-name="tokenData?.name"
-        :token-symbol="tokenData?.symbol"
-        :token-image="tokenData?.image"
-        :token-asset-num="assetNum"
-        :precision="tokenData?.precision"
-        :is-valid="amountValidation.isValid"
-        :validation-error="amountValidation.error"
+        v-model:valid="tokenAmountInputValidation"
+        :token="tokenData"
       />
 
       <!-- Memo compact -->

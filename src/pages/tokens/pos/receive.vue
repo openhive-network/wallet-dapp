@@ -205,7 +205,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           :receiver-name="htmUserMetadata?.displayName || receiverDisplayName"
           :receiver-key="receiverKey"
           :receiver-avatar="htmUserMetadata?.profileImage"
-          :token-data="token"
+          :token-data="token!"
           :query-amount="queryAmount"
           :query-memo="queryMemo"
           :asset-num="assetNum"
