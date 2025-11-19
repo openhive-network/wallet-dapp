@@ -13,6 +13,7 @@ const updateOpen = (value: boolean) => {
 };
 
 const logOriginator = () => {
+  /* eslint-disable-next-line no-console */
   console.error(toRaw(errorStore.originator));
 };
 

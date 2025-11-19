@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
 
+import HTMLoginContent from '@/components/htm/HTMLoginContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
 
-import HTMLoginContent from '~/src/components/htm/HTMLoginContent.vue';
 
 const emit = defineEmits(['setaccount', 'close']);
 

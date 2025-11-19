@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import HTMTokenPreview from '@/components/htm/HTMTokenPreview.vue';
 import type { CTokenDefinitionDisplay } from '@/stores/tokens.store';
 
-import HTMTokenPreview from '~/src/components/htm/HTMTokenPreview.vue';
 
 interface Props {
   token: CTokenDefinitionDisplay;

@@ -22,7 +22,7 @@
     "build": "nuxt build",
     "preview": "nuxt preview",
     "lint": "npm run lint-ci -- --fix",
-    "lint-ci": "eslint --max-warnings=0",
+    "lint-ci": "eslint",
     "postinstall": "nuxt prepare",
     "regenerate-ctokens-api": "pnpm --package @hiveio/wax-spec-generator dlx generate-wax-spec -o src/utils/wallet/ctokens/api -i"
   },

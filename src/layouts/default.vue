@@ -2,6 +2,7 @@
 import { ref, onMounted, defineAsyncComponent } from 'vue';
 import { toast } from 'vue-sonner';
 
+import HTMProvidePassword from '@/components/htm/HTMProvidePassword.vue';
 import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -11,7 +12,6 @@ import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 
-import HTMProvidePassword from '~/src/components/htm/HTMProvidePassword.vue';
 
 const route = useRoute();
 

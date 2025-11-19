@@ -2,8 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
 
 const props = defineProps<{
   assetNum: number | string;
@@ -49,9 +49,10 @@ const generateQRCode = async () => {
       }
     });
     qrCodeDataUrl.value = dataUrl;
+    /* eslint-disable-next-line no-console */
     console.log('Generated QR code for URL:', url);
   } catch (error) {
-    console.error('Failed to generate QR code:', error);
+    toastError('Failed to generate QR code:', error);
     qrCodeDataUrl.value = '';
   }
 };

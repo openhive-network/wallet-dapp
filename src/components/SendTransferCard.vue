@@ -2,14 +2,14 @@
 import { computed, ref, watch } from 'vue';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import TokenAmountInput from '@/components/htm/tokens/TokenAmountInput.vue';
+import TokenSelectorWithAmount from '@/components/htm/tokens/TokenSelectorWithAmount.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import TokenAmountInput from '~/src/components/htm/tokens/TokenAmountInput.vue';
-import TokenSelectorWithAmount from '~/src/components/htm/tokens/TokenSelectorWithAmount.vue';
 
 interface Props {
   hasNaiFromUrl: boolean;

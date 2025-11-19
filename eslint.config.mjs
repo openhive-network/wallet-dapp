@@ -2,7 +2,29 @@ import withNuxt from './.nuxt/eslint.config.mjs';
 
 // Use a functional override to avoid mutating possibly-frozen rule objects returned by withNuxt()
 // Also append a small config to add an ignore for shadcn auto-generated UI components
-export default withNuxt().override('nuxt/rules', {
+export default withNuxt(
+  // Default Nuxt configuration
+  {},
+
+  // Client-specific rules
+  {
+    files: [
+      'src/**'
+    ],
+    rules: {
+      'no-console': 'error'
+    }
+  },
+
+  // Server-specific rules
+  {
+    files: [
+      'server/**'
+    ],
+    rules: {
+      'no-console': 'off'
+    }
+  }).override('nuxt/rules', {
   ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**'],
   rules: {
     // Core ESLint rules

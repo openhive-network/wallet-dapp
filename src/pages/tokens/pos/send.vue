@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import HTMView from '@/components/htm/HTMView.vue';
 import QRCodeCard from '@/components/htm/tokens/QRCodeCard.vue';
 import SendTransferCard from '@/components/SendTransferCard.vue';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,6 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 
-import HTMView from '~/src/components/htm/HTMView.vue';
 
 
 // Router
@@ -162,7 +162,7 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
-    console.error('Error reloading data after login', e);
+    toastError('Error reloading data after login', e);
   } finally {
     isLoading.value = false;
   }
@@ -180,7 +180,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
-    console.error('Error reloading data after tokensStore.wallet changed', e);
+    toastError('Error reloading data after tokensStore.wallet changed', e);
   } finally {
     isLoading.value = false;
   }
