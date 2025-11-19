@@ -5,12 +5,13 @@ import { toast } from 'vue-sonner';
 import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import HTMProvidePassword from '@/components/wallet/HTMProvidePassword.vue';
 import type { UsedWallet } from '@/stores/settings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
+
+import HTMProvidePassword from '~/src/components/htm/HTMProvidePassword.vue';
 
 const route = useRoute();
 
