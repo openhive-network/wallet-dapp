@@ -14,8 +14,6 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import HTMLoginContent from '~/src/components/htm/HTMLoginContent.vue';
-import HTMProvidePasswordContent from '~/src/components/htm/HTMProvidePasswordContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +28,9 @@ import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+import HTMLoginContent from '~/src/components/htm/HTMLoginContent.vue';
+import HTMProvidePasswordContent from '~/src/components/htm/HTMProvidePasswordContent.vue';
 
 const walletStore = useWalletStore();
 const tokensStore = useTokensStore();
