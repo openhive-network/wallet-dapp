@@ -3,14 +3,15 @@ import { mdiRefresh, mdiPlus } from '@mdi/js';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMTokenCard from '~/src/components/htm/HTMTokenCard.vue';
-import HTMView from '~/src/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
+
+import HTMTokenCard from '~/src/components/htm/HTMTokenCard.vue';
+import HTMView from '~/src/components/htm/HTMView.vue';
 
 // Router
 const router = useRouter();

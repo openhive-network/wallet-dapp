@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const displayName = body.displayName || 'User';
 
   // XXX: For security reasons baseUrl should not come from the client side in production
-  const barcodeValue = `${body.baseUrl}/tokens/send-token?to=${operationalPublicKey}`;
+  const barcodeValue = `${body.baseUrl}/tokens/pos/receive?to=${operationalPublicKey}`;
 
   console.log('Creating QR code leading to:', barcodeValue);
 

@@ -15,8 +15,6 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import HTMView from '~/src/components/htm/HTMView.vue';
-import TokenAmountInput from '~/src/components/htm/tokens/TokenAmountInput.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,6 +27,9 @@ import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefini
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+
+import HTMView from '~/src/components/htm/HTMView.vue';
+import TokenAmountInput from '~/src/components/htm/tokens/TokenAmountInput.vue';
 
 const router = useRouter();
 const tokensStore = useTokensStore();

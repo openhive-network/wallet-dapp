@@ -36,7 +36,7 @@ export const useWalletStore = defineStore('wallet', {
     wallet: () => currentWallet.value,
     hasWallet: () => !!currentWallet.value,
     walletsStatus: state => {
-      if (!walletRetrievalIntervalId) {
+      if (!walletRetrievalIntervalId && import.meta.client) {
         const checkForWallets = () => {
           if (!state._walletsStatus.metamask)
             MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
