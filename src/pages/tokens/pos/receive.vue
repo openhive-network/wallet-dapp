@@ -9,14 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
-import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
-import type { CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
-
 
 // Router
 const route = useRoute();
@@ -27,11 +23,11 @@ const tokensStore = useTokensStore();
 const userStore = useUserStore();
 
 // State
-const token = ref<CtokensAppToken | null>(null);
+const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 
 // Get parameters from route query
-const assetNum = computed(() => route.query['asset-num'] as string);
+const assetNum = computed(() => Number(route.query['asset-num']));
 const precision = computed(() => route.query.precision as string);
 const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
 const queryAmount = computed(() => route.query.amount as string | undefined);
@@ -69,21 +65,7 @@ const loadTokenDetails = async () => {
   if (!assetNum.value) return;
 
   try {
-    const wax = await getWax();
-
-    // Fetch token details by NAI
-    const params: { 'asset-num': number; precision?: number } = { 'asset-num': Number(assetNum.value) };
-    const tokens = await wax.restApi.ctokensApi.tokens(params);
-
-    const remoteToken = tokens && tokens.items && tokens.items.length > 0 ? tokens.items[0] : null;
-
-    if (!remoteToken)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
-
-    token.value = String(remoteToken.liquid?.asset_num) === assetNum.value ? remoteToken.liquid! : String(remoteToken.vesting?.asset_num) === assetNum.value ? remoteToken.vesting! : null;
-
-    if (!token.value)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
+    token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');

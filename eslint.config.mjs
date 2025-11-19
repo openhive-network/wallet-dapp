@@ -12,7 +12,7 @@ export default withNuxt(
       'src/**'
     ],
     rules: {
-      'no-console': 'error'
+      'no-console': 'warn'
     }
   },
 

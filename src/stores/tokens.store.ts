@@ -8,7 +8,6 @@ import { isVesting } from '@/utils/nai-tokens';
 import type { CtokensAppAssetType, CtokensAppBalance, CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-
 export interface CTokenDisplayBase {
   isNft: boolean;
   nai: string;

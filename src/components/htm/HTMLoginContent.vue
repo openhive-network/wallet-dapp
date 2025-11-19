@@ -45,6 +45,8 @@ const handleConditionalSiteLogin = async (operationalKey: string) => {
     return;
   }
 
+  await tokensStore.getCurrentUserMetadata();
+
   // Not logged in using any wallet so allow user log in using HTM wallet
 
   // Set settings with the operational key as account and CTOKENS wallet
@@ -69,15 +71,6 @@ const connect = async () => {
     isLoading.value = true;
 
     const { operational } = await CTokensProvider.createWallet(password.value, operationalKey.value, managementKey.value.length === 0 ? undefined : managementKey.value);
-
-    const wax = await getWax();
-
-    const users = await wax.restApi.ctokensApi.users({ user: operational });
-    if (!users?.management_key) {
-      toastError('Failed to connect to HTM', 'The provided operational key is not registered in HTM');
-
-      return;
-    }
 
     await CTokensProvider.login(password.value);
 
