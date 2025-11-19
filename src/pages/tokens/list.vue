@@ -3,8 +3,8 @@ import { mdiRefresh, mdiPlus } from '@mdi/js';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMTokenCard from '@/components/HTMTokenCard.vue';
-import HTMView from '@/components/HTMView.vue';
+import HTMTokenCard from '~/src/components/htm/HTMTokenCard.vue';
+import HTMView from '~/src/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';

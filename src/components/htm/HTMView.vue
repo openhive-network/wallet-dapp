@@ -2,10 +2,11 @@
 import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import HTMLoginForm from '@/components/HTMLoginForm.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTokensStore } from '@/stores/tokens.store';
+
+import HTMLoginForm from '~/src/components/htm/HTMLoginForm.vue';
 
 const tokensStore = useTokensStore();
 const router = useRouter();

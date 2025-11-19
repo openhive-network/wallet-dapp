@@ -35,7 +35,7 @@ const generateQRCode = async () => {
     if (props.memo?.trim())
       params.append('memo', props.memo);
 
-    const url = `${baseUrl}/tokens/send-token?${params.toString()}`;
+    const url = `${baseUrl}/tokens/pos/receive?${params.toString()}`;
 
     if (!qrCode)
       qrCode = await import('qrcode');

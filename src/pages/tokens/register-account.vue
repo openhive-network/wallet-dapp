@@ -14,8 +14,8 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
-import HTMLoginContent from '@/components/HTMLoginContent.vue';
-import HTMProvidePasswordContent from '@/components/HTMProvidePasswordContent.vue';
+import HTMLoginContent from '~/src/components/htm/HTMLoginContent.vue';
+import HTMProvidePasswordContent from '~/src/components/htm/HTMProvidePasswordContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

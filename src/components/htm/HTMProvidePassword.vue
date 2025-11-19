@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { mdiClose } from '@mdi/js';
 
-import HTMProvidePasswordContent from '@/components/HTMProvidePasswordContent.vue';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
+
+import HTMProvidePasswordContent from '~/src/components/htm/HTMProvidePasswordContent.vue';
 
 const walletStore = useWalletStore();
 const tokensStore = useTokensStore();
