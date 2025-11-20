@@ -27,9 +27,10 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { generateNAI as generateHTMNAI, toVesting, assetNumFromNAI } from '@/utils/nai-tokens';
+import { generateNAI as generateHTMNAI, toVesting, assetNumFromNAI, parseAssetAmount } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
+import { validateTokenSymbol, isValidTokenPrecision, isValidTokenSupply } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 
@@ -60,18 +61,7 @@ const generatedNAI = ref('');
 const naiGenerated = ref(false);
 
 // Symbol validation state
-const symbolValidation = computed(() => {
-  const symbol = tokenSymbol.value.trim();
-  if (symbol.length === 0)
-    return { isValid: false, message: '' };
-  if (symbol.length < 3)
-    return { isValid: false, message: 'Symbol must be at least 3 characters' };
-  if (symbol.length > 10)
-    return { isValid: false, message: 'Symbol must be 10 characters or less' };
-  if (!/^[A-Z]+$/.test(symbol))
-    return { isValid: false, message: 'Symbol must contain only letters' };
-  return { isValid: true, message: 'Valid symbol' };
-});
+const symbolValidation = computed(() => validateTokenSymbol(tokenSymbol.value));
 
 // Computed property to show NAI status
 const naiDisplayValue = computed(() => {
@@ -90,11 +80,8 @@ const shouldShowNAIField = computed(() => {
 const isFormValid = computed(() => {
   return tokenName.value.trim() !== '' &&
          symbolValidation.value.isValid &&
-         initialSupply.value !== '' &&
-         parseInt(initialSupply.value) > 0 &&
-         BigInt(initialSupply.value) <= BigInt('9223372036854775807') &&
-         parseInt(precision.value) >= 0 &&
-         parseInt(precision.value) <= 12 &&
+         isValidTokenSupply(initialSupply.value) &&
+         isValidTokenPrecision(precision.value) &&
          agreedToDisclaimer.value;
 });
 
@@ -119,7 +106,7 @@ watch(tokenSymbol, (newSymbol) => {
     clearTimeout(debounceTimer);
 
   // Reset state immediately when symbol is invalid
-  if (newSymbol.trim().length < 3 || !/^[A-Z]+$/i.test(newSymbol.trim())) {
+  if (!validateTokenSymbol(newSymbol).isValid) {
     generatedNAI.value = '';
     naiGenerated.value = false;
     return;
@@ -161,12 +148,6 @@ const copyNAI = async () => {
   } catch (_error) {
     toast.error('Failed to copy NAI');
   }
-};
-
-const parseAssetAmount = (amountStr: string, precision: number): string => {
-  const [integerPart, fractionalPart = ''] = amountStr.split('.');
-  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
-  return integerPart + normalizedFractional;
 };
 
 // Create token using HTM

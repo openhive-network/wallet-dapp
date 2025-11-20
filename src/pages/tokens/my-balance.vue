@@ -26,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
 import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse } from '@/stores/tokens.store';
+import { parseAssetAmount } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -68,13 +69,6 @@ const formatCount = (count: number): string => {
     return `>${rounded}`;
   }
   return count.toString();
-};
-
-// Parse asset amount - convert decimal to base units (integer with precision zeros)
-const parseAssetAmount = (amountStr: string, precision: number): string => {
-  const [integerPart, fractionalPart = ''] = amountStr.split('.');
-  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
-  return integerPart + normalizedFractional;
 };
 
 const loadAccountBalances = async (page = 1) => {

@@ -29,6 +29,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
+import { isValidUrl } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 
@@ -104,17 +105,6 @@ const isBasicInfoValid = computed(() => {
          registrationData.value.repeatPassword.trim().length > 0 &&
          registrationData.value.walletPassword === registrationData.value.repeatPassword;
 });
-
-// Validate URL format
-const isValidUrl = (url: string): boolean => {
-  if (!url) return true; // Empty URL is valid (optional field)
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 // Generate HTM keys automatically (called during registration)
 const generateAndDownloadKeys = async () => {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Input as ShadInput } from '@/components/ui/input';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
+import { validateAmountPrecision } from '@/utils/validators';
 
 // Props:
 const props = defineProps<{
@@ -19,42 +20,19 @@ const model = defineModel<string>();
 const validationErrorModel = defineModel<string | undefined>('validationError');
 
 // Methods:
-const validateAmountPrecision = (amount: string, precision: number): void => {
-  try {
-    if (amount === '') {
-      validationErrorModel.value = undefined;
-      return;
-    }
-
-    const cleanAmount = amount.replace(/[,\s]/g, '');
-    const [integerPart, decimalPart, anyMore] = cleanAmount.split('.');
-    if (anyMore !== undefined) {
-      validationErrorModel.value = 'Invalid amount format';
-      return;
-    }
-
-    const decimal = BigInt(decimalPart || 0);
-    const integer = BigInt(integerPart || 0);
-
-    if (integer <= 0n) {
-      validationErrorModel.value = 'Amount must be a positive number';
-      return;
-    }
-
-    if (decimal !== 0n && (decimalPart?.length || 0) > precision) {
-      validationErrorModel.value = `Amount has too many decimal places. Maximum ${precision} decimal places allowed for this token.`;
-      return;
-    }
-
+const validateAmount = (amount: string, precision: number): void => {
+  if (amount === '') {
     validationErrorModel.value = undefined;
-  } catch {
-    validationErrorModel.value = 'Invalid amount format';
+    return;
   }
+
+  const validation = validateAmountPrecision(amount, precision);
+  validationErrorModel.value = validation.error;
 };
 
 watch(model, () => {
   if (props.token)
-    validateAmountPrecision(model.value || '', props.token.precision);
+    validateAmount(model.value || '', props.token.precision);
 });
 </script>
 
