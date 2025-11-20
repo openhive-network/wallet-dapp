@@ -10,7 +10,7 @@ import SendTransferCard from '@/components/SendTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
 // Router
@@ -20,27 +20,20 @@ const router = useRouter();
 const tokensStore = useTokensStore();
 
 // State
-const token = ref<CTokenDefinitionDisplay | null>(null);
+const token = ref<CTokenDisplayBase | null>(null);
 const isLoading = ref(true);
 
 // Form state
 const form = ref({
-  assetNum: '',
-  precision: '',
   amount: '',
   memo: ''
 });
 
-// Selected token NAI from TokenSelector (used when no asset-num is provided)
-const selectedTokenAssetNum = ref<string>('');
-
-// Get NAI and precision from route parameters or form or selected token
+// Get NAI from route parameters or selected token
 const assetNum = computed(() => {
   if (route.query['asset-num']) return Number(route.query['asset-num']);
-  if (selectedTokenAssetNum.value) return Number(selectedTokenAssetNum.value);
-  return Number(form.value.assetNum);
+  return token.value?.assetNum || null;
 });
-const precision = computed(() => route.query.precision as string || form.value.precision);
 
 // Check if NAI is provided in URL
 const hasNaiFromUrl = computed(() => !!route.query['asset-num']);
@@ -53,31 +46,10 @@ const shouldShowTokenSelector = computed(() => {
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
 
-// Watch selected token NAI changes to load token details
-watch(selectedTokenAssetNum, async (newAssetNum, oldAssetNum) => {
-  if (newAssetNum && newAssetNum !== oldAssetNum && shouldShowTokenSelector.value) {
-    isLoading.value = true;
-    // Get precision from the selected token's balance
-    let balance: CTokenBalanceDisplay | undefined;
-    for(const storeBalance of tokensStore.fungibleBalances) {
-      if (storeBalance.liquid.assetNum === Number(newAssetNum)) {
-        balance = storeBalance.liquid;
-        break;
-      } else if (storeBalance.vesting.assetNum === Number(newAssetNum)) {
-        balance = storeBalance.vesting;
-        break;
-      }
-    }
-    if (balance) {
-      form.value.precision = balance.precision?.toString() || '';
-      form.value.assetNum = balance.assetNum!.toString();
-      await loadTokenDetails();
-    } else
-      token.value = null;
-
-    isLoading.value = false;
-  }
-});
+// Handle token update from SendTransferCard
+const handleTokenUpdate = (newToken: CTokenDisplayBase | undefined) => {
+  token.value = newToken || null;
+};
 
 // Load token details
 const loadTokenDetails = async () => {
@@ -91,10 +63,6 @@ const loadTokenDetails = async () => {
 
     if (!token.value)
       throw new Error(`Token with asset number ${assetNum.value} not found`);
-
-    // Update precision if not set from balance
-    if (token.value && !form.value.precision)
-      form.value.precision = token.value.precision?.toString() || '';
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
@@ -122,13 +90,8 @@ onMounted(async () => {
   // Load user balances (needed for token selector)
   await tokensStore.loadBalances();
 
-  // Initialize form with query params
-  form.value.assetNum = route.query['asset-num'] as string || '';
-  selectedTokenAssetNum.value = route.query['asset-num'] as string || '';
-  form.value.precision = route.query.precision as string || '';
-
-  // Load token details if asset number is available
-  if (assetNum.value)
+  // Load token details if asset number is available from URL
+  if (route.query['asset-num'])
     await loadTokenDetails();
 
   isLoading.value = false;
@@ -146,8 +109,8 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     // Load balances now that we have an authenticated session
     await tokensStore.loadBalances();
 
-    // If nai/precision available, load token details
-    if (assetNum.value && precision.value)
+    // If asset-num available from URL, load token details
+    if (route.query['asset-num'])
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after login', e);
@@ -165,7 +128,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
   try {
     await tokensStore.loadBalances();
 
-    if (assetNum.value && precision.value)
+    if (route.query['asset-num'])
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after tokensStore.wallet changed', e);
@@ -181,7 +144,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
         <Button
-          v-if="hasNaiFromUrl || selectedTokenAssetNum"
+          v-if="hasNaiFromUrl || token"
           variant="ghost"
           size="sm"
           class="gap-2 hover:bg-accent"
@@ -238,12 +201,10 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 
         <!-- Send Transfer Card -->
         <SendTransferCard
-          v-if="token"
           :has-nai-from-url="hasNaiFromUrl"
           :should-show-token-selector="shouldShowTokenSelector"
-          :token="token"
-          :selected-token-asset-num="selectedTokenAssetNum"
-          @update-selected-token-asset-num="selectedTokenAssetNum = $event"
+          :token="token || undefined"
+          @update-token="handleTokenUpdate"
           @update-amount="form.amount = $event"
           @update-memo="form.memo = $event"
         />
@@ -251,6 +212,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
         <!-- QR Code Card (visible when asset number is available) -->
         <QRCodeCard
           v-if="assetNum"
+          :key="assetNum"
           :asset-num="assetNum"
           :amount="form.amount"
           :memo="form.memo"
