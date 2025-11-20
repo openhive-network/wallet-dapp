@@ -52,7 +52,7 @@ watch(() => form.value.memo, (newValue) => {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Send Token</CardTitle>
+      <CardTitle>Receive token</CardTitle>
       <CardDescription>
         {{ hasNaiFromUrl ? 'Specify the transfer amount and generate a QR code' : 'Enter token details and generate a QR code for transfer' }}
       </CardDescription>
