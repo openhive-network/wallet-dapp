@@ -5,18 +5,15 @@ import { useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import { TokenAmountInput } from '@/components/htm/amount';
 import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
-import { parseAssetAmount } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
-import { TokenAmountInput } from '~/src/components/htm/amount';
-
 
 interface Props {
   receiverName?: string;
@@ -26,7 +23,6 @@ interface Props {
   queryAmount?: string;
   queryMemo?: string;
   assetNum: number;
-  precision: string;
 }
 
 const props = defineProps<Props>();
@@ -38,9 +34,11 @@ const emit = defineEmits<{
 const router = useRouter();
 const tokensStore = useTokensStore();
 
+const amount = computed(() => props.queryAmount ? (props.queryAmount.slice(0, -props.tokenData.precision) + '.' + props.queryAmount.slice(-props.tokenData.precision)) : '');
+
 // Form state
 const form = ref({
-  amount: props.queryAmount || '',
+  amount: amount.value || '',
   memo: props.queryMemo || ''
 });
 
@@ -51,12 +49,12 @@ const sentSummary = ref<{ amount: string; tokenLabel: string; receiver: string; 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
 
-const tokenAmountInputValidation = ref<{ isValid: boolean; error?: string }>({ isValid: false });
+// TODO: Fix validation
 
 const isFormValid = computed(() => {
   if (!props.tokenData) return false;
-  if (form.value.amount.trim() === '') return true;
-  return tokenAmountInputValidation.value.isValid;
+  if (form.value.amount.trim() === '') return false;
+  return true;
 });
 
 const handleSend = async () => {
@@ -78,15 +76,8 @@ const handleSend = async () => {
     return;
   }
 
-  if (!tokenAmountInputValidation.value.isValid) {
-    toastError('Invalid amount', new Error(tokenAmountInputValidation.value.error || 'Invalid amount format'));
-    return;
-  }
-
   try {
     isSending.value = true;
-
-    const baseAmount = parseAssetAmount(form.value.amount, props.tokenData.precision || 0);
 
     const sender = CTokensProvider.getOperationalPublicKey()!;
 
@@ -94,7 +85,7 @@ const handleSend = async () => {
       () => ([{
         token_transfer_operation: {
           amount: {
-            amount: baseAmount,
+            amount: form.value.amount,
             nai: props.tokenData!.nai!,
             precision: props.tokenData!.precision || 0
           },
@@ -134,7 +125,7 @@ const handleSend = async () => {
 // Watch query params changes to update form
 watch(() => props.queryAmount, (newValue) => {
   if (newValue)
-    form.value.amount = newValue;
+    form.value.amount = amount.value;
 });
 
 watch(() => props.queryMemo, (newValue) => {
@@ -199,7 +190,6 @@ watch(() => props.queryMemo, (newValue) => {
           :remaining-balance="sentSummary?.remainingBalance"
           :timestamp="sentSummary?.timestamp"
           :asset-num="assetNum"
-          :precision="precision"
           :memo="form.memo"
         />
       </div>

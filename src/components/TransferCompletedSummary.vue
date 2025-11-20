@@ -16,7 +16,6 @@ interface Props {
   remainingBalance?: string;
   timestamp?: string;
   assetNum: number;
-  precision: string;
   memo?: string;
 }
 

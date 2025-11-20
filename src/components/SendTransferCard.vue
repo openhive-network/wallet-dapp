@@ -2,11 +2,11 @@
 import { computed, ref, watch } from 'vue';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import { TokenAmountInput } from '@/components/htm/amount';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import { TokenAmountInput } from '~/src/components/htm/amount';
 
 interface Props {
   hasNaiFromUrl: boolean;

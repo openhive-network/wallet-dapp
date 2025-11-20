@@ -58,11 +58,15 @@ export interface CTokenDefinitionDisplay extends CTokenDisplayBase {
 export interface CTokenPairBalanceDefinition {
   liquid: CTokenBalanceDisplay;
   vesting: CTokenBalanceDisplay;
+  total: bigint;
+  displayTotal: string;
+  isNft: boolean;
 }
 
 export interface CTokenPairDefinition {
   liquid: CTokenDefinitionDisplay;
   vesting: CTokenDefinitionDisplay;
+  isNft: boolean;
 }
 
 export interface TokenStoreApiResponse<T> {
@@ -109,7 +113,7 @@ const transformToApiResponseFormat = <ActualDataResponse, T extends {
 
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
 
-const formatAsset = (wax: IWaxBaseInterface, value: string | bigint, precision: number, name?: string): string => {
+export const formatAsset = (wax: IWaxBaseInterface, value: string | bigint, precision: number, name?: string): string => {
   const formatted = wax.formatter.formatNumber(value, precision);
   return name ? `${formatted} ${name}` : formatted;
 };
@@ -186,9 +190,14 @@ export const useTokensStore = defineStore('tokens', {
           const liquid = transformTokenBalanceToDisplayFormat(wax, token.liquid as Required<CtokensAppBalance>, token.is_nft!);
           const vesting = transformTokenBalanceToDisplayFormat(wax, token.vesting as Required<CtokensAppBalance>, token.is_nft!);
 
+          const total = liquid.balance + vesting.balance;
+          const displayTotal = formatAsset(wax, total, liquid.precision, liquid.symbol || liquid.name);
+
           return {
             liquid,
             vesting,
+            total,
+            displayTotal,
             isNft: token.is_nft!
           };
         });
