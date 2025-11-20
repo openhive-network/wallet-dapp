@@ -41,8 +41,8 @@ importers:
         specifier: 1.28.4-rc0
         version: 1.28.4-rc0
       '@hiveio/wax-signers-external':
-        specifier: 1.28.4-rc0-251117123659
-        version: 1.28.4-rc0-251117123659
+        specifier: 1.28.4-rc0-251120131051
+        version: 1.28.4-rc0-251120131051
       '@hiveio/wax-signers-keychain':
         specifier: 1.28.4-rc0
         version: 1.28.4-rc0
@@ -926,16 +926,12 @@ packages:
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
 
-  '@hiveio/beekeeper@1.28.3-251105100532':
-    resolution: {integrity: sha1-dRqsIX64FvudhMk0yn8RV9C3tIQ=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.3-251105100532.tgz}
-    engines: {node: ^20.11 || >= 21.2}
-
   '@hiveio/beekeeper@1.28.4-rc0':
     resolution: {integrity: sha1-qLgaAY/l+gXAdleuIeyaMAo6wxA=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4-rc0.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
-  '@hiveio/wax-signers-external@1.28.4-rc0-251117123659':
-    resolution: {integrity: sha1-+nVGYNk+4V4uoxo7kXccU4xJxJ8=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-external/-/@hiveio/wax-signers-external-1.28.4-rc0-251117123659.tgz}
+  '@hiveio/wax-signers-external@1.28.4-rc0-251120131051':
+    resolution: {integrity: sha1-4DwPd6fEG2eeAUIwZdeO2rRRgi0=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-external/-/@hiveio/wax-signers-external-1.28.4-rc0-251120131051.tgz}
 
   '@hiveio/wax-signers-keychain@1.28.4-rc0':
     resolution: {integrity: sha1-MyFF1iH7cVFvxbMmek6jcvsgmFI=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-keychain/-/@hiveio/wax-signers-keychain-1.28.4-rc0.tgz}
@@ -950,8 +946,8 @@ packages:
     resolution: {integrity: sha1-/Bn76DnbBPd8keqwsSzr3e7FFVc=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.28.4-rc0.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
-  '@hiveio/wax@1.28.4-rc0-251117123659':
-    resolution: {integrity: sha1-S0BuAs6PiyommK8UDUGMvgh3S1U=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.28.4-rc0-251117123659.tgz}
+  '@hiveio/wax@1.28.4-rc0-251120131051':
+    resolution: {integrity: sha1-zhJ8krhkEFesi+O1zPnovJcBxhc=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.28.4-rc0-251120131051.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@humanfs/core@0.19.1':
@@ -6286,6 +6282,9 @@ packages:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
 
+  zod@4.1.12:
+    resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
@@ -6893,14 +6892,13 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@hiveio/beekeeper@1.28.3-251105100532': {}
-
   '@hiveio/beekeeper@1.28.4-rc0': {}
 
-  '@hiveio/wax-signers-external@1.28.4-rc0-251117123659':
+  '@hiveio/wax-signers-external@1.28.4-rc0-251120131051':
     dependencies:
-      '@hiveio/beekeeper': 1.28.3-251105100532
-      '@hiveio/wax': 1.28.4-rc0-251117123659
+      '@hiveio/beekeeper': 1.28.4-rc0
+      '@hiveio/wax': 1.28.4-rc0-251120131051
+      zod: 4.1.12
 
   '@hiveio/wax-signers-keychain@1.28.4-rc0':
     dependencies:
@@ -6922,7 +6920,7 @@ snapshots:
     dependencies:
       events: 3.3.0
 
-  '@hiveio/wax@1.28.4-rc0-251117123659':
+  '@hiveio/wax@1.28.4-rc0-251120131051':
     dependencies:
       events: 3.3.0
 
@@ -13097,3 +13095,5 @@ snapshots:
       archiver-utils: 5.0.2
       compress-commons: 6.0.2
       readable-stream: 4.7.0
+
+  zod@4.1.12: {}

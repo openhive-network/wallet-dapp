@@ -1,18 +1,10 @@
 import createBeekeeper from '@hiveio/beekeeper';
 import type { IBeekeeperInstance, IBeekeeperSession, IBeekeeperUnlockedWallet } from '@hiveio/beekeeper';
 import type { IHiveChainInterface, TPublicKey, TRole } from '@hiveio/wax';
-import { ExternalSignatureProvider, GoogleStorageProvider } from '@hiveio/wax-signers-external';
+import { ExternalSignatureProvider, GoogleStorageProvider, type IWalletData } from '@hiveio/wax-signers-external';
 
 const WALLET_FILE_NAME = 'hivebridge_wallet.json';
 const WALLET_PASSWORD = crypto.randomUUID();
-
-interface WalletData {
-  accountName: string;
-  keys: { [K in TRole]?: { privateKey: string; publicKey: TPublicKey } };
-  version: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface GoogleDriveState {
   beekeeper: IBeekeeperInstance | null;
@@ -84,54 +76,7 @@ export class GoogleDriveWalletProvider {
     return (await session.createWallet(walletName, WALLET_PASSWORD)).wallet;
   }
 
-  private static async importKeysToWallet (
-    session: IBeekeeperSession,
-    keys: { posting?: string; active?: string; owner?: string; memo?: string }
-  ): Promise<{ walletData: WalletData['keys']; publicKeys: { [K in TRole]?: TPublicKey }; lastWallet: IBeekeeperUnlockedWallet }> {
-    const roles: TRole[] = ['posting', 'active', 'owner', 'memo'];
-    const walletData: WalletData['keys'] = {};
-    const publicKeys: { [K in TRole]?: TPublicKey } = {};
-    let lastWallet: IBeekeeperUnlockedWallet;
 
-    for (const role of roles) {
-      const privateKey = keys[role];
-      if (!privateKey) continue;
-
-      const wallet = await GoogleDriveWalletProvider.getOrCreateWallet(session, `gdrive_${role}`);
-      const publicKey = await wallet.importKey(privateKey);
-
-      walletData[role] = { privateKey, publicKey };
-      publicKeys[role] = publicKey;
-      lastWallet = wallet;
-    }
-
-    return { walletData, publicKeys, lastWallet: lastWallet! };
-  }
-
-  private static async createProviders (
-    walletData: WalletData['keys'],
-    wallet: IBeekeeperUnlockedWallet,
-    chain: IHiveChainInterface,
-    storage: GoogleStorageProvider
-  ): Promise<void> {
-    const roles: TRole[] = ['posting', 'active', 'owner', 'memo'];
-
-    for (const role of roles) {
-      if (!walletData[role]) continue;
-
-      const provider = await ExternalSignatureProvider.for(
-        // @ts-expect-error - Type mismatch between local wax and npm wax versions
-        chain,
-        WALLET_FILE_NAME,
-        storage,
-        wallet,
-        role
-      );
-
-      state.sessions.set(role, wallet);
-      state.providers.set(role, provider);
-    }
-  }
 
   /**
    * Create a new wallet and save to Google Drive
@@ -149,20 +94,33 @@ export class GoogleDriveWalletProvider {
     const session = state.beekeeper!.createSession(Math.random().toString());
     const chain = await GoogleDriveWalletProvider.getChain();
 
-    const { walletData, publicKeys, lastWallet } = await GoogleDriveWalletProvider.importKeysToWallet(session, keys);
+    const publicKeys: { [K in TRole]?: TPublicKey } = {};
+    const roles: TRole[] = ['posting', 'active', 'owner', 'memo'];
 
-    const fullWalletData: WalletData = {
-      accountName,
-      version: '1.0.0',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      keys: walletData
-    };
+    // Create providers for each role using ExternalSignatureProvider.createWalletFor
+    for (const role of roles) {
+      const privateKey = keys[role];
+      if (!privateKey) continue;
 
-    await storage.save(WALLET_FILE_NAME, JSON.stringify(fullWalletData));
+      const walletName = `gdrive_${role}`;
+      const wallet = await GoogleDriveWalletProvider.getOrCreateWallet(session, walletName);
+
+      const provider = await ExternalSignatureProvider.createWalletFor(
+        chain,
+        WALLET_FILE_NAME,
+        storage,
+        wallet,
+        role,
+        accountName,
+        privateKey
+      );
+
+      publicKeys[role] = provider.publicKey;
+      state.sessions.set(role, wallet);
+      state.providers.set(role, provider);
+    }
+
     state.accountName = accountName;
-
-    await GoogleDriveWalletProvider.createProviders(walletData, lastWallet, chain, storage);
 
     return publicKeys;
   }
@@ -189,9 +147,9 @@ export class GoogleDriveWalletProvider {
 
     const rawData = await storage.get(WALLET_FILE_NAME);
 
-    let walletData: WalletData;
+    let walletData: IWalletData;
     try {
-      walletData = JSON.parse(rawData) as WalletData;
+      walletData = JSON.parse(rawData) as IWalletData;
     } catch (parseError) {
       console.error('Failed to parse wallet data:', parseError);
       console.error('Raw data:', rawData);
@@ -199,11 +157,11 @@ export class GoogleDriveWalletProvider {
     }
 
     // Validate wallet has required fields
-    if (!walletData.accountName)
+    if (!walletData.hive.account)
       throw new Error('Wallet data missing account name');
 
     // Validate wallet has at least one key
-    const hasKeys = !!(walletData.keys.posting || walletData.keys.active || walletData.keys.owner || walletData.keys.memo);
+    const hasKeys = !!(walletData.hive.roleDefinitions.posting || walletData.hive.roleDefinitions.active || walletData.hive.roleDefinitions.owner || walletData.hive.roleDefinitions.memo);
     if (!hasKeys)
       throw new Error('Wallet data missing all private keys. Please recreate the wallet.');
 
@@ -215,7 +173,7 @@ export class GoogleDriveWalletProvider {
     const roles: TRole[] = ['posting', 'active', 'owner', 'memo'];
 
     for (const role of roles) {
-      const roleData = walletData.keys[role];
+      const roleData = walletData.hive.roleDefinitions[role];
       if (!roleData) continue;
 
       const walletName = `gdrive_${role}`;
@@ -231,7 +189,6 @@ export class GoogleDriveWalletProvider {
 
       // Create ExternalSignatureProvider using the library
       const provider = await ExternalSignatureProvider.for(
-        // @ts-expect-error - Type mismatch between local wax and npm wax versions
         chain,
         WALLET_FILE_NAME,
         storage,
@@ -244,10 +201,10 @@ export class GoogleDriveWalletProvider {
       loadedRoles.push(role);
     }
 
-    state.accountName = walletData.accountName;
+    state.accountName = walletData.hive.account;
 
     return {
-      accountName: walletData.accountName,
+      accountName: walletData.hive.account,
       roles: loadedRoles
     };
   }
@@ -275,9 +232,9 @@ export class GoogleDriveWalletProvider {
 
       const rawData = await storage.get(WALLET_FILE_NAME);
 
-      let walletData: WalletData;
+      let walletData: IWalletData;
       try {
-        walletData = JSON.parse(rawData) as WalletData;
+        walletData = JSON.parse(rawData) as IWalletData;
       } catch (parseError) {
         console.error('Failed to parse wallet data:', parseError);
         console.error('Raw data:', rawData);
@@ -285,13 +242,13 @@ export class GoogleDriveWalletProvider {
       }
 
       // Validate wallet has account name
-      if (!walletData.accountName) {
+      if (!walletData.hive.account) {
         console.warn('Wallet file exists but missing account name');
         return { exists: false };
       }
 
       const roles = (['posting', 'active', 'owner', 'memo'] as const).filter(
-        role => !!walletData.keys[role]
+        role => !!walletData.hive.roleDefinitions[role]
       );
 
       // Wallet must have at least one key to be valid
@@ -302,7 +259,7 @@ export class GoogleDriveWalletProvider {
 
       return {
         exists: true,
-        accountName: walletData.accountName,
+        accountName: walletData.hive.account,
         roles
       };
     } catch {

@@ -38,7 +38,7 @@
     "@eslint/js": "^9.32.0",
     "@hiveio/beekeeper": "1.28.4-rc0",
     "@hiveio/wax": "1.28.4-rc0",
-    "@hiveio/wax-signers-external": "1.28.4-rc0-251117123659",
+    "@hiveio/wax-signers-external": "1.28.4-rc0-251120131051",
     "@hiveio/wax-signers-keychain": "1.28.4-rc0",
     "@hiveio/wax-signers-metamask": "1.28.4-rc0",
     "@hiveio/wax-signers-peakvault": "1.28.4-rc0",
