@@ -298,21 +298,32 @@ watch(tokenSymbol, (newValue) => {
 });
 
 // Computed property for token preview data
-const previewToken = computed(() => ({
-  name: tokenName.value || undefined,
-  symbol: tokenSymbol.value || undefined,
-  description: tokenDescription.value || undefined,
-  nai: generatedNAI.value || undefined,
-  image: tokenImage.value || undefined,
-  website: tokenWebsite.value || undefined,
-  totalSupply: initialSupply.value,
-  maxSupply: capped.value ? initialSupply.value : undefined,
-  precision: parseInt(precision.value) ?? 3,
-  capped: capped.value,
-  othersCanStake: othersCanStake.value,
-  othersCanUnstake: othersCanUnstake.value,
-  ownerPublicKey: CTokensProvider.getOperationalPublicKey()
-}));
+const previewToken = computed(() => {
+  const precisionValue = parseInt(precision.value) || 3;
+  const supplyValue = BigInt(parseAssetAmount(initialSupply.value || '0', precisionValue));
+
+  return {
+    isNft: false,
+    nai: generatedNAI.value || '@@000000000',
+    assetNum: 0,
+    isStaked: false,
+    precision: precisionValue,
+    metadata: {},
+    name: tokenName.value || undefined,
+    symbol: tokenSymbol.value || undefined,
+    description: tokenDescription.value || undefined,
+    image: tokenImage.value || undefined,
+    website: tokenWebsite.value || undefined,
+    ownerPublicKey: CTokensProvider.getOperationalPublicKey() || '',
+    displayTotalSupply: initialSupply.value || '0',
+    totalSupply: supplyValue,
+    maxSupply: capped.value ? supplyValue : BigInt(0),
+    displayMaxSupply: capped.value ? initialSupply.value || '0' : '0',
+    capped: capped.value,
+    othersCanStake: othersCanStake.value,
+    othersCanUnstake: othersCanUnstake.value
+  };
+});
 </script>
 
 <template>
