@@ -84,3 +84,15 @@ export const generateNAI = (symbol: string, precision: number): string => {
   while (isVesting(randomNAI, precision)); // Keep generating until we get a liquid (non-vesting) NAI
   return randomNAI;
 };
+
+/**
+ * Parse asset amount - convert decimal to base units (integer with precision zeros)
+ * @param amountStr - The amount string in decimal format
+ * @param precision - The number of decimal places for the token
+ * @returns The amount as a string in base units
+ */
+export const parseAssetAmount = (amountStr: string, precision: number): string => {
+  const [integerPart, fractionalPart = ''] = amountStr.split('.');
+  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
+  return integerPart + normalizedFractional;
+};

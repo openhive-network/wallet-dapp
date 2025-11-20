@@ -19,6 +19,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
+import { validateTokenSymbol } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
@@ -63,10 +64,7 @@ const tokenImage = computed(() => {
 // Form validation
 const isFormValid = computed(() => {
   return form.value.name.trim() !== '' &&
-         form.value.symbol.trim() !== '' &&
-         form.value.symbol.length >= 3 &&
-         form.value.symbol.length <= 10 &&
-         /^[A-Z]+$/i.test(form.value.symbol.trim());
+         validateTokenSymbol(form.value.symbol).isValid;
 });
 
 // Check if form has changes
@@ -359,16 +357,10 @@ onMounted(async () => {
                 3-10 uppercase letters (e.g., BTC, ETH, HIVE)
               </p>
               <p
-                v-if="form.symbol && !/^[A-Z]+$/i.test(form.symbol.trim())"
+                v-if="form.symbol && !validateTokenSymbol(form.symbol).isValid"
                 class="text-xs text-red-500"
               >
-                Symbol must contain only letters
-              </p>
-              <p
-                v-if="form.symbol && (form.symbol.length < 3 || form.symbol.length > 10)"
-                class="text-xs text-red-500"
-              >
-                Symbol must be 3-10 characters
+                {{ validateTokenSymbol(form.symbol).message }}
               </p>
             </div>
 

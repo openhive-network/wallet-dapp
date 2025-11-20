@@ -10,6 +10,7 @@ import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
+import { parseAssetAmount } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -57,12 +58,6 @@ const isFormValid = computed(() => {
   if (form.value.amount.trim() === '') return true;
   return tokenAmountInputValidation.value.isValid;
 });
-
-const parseAssetAmount = (amountStr: string, precision: number): string => {
-  const [integerPart, fractionalPart = ''] = amountStr.split('.');
-  const normalizedFractional = fractionalPart.padEnd(precision, '0').slice(0, precision);
-  return integerPart + normalizedFractional;
-};
 
 const handleSend = async () => {
   if (!props.tokenData) {
