@@ -2,20 +2,16 @@
 import { computed, ref, watch } from 'vue';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
-import TokenAmountInput from '~/src/components/htm/amount/Input.vue';
-
+import { TokenAmountInput } from '~/src/components/htm/amount';
 
 interface Props {
   hasNaiFromUrl: boolean;
   shouldShowTokenSelector: boolean;
-  token: CTokenDisplayBase;
-  selectedTokenAssetNum?: string;
+  token?: CTokenDisplayBase;
   initialAmount?: string;
   initialMemo?: string;
 }
@@ -23,7 +19,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const emit = defineEmits<{
-  updateSelectedTokenAssetNum: [value: string];
+  updateToken: [value: CTokenDisplayBase | undefined];
   updateAmount: [value: string];
   updateMemo: [value: string];
 }>();
@@ -34,70 +30,14 @@ const form = ref({
   memo: props.initialMemo || ''
 });
 
-const selectedTokenAssetNum = computed({
-  get: () => props.selectedTokenAssetNum || '',
-  set: (value: string) => emit('updateSelectedTokenAssetNum', value)
+const selectedToken = computed<CTokenDisplayBase | undefined>({
+  get: () => props.token,
+  set: (value) => {
+    emit('updateToken', value);
+  }
 });
-
-const showDetails = ref(false);
 
 const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
-
-const amountValidation = computed(() => {
-  if (!form.value.amount)
-    return { isValid: true, error: '' };
-
-  if (!props.token)
-    return { isValid: true, error: '' };
-
-  return validateAmountPrecision(form.value.amount, props.token.precision || 0);
-});
-
-const validateAmountPrecision = (amount: string, precision: number): { isValid: boolean; error?: string; parsedAmount?: string } => {
-  try {
-    const cleanAmount = amount.replace(/[,\s]/g, '');
-
-    if (!/^\d*\.?\d*$/.test(cleanAmount))
-      return { isValid: false, error: 'Amount must contain only digits and decimal point' };
-
-    const numAmount = parseFloat(cleanAmount);
-    if (isNaN(numAmount) || numAmount <= 0)
-      return { isValid: false, error: 'Amount must be a positive number' };
-
-    if (!isFinite(numAmount))
-      return { isValid: false, error: 'Amount value is too large' };
-
-    const decimalIndex = cleanAmount.indexOf('.');
-    if (decimalIndex !== -1) {
-      const decimalPlaces = cleanAmount.length - decimalIndex - 1;
-      if (decimalPlaces > precision) {
-        return {
-          isValid: false,
-          error: `Amount has too many decimal places. Maximum ${precision} decimal places allowed for this token.`
-        };
-      }
-    }
-
-    const multiplier = Math.pow(10, precision);
-    const baseUnits = numAmount * multiplier;
-
-    const MAX_SAFE_BASE_UNITS = Number.MAX_SAFE_INTEGER;
-    if (baseUnits > MAX_SAFE_BASE_UNITS)
-      return { isValid: false, error: 'Amount is too large and would cause overflow' };
-
-    const roundedBaseUnits = Math.round(baseUnits);
-    if (Math.abs(baseUnits - roundedBaseUnits) > 0.0001) {
-      return {
-        isValid: false,
-        error: `Amount precision mismatch. Please use at most ${precision} decimal places.`
-      };
-    }
-
-    return { isValid: true, parsedAmount: roundedBaseUnits.toString() };
-  } catch (_error) {
-    return { isValid: false, error: 'Invalid amount format' };
-  }
-};
 
 // Watch form changes to emit updates
 watch(() => form.value.amount, (newValue) => {
@@ -129,66 +69,11 @@ watch(() => form.value.memo, (newValue) => {
         </div>
       </div>
 
-      <!-- Token selector (compact) -->
-      <TokenSelectorWithAmount
-        v-if="shouldShowTokenSelector"
-        v-model="form.amount"
-        v-model:selected-token-asset-num="selectedTokenAssetNum"
-        :token-symbol="token.symbol"
-        :token-name="token.name!"
-        :token-precision="props.token!.precision"
-        :token-image="props.token!.image"
-        :is-valid="amountValidation.isValid"
-        :validation-error="amountValidation.error"
-      />
-
-      <!-- Small details toggle for NAI/precision when needed -->
-      <div
-        v-if="!hasNaiFromUrl && !shouldShowTokenSelector"
-        class="flex items-center justify-between"
-      >
-        <div class="text-xs text-muted-foreground">
-          Asset num / precision
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          class="px-2 py-1"
-          @click="showDetails = !showDetails"
-        >
-          {{ showDetails ? 'Hide' : 'Show' }}
-        </Button>
-      </div>
-
-      <div
-        v-if="showDetails && !hasNaiFromUrl && !shouldShowTokenSelector"
-        class="grid grid-cols-2 gap-2"
-      >
-        <Input
-          id="asset-num"
-          type="text"
-          placeholder="Asset number"
-          class="transition-colors"
-          disabled
-          :value="token!.assetNum"
-        />
-        <Input
-          id="precision"
-          type="number"
-          placeholder="Precision"
-          min="0"
-          max="18"
-          class="transition-colors"
-          disabled
-          :value="token!.assetNum"
-        />
-      </div>
-
-      <!-- Amount compact -->
+      <!-- Amount with token selector or explicit token -->
       <TokenAmountInput
-        v-if="!shouldShowTokenSelector"
         v-model="form.amount"
-        :token="token"
+        v-model:token="selectedToken"
+        :variant="shouldShowTokenSelector ? 'selector' : 'explicit'"
       />
 
       <!-- Memo compact -->
