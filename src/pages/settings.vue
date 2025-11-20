@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import GoogleDriveSync from '@/components/settings/GoogleDriveSync.vue';
+import GoogleDriveKeyManager from '@/components/settings/GoogleDriveKeyManager.vue';
 </script>
 
 <template>
@@ -7,12 +7,6 @@ import GoogleDriveSync from '@/components/settings/GoogleDriveSync.vue';
     <h1 class="text-3xl font-bold mb-6">
       Settings
     </h1>
-
-    <div class="space-y-6">
-      <!-- Google Drive Sync Section -->
-      <GoogleDriveSync />
-
-      <!-- Add more settings sections here -->
-    </div>
+    <GoogleDriveKeyManager />
   </div>
 </template>

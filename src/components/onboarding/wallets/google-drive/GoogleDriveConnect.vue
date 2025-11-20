@@ -4,11 +4,10 @@ import { ref, onMounted } from 'vue';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Input from '@/components/ui/input/Input.vue';
+import Label from '@/components/ui/label/Label.vue';
 import { UsedWallet, getWalletIcon } from '@/stores/settings.store';
 import { GoogleDriveWalletProvider as GoogleDriveProvider } from '@/utils/wallet/google-drive/provider';
-
-import Input from '~/src/components/ui/input/Input.vue';
-import Label from '~/src/components/ui/label/Label.vue';
 
 type GoogleDriveWalletStatus = {
   exists: boolean;
@@ -87,7 +86,6 @@ const logoutFromGoogle = async () => {
     await checkWalletStatus();
   } catch (err) {
     error.value = `Error logging out: ${err instanceof Error ? err.message : String(err)}`;
-    console.error('Logout error:', err);
   } finally {
     isProcessing.value = false;
   }
@@ -118,9 +116,7 @@ async function checkWalletStatus () {
         if (statusData.authenticated && statusData.user)
           googleUser.value = statusData.user;
       }
-    } catch (userErr) {
-      console.warn('Failed to fetch Google user info:', userErr);
-    }
+    } catch (_e) {}
 
     // User is authenticated with Google - now fetch wallet info
     const info = await GoogleDriveProvider.getWalletInfo();
@@ -135,13 +131,11 @@ async function checkWalletStatus () {
       // Auto-load wallet - it should be automatically unlocked since it's stored in Google Drive
       try {
         const result = await GoogleDriveProvider.loadWallet();
-        console.log('Wallet loaded automatically:', result);
 
         // Save account name and emit event
         emit('setaccount', result.accountName);
         step.value = 'success';
       } catch (autoLoadErr) {
-        console.error('Could not auto-load wallet:', autoLoadErr);
         const errorMessage = autoLoadErr instanceof Error ? autoLoadErr.message : String(autoLoadErr);
 
         // If wallet exists but is invalid (missing keys), prompt to recreate
@@ -168,7 +162,6 @@ async function checkWalletStatus () {
       error.value = `Error checking wallet: ${err instanceof Error ? err.message : String(err)}`;
       step.value = 'check';
     }
-    console.error('Wallet check error:', err);
   } finally {
     isLoading.value = false;
   }
@@ -205,15 +198,11 @@ async function createWallet () {
     if (form.value.memoKey)
       keys.memo = form.value.memoKey;
 
-    console.log('Creating wallet for account:', form.value.accountName);
-
     // Create wallet with password (access token is handled via cookies)
     await GoogleDriveProvider.createWallet(
       form.value.accountName,
       keys
     );
-
-    console.log('Wallet created and loaded successfully');
 
     // Save account name before clearing form
     const createdAccountName = form.value.accountName;
@@ -236,8 +225,6 @@ async function createWallet () {
       step.value = 'connect'; // Send user back to connect step
     } else
       error.value = `Error creating wallet: ${err instanceof Error ? err.message : String(err)}`;
-
-    console.error('Create wallet error:', err);
   } finally {
     isProcessing.value = false;
   }

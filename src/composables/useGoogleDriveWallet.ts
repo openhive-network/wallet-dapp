@@ -43,12 +43,12 @@ export function useGoogleDriveWallet () {
     await GoogleDriveWalletProvider.logout();
   };
 
-  const getPublicKey = (role: TRole): TPublicKey | undefined => {
-    return GoogleDriveWalletProvider.getPublicKey(role);
+  const addKey = async (role: TRole, privateKey: string): Promise<TPublicKey> => {
+    return await GoogleDriveWalletProvider.addKey(role, privateKey);
   };
 
-  const isWalletLoaded = (): boolean => {
-    return GoogleDriveWalletProvider.isWalletLoaded();
+  const removeKey = async (role: TRole): Promise<void> => {
+    await GoogleDriveWalletProvider.removeKey(role);
   };
 
   return {
@@ -67,7 +67,7 @@ export function useGoogleDriveWallet () {
     getWalletInfo,
     deleteWallet,
     logout,
-    getPublicKey,
-    isWalletLoaded
+    addKey,
+    removeKey
   };
 }
