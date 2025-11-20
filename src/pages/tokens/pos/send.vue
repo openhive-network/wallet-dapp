@@ -28,7 +28,6 @@ const isLoading = ref(true);
 
 // Get parameters from route query
 const assetNum = computed(() => Number(route.query['asset-num']));
-const precision = computed(() => route.query.precision as string);
 const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
 const queryAmount = computed(() => route.query.amount as string | undefined);
 const queryMemo = computed(() => route.query.memo as string | undefined);
@@ -110,7 +109,7 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
     await tokensStore.loadBalances();
     await fetchHTMUserData();
 
-    if (assetNum.value && precision.value)
+    if (assetNum.value)
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after login', e);
@@ -129,7 +128,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     await tokensStore.loadBalances();
     await fetchHTMUserData();
 
-    if (assetNum.value && precision.value)
+    if (assetNum.value)
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after tokensStore.wallet changed', e);
@@ -209,7 +208,6 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           :query-amount="queryAmount"
           :query-memo="queryMemo"
           :asset-num="assetNum"
-          :precision="precision"
         />
       </div>
     </div>

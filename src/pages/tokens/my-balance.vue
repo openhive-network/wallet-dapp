@@ -26,11 +26,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
 import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse } from '@/stores/tokens.store';
-import { parseAssetAmount } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
 
 const router = useRouter();
 const tokensStore = useTokensStore();
@@ -124,9 +122,6 @@ const transferTokens = async () => {
   try {
     isTransferLoading.value = true;
 
-    // Convert decimal amount to base units (add precision zeros)
-    const baseAmount = parseAssetAmount(transferAmount.value, selectedTokenForTransfer.value?.precision || 0);
-
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -134,7 +129,7 @@ const transferTokens = async () => {
           receiver: transferRecipient.value,
           sender: CTokensProvider.getOperationalPublicKey()!,
           amount: {
-            amount: baseAmount,
+            amount: transferAmount.value,
             nai: selectedTokenForTransfer.value?.nai || '',
             precision: selectedTokenForTransfer.value?.precision || 0
           },
@@ -170,15 +165,12 @@ const transformTokens = async () => {
   try {
     isTransformLoading.value = true;
 
-    // Convert decimal amount to base units (add precision zeros)
-    const baseAmount = parseAssetAmount(transformAmount.value, selectedToken.value!.precision!);
-
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
         token_transform_operation: {
           amount: {
-            amount: baseAmount,
+            amount: transformAmount.value,
             nai: selectedToken.value!.nai!,
             precision: selectedToken.value!.precision!
           },
@@ -223,7 +215,7 @@ const setMaxTransformAmount = async () => {
 };
 
 // Initialize
-onMounted(async () => {
+onMounted(() => {
   loadAccountBalances();
 });
 </script>
@@ -601,7 +593,7 @@ onMounted(async () => {
                     <!-- Total Balance -->
                     <td class="p-4 text-right">
                       <div class="font-semibold tabular-nums">
-                        {{ balance.liquid.balance + balance.vesting.balance /* Maybe beautify this display somehow */ }}
+                        {{ balance.displayTotal }}
                       </div>
                     </td>
 
@@ -776,6 +768,7 @@ onMounted(async () => {
             <TokenAmountInput
               v-if="selectedTokenForTransfer"
               v-model="transferAmount"
+              variant="explicit"
               :token="selectedTokenForTransfer"
               :disabled="isTransferLoading"
               :available-balance="selectedTokenForTransfer!.displayBalance"
@@ -868,6 +861,7 @@ onMounted(async () => {
             <TokenAmountInput
               v-if="selectedToken"
               v-model="transformAmount"
+              variant="explicit"
               :token="selectedToken"
               :disabled="isTransformLoading"
               :available-balance="selectedToken.displayBalance"

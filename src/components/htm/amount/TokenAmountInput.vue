@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
-import type { CTokenDisplayBase } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 import Input from './Input.vue';
 import TokenSelector from './TokenSelector.vue';
@@ -33,22 +34,36 @@ const validationError = ref<string | undefined>(undefined); /* This is the valid
 
 const selectedAvailableBalance = ref<string>('');
 
+const tokensStore = useTokensStore();
+
 // Rewrite display symbol
 watch(internalModel, () => {
-  if (!selectedToken.value) return;
+  if (!selectedToken.value || validationError.value) return;
 
   const [integerPart, decimalPart] = internalModel.value.replace(/[,\s]/g, '').split('.');
 
   model.value = integerPart + ((decimalPart ?? '').padEnd(selectedToken.value.precision, '0'));
+}, { flush: 'post' }); // Flush after validation updates
+watch(model, () => { // Allow clearing input when model is set to ''
+  if (model.value === '' && validationError.value === undefined) // Clear only when there's no validation error
+    internalModel.value = '';
 });
 watch(validationError, () => {
   // Clear model if there's a validation error
   if (validationError.value)
     model.value = '';
 });
-watch(selectedToken, newValue => {
+watch(selectedToken, async newValue => {
   if (newValue && 'displayBalance' in newValue) // only for CTokenBalanceDisplay - selector variant
     selectedAvailableBalance.value = newValue.displayBalance as string;
+  else if (newValue) {
+    const key = CTokensProvider.getOperationalPublicKey();
+    if (!key) return;
+    try {
+      const tokensBalance = await tokensStore.getBalanceSingleToken(key, newValue.assetNum);
+      selectedAvailableBalance.value = tokensBalance.displayBalance;
+    } catch {} // TODO: Move this balance fetching logic to the components above
+  }
 });
 
 const handleMax = () => {
@@ -65,6 +80,8 @@ const handleMax = () => {
 };
 
 onMounted(() => {
+  if (model.value)
+    internalModel.value = model.value;
   if (props.token)
     selectedToken.value = props.token;
   if (props.variant === 'explicit' && props.availableBalance)
@@ -80,7 +97,7 @@ onMounted(() => {
     >
       Amount
     </Label>
-    <div :class="['relative flex rounded-md border items-center w-full transition-colors', internalModel ? (validationError ? 'border-red-500 focus-visible:ring-red-500' : 'border-green-500 focus-visible:ring-green-500') : '']">
+    <div :class="['relative flex rounded-md border-input border focus-within:ring-1 focus-within:ring-ring items-center w-full transition-colors', internalModel ? (validationError ? 'border-red-500 focus-visible:ring-red-500' : 'border-green-500 focus-visible:ring-green-500') : '']">
       <div :class="variant === 'selector' ? 'flex-1' : 'w-full'">
         <Input
           :id="id"

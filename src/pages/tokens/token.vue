@@ -18,10 +18,11 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay, type CTokenUserRanked } from '@/stores/tokens.store';
+import { formatAsset, useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay, type CTokenUserRanked } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 import { copyText } from '@/utils/copy';
-import { isVesting, toLiquid, toVesting, parseAssetAmount } from '@/utils/nai-tokens';
+import { isVesting, toLiquid, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidPublicKey, validateAmountPrecision } from '@/utils/validators';
@@ -112,10 +113,21 @@ const loadTokenDetails = async () => {
 
     // Load user balance if user is logged in
     if (isLoggedIn.value) {
-      userBalance.value = await tokensStore.getBalanceSingleToken(
-        CTokensProvider.getOperationalPublicKey()!,
-        assetNum.value
-      );
+      try {
+        userBalance.value = await tokensStore.getBalanceSingleToken(
+          CTokensProvider.getOperationalPublicKey()!,
+          assetNum.value
+        );
+      } catch {
+        const wax = await getWax();
+
+        userBalance.value = {
+          ...token.value,
+          balance: 0n,
+          displayBalance: formatAsset(wax, '0', token.value.precision || 0, token.value.symbol || token.value.name)
+        };
+      } // Do not fail when user has no balance for this token
+      // XXX: Function above should not fail when user has no balance ^^ API CHANGE
     }
   } catch (error) {
     toastError('Failed to load token details', error);
@@ -166,15 +178,12 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
-    // Convert decimal amount to base units (add precision zeros)
-    const baseAmount = parseAssetAmount(transferForm.value.amount, token.value.precision || 0);
-
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
         token_transfer_operation: {
           amount: {
-            amount: baseAmount,
+            amount: transferForm.value.amount,
             nai: token.value!.nai!,
             precision: token.value!.precision || 0
           },
@@ -245,9 +254,6 @@ const handleStake = async () => {
   try {
     isStaking.value = true;
 
-    // Convert decimal amount to base units (add precision zeros)
-    const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
-
     let nai = token.value!.nai!;
     const isVestingNai = isVesting(token.value.nai!, token.value.precision || 0);
     if (isVestingNai)
@@ -260,7 +266,7 @@ const handleStake = async () => {
           holder: CTokensProvider.getOperationalPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
-            amount: baseAmount,
+            amount: stakeForm.value.amount,
             nai,
             precision: token.value!.precision || 0
           }
@@ -327,9 +333,6 @@ const handleUnstake = async () => {
   try {
     isUnstaking.value = true;
 
-    // Convert decimal amount to base units (add precision zeros)
-    const baseAmount = parseAssetAmount(stakeForm.value.amount, token.value.precision || 0);
-
     let nai = token.value!.nai!;
     const isVestingNai = isVesting(token.value.nai!, token.value.precision || 0);
     if (!isVestingNai)
@@ -342,7 +345,7 @@ const handleUnstake = async () => {
           holder: CTokensProvider.getOperationalPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
-            amount: baseAmount,
+            amount: stakeForm.value.amount,
             nai,
             precision: token.value!.precision || 0
           }

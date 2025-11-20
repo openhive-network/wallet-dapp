@@ -16,7 +16,9 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
-const settings = useSettingsStore();
+const settingsStore = useSettingsStore();
+
+const { settings } = storeToRefs(settingsStore);
 
 const creator = ref<string>('');
 const accountName = ref<string>('');
@@ -33,8 +35,14 @@ const router = useRouter();
 const wallet = useWalletStore();
 const hasWallet = computed(() => wallet.hasWallet);
 
+watch(settings, () => {
+  if (settings.value.account)
+    creator.value = `@${settings.value.account}`;
+
+}, { immediate: true });
+
 onMounted(() => {
-  creator.value = settings.account ? `@${settings.account}` : '';
+  creator.value = settings.value.account ? `@${settings.value.account}` : '';
 
   accountName.value = router.currentRoute.value.query.acc as string ?? '';
   memoKey.value = router.currentRoute.value.query.memo as string ?? '';
@@ -56,7 +64,7 @@ const createAccount = async () => {
     const tx = await wax.createTransaction();
     const { median_props: { account_creation_fee } } = await wax.api.database_api.get_witness_schedule({});
     const commonAccountCreateConfig = {
-      creator: settings.account!,
+      creator: settings.value.account!,
       new_account_name: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
       memo_key: memoKey.value,
       owner: {
@@ -89,7 +97,7 @@ const createAccount = async () => {
       if (enableDelegation.value) {
         tx.pushOperation({
           delegate_vesting_shares_operation: {
-            delegator: settings.account!,
+            delegator: settings.value.account!,
             delegatee: accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value,
             vesting_shares: wax.vestsCoins(delegationAmount.value)
           }
@@ -113,7 +121,7 @@ const createAccount = async () => {
     }
 
 
-    await wallet.createWalletFor(settings.settings, 'active');
+    await wallet.createWalletFor(settings.value, 'active');
     await wallet.wallet!.signTransaction(tx);
     await wax.broadcast(tx);
 
