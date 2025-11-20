@@ -2,67 +2,70 @@
 import { mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/htm/HTMView.vue';
-import QRCodeCard from '@/components/htm/tokens/QRCodeCard.vue';
-import SendTransferCard from '@/components/SendTransferCard.vue';
+import ReceiveTransferCard from '@/components/ReceiveTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
+import { useSettingsStore } from '@/stores/settings.store';
+import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import { useUserStore } from '@/stores/user.store';
 import { toastError } from '@/utils/parse-error';
+import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
 const router = useRouter();
 
+const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
+const userStore = useUserStore();
 
 // State
-const token = ref<CTokenDisplayBase | null>(null);
+const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 
-// Form state
-const form = ref({
-  amount: '',
-  memo: ''
-});
+// Get parameters from route query
+const assetNum = computed(() => Number(route.query['asset-num']));
+const precision = computed(() => route.query.precision as string);
+const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
+const queryAmount = computed(() => route.query.amount as string | undefined);
+const queryMemo = computed(() => route.query.memo as string | undefined);
 
-// Get NAI from route parameters or selected token
-const assetNum = computed(() => {
-  if (route.query['asset-num']) return Number(route.query['asset-num']);
-  return token.value?.assetNum || null;
-});
-
-// Check if NAI is provided in URL
-const hasNaiFromUrl = computed(() => !!route.query['asset-num']);
-
-// Check if we should show token selector (when no asset-num is provided)
-const shouldShowTokenSelector = computed(() => {
-  return !hasNaiFromUrl.value && isLoggedIn.value;
-});
+const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);
 
-// Handle token update from SendTransferCard
-const handleTokenUpdate = (newToken: CTokenDisplayBase | undefined) => {
-  token.value = newToken || null;
+const htmUserMetadata = ref<{
+  displayName: string;
+  about?: string;
+  name?: string;
+  profileImage?: string;
+  website?: string;
+} | undefined>(undefined);
+
+const fetchHTMUserData = async () => {
+  try {
+    htmUserMetadata.value = await tokensStore.getCurrentUserMetadata();
+  } catch (_error) {}
 };
+
+// Receiver display helpers
+const receiverDisplayName = computed(() => {
+  // The recipient is you — prefer parsed user name (L2 if available)
+  const name = userStore.name || settingsStore.settings.account || userOperationalKey.value || '';
+  if (name) return name;
+  return 'You';
+});
 
 // Load token details
 const loadTokenDetails = async () => {
   if (!assetNum.value) return;
 
   try {
-    // Fetch token details by NAI
-    const tokens = await tokensStore.getTokenByAssetNum(Number(assetNum.value));
-
-    token.value = tokens;
-
-    if (!token.value)
-      throw new Error(`Token with asset number ${assetNum.value} not found`);
+    token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
@@ -79,26 +82,24 @@ const goBack = () => {
 
 // Initialize
 onMounted(async () => {
-  // Require login for send/generate QR mode
-  if (!isLoggedIn.value) {
-    toast.error('You must be logged in to use this feature');
-    return;
-  }
+  // Allow viewing without login, but login will be required when clicking "Send Token"
 
   isLoading.value = true;
 
-  // Load user balances (needed for token selector)
-  await tokensStore.loadBalances();
+  // Load user balances if logged in
+  if (isLoggedIn.value) {
+    await tokensStore.loadBalances();
+    await fetchHTMUserData();
+  }
 
-  // Load token details if asset number is available from URL
-  if (route.query['asset-num'])
+  // Load token details if asset number is available
+  if (assetNum.value)
     await loadTokenDetails();
 
   isLoading.value = false;
 });
 
-// If the user logs in after the page mounted (for example after entering password),
-// reload balances and token details
+// If the user logs in after the page mounted, reload balances, HTM user metadata, and token details
 watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
   // Only act when the user becomes logged in
   if (!loggedIn || wasLoggedIn === loggedIn) return;
@@ -106,11 +107,10 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
   isLoading.value = true;
 
   try {
-    // Load balances now that we have an authenticated session
     await tokensStore.loadBalances();
+    await fetchHTMUserData();
 
-    // If asset-num available from URL, load token details
-    if (route.query['asset-num'])
+    if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after login', e);
@@ -119,7 +119,7 @@ watch(isLoggedIn, async (loggedIn, wasLoggedIn) => {
   }
 });
 
-// Also watch the tokens store wallet instance - this changes when CTokensProvider is set
+// Also watch the tokens store wallet instance
 watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
   if (!newWallet || newWallet === oldWallet) return;
 
@@ -127,8 +127,9 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 
   try {
     await tokensStore.loadBalances();
+    await fetchHTMUserData();
 
-    if (route.query['asset-num'])
+    if (assetNum.value && precision.value)
       await loadTokenDetails();
   } catch (e) {
     toastError('Error reloading data after tokensStore.wallet changed', e);
@@ -144,7 +145,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
         <Button
-          v-if="hasNaiFromUrl || token"
+          v-if="assetNum"
           variant="ghost"
           size="sm"
           class="gap-2 hover:bg-accent"
@@ -184,7 +185,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
         </Card>
       </div>
 
-      <!-- Send Form -->
+      <!-- Send Token Form (from QR scan) -->
       <div
         v-if="!isLoading"
         class="space-y-6"
@@ -192,30 +193,23 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
         <!-- Page Title -->
         <div>
           <h1 class="text-3xl font-bold text-foreground mb-2">
-            {{ hasNaiFromUrl ? 'Receive Token' : 'Receive Token' }}
+            Send Token
           </h1>
           <p class="text-muted-foreground">
-            {{ hasNaiFromUrl ? 'Generate a QR code for others to scan and send you tokens.' : 'Select a token and generate a QR code for others to scan and send you tokens.' }}
+            Confirm and send the token transfer.
           </p>
         </div>
 
-        <!-- Send Transfer Card -->
-        <SendTransferCard
-          :has-nai-from-url="hasNaiFromUrl"
-          :should-show-token-selector="shouldShowTokenSelector"
-          :token="token || undefined"
-          @update-token="handleTokenUpdate"
-          @update-amount="form.amount = $event"
-          @update-memo="form.memo = $event"
-        />
-
-        <!-- QR Code Card (visible when asset number is available) -->
-        <QRCodeCard
-          v-if="assetNum"
-          :key="assetNum"
+        <!-- Receive Transfer Card -->
+        <ReceiveTransferCard
+          :receiver-name="htmUserMetadata?.displayName || receiverDisplayName"
+          :receiver-key="receiverKey"
+          :receiver-avatar="htmUserMetadata?.profileImage"
+          :token-data="token!"
+          :query-amount="queryAmount"
+          :query-memo="queryMemo"
           :asset-num="assetNum"
-          :amount="form.amount"
-          :memo="form.memo"
+          :precision="precision"
         />
       </div>
     </div>

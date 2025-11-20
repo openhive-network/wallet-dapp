@@ -385,7 +385,7 @@ const editToken = () => {
 
 const showQRCode = () => {
   router.push({
-    path: '/tokens/pos/send',
+    path: '/tokens/pos/receive',
     query: { 'asset-num': assetNum.value }
   });
 };
