@@ -125,41 +125,42 @@ stop_dev_environment:
     name: auth-dev-mainnet
     action: stop
 
-deploy_htm_dev_environment:
+.deploy_htm_environment:
   extends: .webapp_deploy_template
   stage: deploy
   needs:
     - push_protected_app_image
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
-    CONTAINER_NAME: "hive_bridge_htm_dev_deployment"
-    PORT: 8144 # htm.dev.openhive.network (mirrornet)(port 8144)
+    CONTAINER_NAME: "hive_bridge_htm_deployment"
+    PORT: 8144 # htm.openhive.network (mirrornet)(port 8144)
     DEPLOYMENT_ENV_FILE: "MIRRORNET_HTM_DEV_DEPLOYMENT_ENV"
   environment:
-    name: htm-dev-mirrornet
-    url: https://htm.dev.openhive.network
-    on_stop: stop_htm_dev_environment
+    name: htm-mirrornet
+    url: https://htm.openhive.network
+    on_stop: stop_htm_environment
 
   rules:
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
-      when: manual
-      allow_failure: true
+      #when: manual
+      #allow_failure: true
+      when: never # temp. disabled until app will be ready
     - when: never
 
-stop_htm_dev_environment:
+.stop_htm_environment:
   extends: .webapp_stop_template
   stage: cleanup
   needs:
-  - job: deploy_htm_dev_environment
+  - job: deploy_htm_environment
     optional: true
   variables:
-    CONTAINER_NAME: hive_bridge_htm_dev_deployment
+    CONTAINER_NAME: hive_bridge_htm_deployment
   rules:
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
       when: manual
       allow_failure: true
   environment:
-    name: htm-dev-mirrornet
+    name: htm-mirrornet
     action: stop
 
 deploy_prototyping_environment:
