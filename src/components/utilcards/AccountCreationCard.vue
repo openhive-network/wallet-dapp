@@ -28,7 +28,7 @@ const handleClick = async () => {
     if (!hasAnyWallet.value) {
       // Check specifically for MetaMask - if not installed, redirect to installation page
       if (!walletsStatus.value.metamask) {
-        window.open('https://docs.metamask.io/snaps/get-started/install-flask/', '_blank');
+        window.open('https://metamask.io/download/', '_blank');
         return;
       }
       // If other wallets are available, open wallet selection modal

@@ -52,7 +52,7 @@ const close = () => {
     </CardHeader>
     <CardContent class="space-y-2">
       <OnboardingButton
-        download-url="https://docs.metamask.io/snaps/get-started/install-flask/"
+        download-url="https://metamask.io/download/"
         :disabled="!walletsStatus.metamask"
         :logo-url="getWalletIcon(UsedWallet.METAMASK)"
         name="Metamask"

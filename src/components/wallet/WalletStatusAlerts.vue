@@ -11,7 +11,7 @@ const props = defineProps<{
 const walletStore = useWalletStore();
 
 const defaultWalletName = props.walletName || 'Metamask';
-const defaultInstallUrl = props.installUrl || 'https://docs.metamask.io/snaps/get-started/install-flask/';
+const defaultInstallUrl = props.installUrl || 'https://metamask.io/download/';
 </script>
 
 <template>

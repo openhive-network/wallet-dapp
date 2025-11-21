@@ -4,7 +4,7 @@ Metamask Wallet dApp
 
 ## Running
 
-1. Install and configure [Metamask Flask](https://docs.metamask.io/snaps/get-started/install-flask/). **REMEMBER TO DISABLE STANDARD METAMASK BEFORE TESTING**
+1. Install and configure [Metamask](https://metamask.io/download). In case of producing another (not yet accepted) version of snap, you will need to use a [Metamask Flask](https://docs.metamask.io/snaps/get-started/install-flask/). **REMEMBER TO DISABLE STANDARD METAMASK BEFORE TESTING**
 1. Install project: `git clone --recurse-submodules https://gitlab.syncad.com/hive/wallet-dapp.git`
 1. Install dependencies: `pnpm install`
 1. Start development server: `pnpm start`
