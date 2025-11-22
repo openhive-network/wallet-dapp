@@ -157,15 +157,28 @@ deploy_prototyping_environment:
   stage: deploy
   needs:
     - push_protected_app_image
+
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
     CONTAINER_NAME: "hive_bridge_prototyping_dev_deployment"
-    PORT: 8155 # prototyping.openhive.network (mirrornet)(port 8155)
+    EXPOSED_PORT: 8155 # prototyping.openhive.network (mirrornet)(port 8155)
+    PORT: 18155 # TODO swicth to full-compose application setup to eliminate another port allocation
     DEPLOYMENT_ENV_FILE: "MIRRORNET_PROTOTYPING_DEV_DEPLOYMENT_ENV"
+
+    REST_BACKEND:  "${PROTOTYPING_REST_BACKEND}"
+    HIVED_BACKEND: "${PROTOTYPING_HIVED_BACKEND}"
+    FRONTEND_APP:  "${PROTOTYPING_FRONTEND_APP}"
+
   environment:
     name: prototyping-dev-mirrornet
     url: https://prototyping.openhive.network
     on_stop: stop_prototyping_environment
+
+  script:
+    # First start helper proxy, which redirects traffic to backend and frontend accordingly
+    # This way we can use publicly one endpoint: https://prototyping.openhive.network both for the app like pointing backend
+    - ./scripts/ci-helpers/backend-api-proxy/start_api_proxy.sh
+    - !reference [.webapp_deploy_template, script]
 
   rules:
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
