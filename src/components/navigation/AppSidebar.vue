@@ -11,7 +11,7 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 
-const { public: { commitHash, snapOrigin, snapVersion } } = useRuntimeConfig();
+const { public: { commitHash, snapOrigin, snapVersion, showHtmInMenu } } = useRuntimeConfig();
 
 const props = defineProps({
   forceTokenView: {
@@ -30,6 +30,31 @@ const walletStore = useWalletStore();
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 const hasHTMWallet = computed(() => !!tokensStore.wallet);
 
+const tokenItems: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> = [
+  {
+    title: 'My HTM Account',
+    url: '/tokens/my-balance',
+    icon: mdiWallet,
+    visible: hasHTMWallet
+  },
+  {
+    title: 'Tokens List',
+    url: '/tokens/list',
+    icon: mdiAccountGroup
+  },
+  {
+    title: 'My Token Definitions',
+    url: '/tokens/my-tokens',
+    icon: mdiViewList,
+    visible: hasHTMWallet
+  },
+  {
+    title: 'Register HTM Account',
+    url: '/tokens/register-account',
+    icon: mdiAccountPlusOutline
+  }
+];
+
 const tokensGroups: { title?: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
   items: [{
     title: 'Back to Hive Bridge',
@@ -39,30 +64,7 @@ const tokensGroups: { title?: string; items: Array<{ title: string; url: string;
 },
 {
   title: 'Tokens',
-  items: [
-    {
-      title: 'My HTM Account',
-      url: '/tokens/my-balance',
-      icon: mdiWallet,
-      visible: hasHTMWallet
-    },
-    {
-      title: 'Tokens List',
-      url: '/tokens/list',
-      icon: mdiAccountGroup
-    },
-    {
-      title: 'My Token Definitions',
-      url: '/tokens/my-tokens',
-      icon: mdiViewList,
-      visible: hasHTMWallet
-    },
-    {
-      title: 'Register HTM Account',
-      url: '/tokens/register-account',
-      icon: mdiAccountPlusOutline
-    }
-  ]
+  items: tokenItems
 }];
 
 const mainGroups: { title: string; items: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> }[] = [{
@@ -93,7 +95,7 @@ const mainGroups: { title: string; items: Array<{ title: string; url: string; ic
   ]
 }, {
   title: 'Tokens',
-  items: [
+  items: showHtmInMenu ? tokenItems : [
     {
       title: 'My tokens',
       url: '#',

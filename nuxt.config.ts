@@ -54,6 +54,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
+      showHtmInMenu: false,
       commitHash: getCommitHash(),
       ctokensApiUrl: 'https://htm.fqdn.pl:10081',
       hiveNodeEndpoint: 'https://api.hive.blog',
