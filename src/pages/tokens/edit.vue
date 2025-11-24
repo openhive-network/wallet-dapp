@@ -5,18 +5,16 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 
+import HTMTokenPreview from '@/components/htm/HTMTokenPreview.vue';
 import HTMView from '@/components/htm/HTMView.vue';
+import TokenCreationCard from '@/components/htm/tokens/TokenCreationCard.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Textarea } from '@/components/ui/textarea';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import type { CTokenDefinitionDisplay, CTokenDisplayBase } from '@/stores/tokens.store';
+import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { validateTokenSymbol } from '@/utils/validators';
@@ -35,13 +33,21 @@ const token = ref<CTokenDefinitionDisplay | null>(null);
 const isLoading = ref(true);
 const isUpdating = ref(false);
 
-// Form state
-const form = ref({
+// Form token object
+const formToken = ref<CTokenDisplayBase & { othersCanStake: boolean; othersCanUnstake: boolean }>({
+  isNft: false,
+  nai: '',
+  assetNum: 0,
+  isStaked: false,
+  precision: 0,
+  metadata: {},
   name: '',
   symbol: '',
   description: '',
   image: '',
-  website: ''
+  website: '',
+  othersCanStake: false,
+  othersCanUnstake: false
 });
 
 // Get NAI and precision from route parameters
@@ -56,33 +62,38 @@ const isTokenOwner = computed(() => {
   return token.value.ownerPublicKey === CTokensProvider.getOperationalPublicKey();
 });
 
-// Computed properties for display
-const tokenImage = computed(() => {
-  return form.value.image || '';
-});
+// Symbol validation for TokenCreationCard
+const symbolValidation = computed(() => validateTokenSymbol(formToken.value.symbol || ''));
 
 // Form validation
 const isFormValid = computed(() => {
-  return form.value.name.trim() !== '' &&
-         validateTokenSymbol(form.value.symbol).isValid;
+  return (formToken.value.name || '').trim() !== '' &&
+         symbolValidation.value.isValid;
+});
+
+// Preview token for HTMTokenPreview component
+const previewToken = computed(() => {
+  if (!token.value) return null;
+
+  return {
+    ...token.value,
+    name: formToken.value.name,
+    symbol: formToken.value.symbol,
+    description: formToken.value.description,
+    image: formToken.value.image,
+    website: formToken.value.website
+  };
 });
 
 // Check if form has changes
 const hasChanges = computed(() => {
   if (!token.value) return false;
-  const metadata = token.value.metadata as {
-    name?: string;
-    symbol?: string;
-    description?: string;
-    image?: string;
-    website?: string;
-  } | undefined;
 
-  return form.value.name !== (metadata?.name || '') ||
-         form.value.symbol !== (metadata?.symbol || '') ||
-         form.value.description !== (metadata?.description || '') ||
-         form.value.image !== (metadata?.image || '') ||
-         form.value.website !== (metadata?.website || '');
+  return formToken.value.name !== (token.value.name || '') ||
+         formToken.value.symbol !== (token.value.symbol || '') ||
+         formToken.value.description !== (token.value.description || '') ||
+         formToken.value.image !== (token.value.image || '') ||
+         formToken.value.website !== (token.value.website || '');
 });
 
 // Load token details
@@ -91,19 +102,35 @@ const loadTokenDetails = async () => {
     // Fetch token details by NAI
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
-    form.value.name = token.value?.name || '';
-    form.value.symbol = token.value?.symbol || '';
-    form.value.description = token.value?.description || '';
-    form.value.image = token.value?.image || '';
-    form.value.website = token.value?.website || '';
+    // Populate form token
+    formToken.value = {
+      isNft: token.value.isNft,
+      nai: token.value.nai,
+      assetNum: token.value.assetNum,
+      isStaked: token.value.isStaked,
+      precision: token.value.precision,
+      metadata: token.value.metadata,
+      name: token.value.name,
+      symbol: token.value.symbol,
+      description: token.value.description,
+      image: token.value.image,
+      website: token.value.website,
+      othersCanStake: token.value.othersCanStake,
+      othersCanUnstake: token.value.othersCanUnstake
+    };
   } catch (error) {
     toastError('Failed to load token details', error);
     router.push('/tokens/list');
   }
 };
 
-// Handle token update
-const handleUpdateToken = async () => {
+// Handle token update from TokenCreationCard
+const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: boolean; othersCanUnstake: boolean }) => {
+  formToken.value = updatedToken;
+};
+
+// Handle save changes
+const handleSaveChanges = async () => {
   if (!token.value || !isTokenOwner.value || !isFormValid.value) {
     toastError('Cannot update token', new Error('Invalid form or insufficient permissions'));
     return;
@@ -114,11 +141,11 @@ const handleUpdateToken = async () => {
 
     // Prepare metadata
     const metadata = {
-      name: form.value.name.trim(),
-      symbol: form.value.symbol.trim().toUpperCase(),
-      description: form.value.description.trim(),
-      image: form.value.image.trim(),
-      website: form.value.website.trim()
+      name: (formToken.value.name || '').trim(),
+      symbol: (formToken.value.symbol || '').trim().toUpperCase(),
+      description: (formToken.value.description || '').trim(),
+      image: (formToken.value.image || '').trim(),
+      website: (formToken.value.website || '').trim()
     };
 
     // Wait for transaction status
@@ -246,272 +273,106 @@ onMounted(async () => {
           </p>
         </div>
 
-        <!-- Token Preview Card -->
-        <Card>
-          <CardHeader>
-            <CardTitle>Token Preview</CardTitle>
-            <CardDescription>
-              How your token will appear to users
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div class="flex items-center gap-4">
-              <Avatar class="h-16 w-16">
-                <AvatarImage
-                  v-if="tokenImage"
-                  :src="tokenImage"
-                  :alt="form.name || 'Token'"
-                />
-                <AvatarFallback class="bg-primary/10">
-                  <span class="text-xl font-bold text-primary">
-                    {{ form.symbol ? form.symbol.slice(0, 2).toUpperCase() : 'TK' }}
-                  </span>
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 class="text-xl font-bold">
-                  {{ form.name || 'Token Name' }}
-                </h3>
-                <p class="text-sm text-muted-foreground">
-                  {{ form.symbol || 'SYMBOL' }}
-                </p>
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-2 mt-4">
-              <span
-                :class="[
-                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.isNft ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                ]"
-              >
-                {{ token?.isNft ? 'NFT' : 'Fungible' }}
-              </span>
-              <span
-                :class="[
-                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.othersCanStake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
-                ]"
-              >
-                {{ token?.othersCanStake ? 'Staking ✓' : 'Staking ✗' }}
-              </span>
-              <span
-                :class="[
-                  'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium border',
-                  token?.othersCanUnstake ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-gray-50 text-gray-700 border-gray-200'
-                ]"
-              >
-                {{ token?.othersCanUnstake ? 'Unstaking ✓' : 'Unstaking ✗' }}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Token Metadata Form -->
+          <TokenCreationCard
+            :token="formToken"
+            initial-supply=""
+            generated-nai=""
+            :is-creating-token="isUpdating"
+            :symbol-validation="symbolValidation"
+            :hide-supply-fields="true"
+            :hide-staking-options="true"
+            :hide-nai-generation="true"
+            @update:token="handleTokenUpdate"
+          />
 
-        <!-- Edit Form Card -->
-        <Card>
-          <CardHeader>
-            <CardTitle>Token Metadata</CardTitle>
-            <CardDescription>
-              Edit the display information for your token
-            </CardDescription>
-          </CardHeader>
-          <CardContent class="space-y-6">
-            <!-- Token Name -->
-            <div class="space-y-2">
-              <Label
-                for="name"
-                class="text-sm font-medium text-foreground"
-              >
-                Token Name <span class="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                v-model="form.name"
-                placeholder="e.g., My Awesome Token"
-                :disabled="isUpdating"
-                class="transition-colors"
-              />
-              <p class="text-xs text-muted-foreground">
-                The full name of your token
-              </p>
-            </div>
+          <!-- Token Preview -->
+          <div class="space-y-6">
+            <HTMTokenPreview
+              v-if="previewToken"
+              :token="previewToken"
+            />
 
-            <Separator />
-
-            <!-- Token Symbol -->
-            <div class="space-y-2">
-              <Label
-                for="symbol"
-                class="text-sm font-medium text-foreground"
-              >
-                Token Symbol <span class="text-red-500">*</span>
-              </Label>
-              <Input
-                id="symbol"
-                v-model="form.symbol"
-                placeholder="e.g., MAT"
-                :disabled="isUpdating"
-                class="transition-colors uppercase"
-                maxlength="10"
-              />
-              <p class="text-xs text-muted-foreground">
-                3-10 uppercase letters (e.g., BTC, ETH, HIVE)
-              </p>
-              <p
-                v-if="form.symbol && !validateTokenSymbol(form.symbol).isValid"
-                class="text-xs text-red-500"
-              >
-                {{ validateTokenSymbol(form.symbol).message }}
-              </p>
-            </div>
-
-            <Separator />
-
-            <!-- Description -->
-            <div class="space-y-2">
-              <Label
-                for="description"
-                class="text-sm font-medium text-foreground"
-              >
-                Description
-              </Label>
-              <Textarea
-                id="description"
-                v-model="form.description"
-                placeholder="Describe your token's purpose and features..."
-                rows="4"
-                :disabled="isUpdating"
-                class="resize-none"
-              />
-              <p class="text-xs text-muted-foreground">
-                A brief description of what your token represents
-              </p>
-            </div>
-
-            <Separator />
-
-            <!-- Image URL -->
-            <div class="space-y-2">
-              <Label
-                for="image"
-                class="text-sm font-medium text-foreground"
-              >
-                Image URL
-              </Label>
-              <Input
-                id="image"
-                v-model="form.image"
-                type="url"
-                placeholder="https://example.com/token-logo.png"
-                :disabled="isUpdating"
-                class="transition-colors font-mono text-sm"
-              />
-              <p class="text-xs text-muted-foreground">
-                URL to your token's logo or icon (recommended: square, 512x512px)
-              </p>
-            </div>
-
-            <Separator />
-
-            <!-- Website URL -->
-            <div class="space-y-2">
-              <Label
-                for="website"
-                class="text-sm font-medium text-foreground"
-              >
-                Website URL
-              </Label>
-              <Input
-                id="website"
-                v-model="form.website"
-                type="url"
-                placeholder="https://example.com"
-                :disabled="isUpdating"
-                class="transition-colors font-mono text-sm"
-              />
-              <p class="text-xs text-muted-foreground">
-                Official website for your token project
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <!-- Technical Info Alert -->
-        <Alert>
-          <AlertDescription>
-            <div class="">
-              <p class="font-semibold">
-                Technical Information (Cannot be changed)
-              </p>
-              <div class="flex flex-wrap gap-4 mt-2 text-sm">
-                <div>
-                  <span class="text-muted-foreground">NAI:</span>
-                  <span class="ml-1 font-mono">{{ token.nai }}</span>
+            <!-- Technical Info Alert -->
+            <Alert>
+              <AlertDescription>
+                <div class="">
+                  <p class="font-semibold">
+                    Technical Information (Cannot be changed)
+                  </p>
+                  <div class="flex flex-wrap gap-4 mt-2 text-sm">
+                    <div>
+                      <span class="text-muted-foreground">NAI:</span>
+                      <span class="ml-1 font-mono">{{ token.nai }}</span>
+                    </div>
+                    <div>
+                      <span class="text-muted-foreground">Precision:</span>
+                      <span class="ml-1 font-mono">{{ token.precision }}</span>
+                    </div>
+                    <div>
+                      <span class="text-muted-foreground">Owner:</span>
+                      <span class="ml-1 font-mono text-xs break-all">{{ token.ownerPublicKey }}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span class="text-muted-foreground">Precision:</span>
-                  <span class="ml-1 font-mono">{{ token.precision }}</span>
-                </div>
-                <div>
-                  <span class="text-muted-foreground">Owner:</span>
-                  <span class="ml-1 font-mono text-xs">{{ token.ownerPublicKey }}</span>
-                </div>
-              </div>
-            </div>
-          </AlertDescription>
-        </Alert>
+              </AlertDescription>
+            </Alert>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-4">
-          <Button
-            variant="outline"
-            size="lg"
-            class="flex-1"
-            :disabled="isUpdating"
-            @click="goBack"
-          >
-            Cancel
-          </Button>
-          <Button
-            size="lg"
-            class="flex-1 gap-2"
-            :disabled="isUpdating || !isFormValid || !hasChanges"
-            @click="handleUpdateToken"
-          >
-            <svg
-              v-if="isUpdating"
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="animate-spin"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiLoading"
-              />
-            </svg>
-            <svg
-              v-else
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiContentSave"
-              />
-            </svg>
-            {{ isUpdating ? 'Updating...' : 'Save Changes' }}
-          </Button>
+            <!-- Action Buttons -->
+            <div class="flex gap-4">
+              <Button
+                variant="outline"
+                size="lg"
+                class="flex-1"
+                :disabled="isUpdating"
+                @click="goBack"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="lg"
+                class="flex-1 gap-2"
+                :disabled="isUpdating || !isFormValid || !hasChanges"
+                @click="handleSaveChanges"
+              >
+                <svg
+                  v-if="isUpdating"
+                  width="16"
+                  height="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="animate-spin"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiLoading"
+                  />
+                </svg>
+                <svg
+                  v-else
+                  width="16"
+                  height="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiContentSave"
+                  />
+                </svg>
+                {{ isUpdating ? 'Updating...' : 'Save Changes' }}
+              </Button>
+            </div>
+
+            <!-- Info message if no changes -->
+            <Alert v-if="!hasChanges && !isUpdating">
+              <AlertDescription>
+                No changes detected. Modify the fields above to update your token metadata.
+              </AlertDescription>
+            </Alert>
+          </div>
         </div>
-
-        <!-- Info message if no changes -->
-        <Alert v-if="!hasChanges && !isUpdating">
-          <AlertDescription>
-            No changes detected. Modify the fields above to update your token metadata.
-          </AlertDescription>
-        </Alert>
       </div>
     </div>
   </HTMView>

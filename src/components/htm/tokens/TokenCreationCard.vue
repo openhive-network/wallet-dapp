@@ -19,10 +19,12 @@ interface Props {
     othersCanUnstake: boolean;
   };
   initialSupply: string;
-  generatedNAI: string;
-  naiGenerated: boolean;
+  generatedNai: string;
   isCreatingToken: boolean;
   symbolValidation: ReturnType<typeof validateTokenSymbol>;
+  hideSupplyFields?: boolean;
+  hideStakingOptions?: boolean;
+  hideNaiGeneration?: boolean;
 }
 
 interface Emits {
@@ -34,9 +36,11 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+const naiGenerated = computed(() => !!props.generatedNai);
+
 const naiDisplayValue = computed(() => {
-  if (props.generatedNAI)
-    return props.generatedNAI;
+  if (props.generatedNai)
+    return props.generatedNai;
   if ((props.token.symbol || '').trim().length >= 3)
     return 'Generating...';
   return '';
@@ -53,7 +57,7 @@ const regenerateNAI = () => {
 // Copy NAI to clipboard
 const copyNAI = async () => {
   try {
-    copyText(props.generatedNAI);
+    copyText(props.generatedNai);
     toast.success('NAI copied to clipboard!');
   } catch (_error) {
     toast.error('Failed to copy NAI');
@@ -168,7 +172,10 @@ const copyNAI = async () => {
       <Separator />
 
       <!-- Initial Supply -->
-      <div class="space-y-2">
+      <div
+        v-if="!hideSupplyFields"
+        class="space-y-2"
+      >
         <Label for="initial-supply">Initial Supply *</Label>
         <Input
           id="initial-supply"
@@ -183,7 +190,10 @@ const copyNAI = async () => {
       </div>
 
       <!-- Precision -->
-      <div class="space-y-2">
+      <div
+        v-if="!hideSupplyFields"
+        class="space-y-2"
+      >
         <Label for="precision">Decimal Precision *</Label>
         <Input
           id="precision"
@@ -203,7 +213,10 @@ const copyNAI = async () => {
       </div>
 
       <!-- Staking Options -->
-      <div class="space-y-3">
+      <div
+        v-if="!hideStakingOptions"
+        class="space-y-3"
+      >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
           <div class="flex items-center space-x-2">
             <Checkbox
@@ -237,10 +250,13 @@ const copyNAI = async () => {
         </div>
       </div>
 
-      <Separator />
+      <Separator v-if="!hideNaiGeneration" />
 
       <!-- Generated NAI -->
-      <div class="space-y-2">
+      <div
+        v-if="!hideNaiGeneration"
+        class="space-y-2"
+      >
         <div class="flex items-center justify-between">
           <Label>Generated NAI</Label>
           <Button
@@ -274,7 +290,7 @@ const copyNAI = async () => {
             :value="naiDisplayValue"
             readonly
             class="font-mono"
-            :class="{ 'text-muted-foreground': !generatedNAI }"
+            :class="{ 'text-muted-foreground': !generatedNai }"
           />
           <Button
             v-if="naiGenerated"

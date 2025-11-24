@@ -23,7 +23,6 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Generated token ID
 const generatedNAI = ref('');
-const naiGenerated = ref(false);
 
 const router = useRouter();
 
@@ -228,7 +227,6 @@ const resetForm = () => {
   othersCanUnstake.value = true;
   agreedToDisclaimer.value = false;
   generatedNAI.value = '';
-  naiGenerated.value = false;
 };
 
 // Handle symbol input - transform to uppercase letters only
@@ -262,7 +260,6 @@ watch(tokenSymbol, (newSymbol) => {
   // Reset state immediately when symbol is invalid
   if (!validateTokenSymbol(newSymbol).isValid) {
     generatedNAI.value = '';
-    naiGenerated.value = false;
     return;
   }
 
@@ -280,7 +277,6 @@ const generateNAI = (): string | undefined => {
 
   try {
     generatedNAI.value = generateHTMNAI(tokenSymbol.value, Number(precision.value));
-    naiGenerated.value = true;
 
     return generatedNAI.value;
   } catch (error) {
@@ -290,7 +286,6 @@ const generateNAI = (): string | undefined => {
 
 // Handle regenerate NAI event from card
 const handleRegenerateNAI = () => {
-  naiGenerated.value = false;
   generatedNAI.value = '';
   generateNAI();
 };
@@ -314,8 +309,7 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
     <TokenCreationCard
       v-model:initial-supply="initialSupply"
       :token="formToken"
-      :generated-n-a-i="generatedNAI"
-      :nai-generated="naiGenerated"
+      :generated-nai="generatedNAI"
       :is-creating-token="isCreatingToken"
       :symbol-validation="symbolValidation"
       @update:token="handleTokenUpdate"
