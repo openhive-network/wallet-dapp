@@ -1,4 +1,4 @@
-import type { NaiAsset, TWaxRestExtended, TWaxExtended, asset } from '@hiveio/wax';
+import { type NaiAsset, type TWaxRestExtended, type TWaxExtended, type asset, DEFAULT_WAX_OPTIONS } from '@hiveio/wax';
 
 import CTokensApi from '@/utils/wallet/ctokens/api';
 
@@ -149,7 +149,7 @@ export const getWax = async () => {
   if (!chain) {
     const { public: { hiveNodeEndpoint, hiveChainId, ctokensApiUrl } } = useRuntimeConfig();
 
-    const chainId = typeof hiveChainId === 'number' || hiveChainId.length > 0 ? String(hiveChainId) : undefined;
+    const chainId = typeof hiveChainId === 'number' || hiveChainId.length > 0 ? String(hiveChainId).padEnd(64, '0') : DEFAULT_WAX_OPTIONS.chainId;
     const apiEndpoint = hiveNodeEndpoint.length > 0 ? hiveNodeEndpoint : undefined;
 
     chain = (await (await import('@hiveio/wax')).createHiveChain({ apiEndpoint, chainId })).extend<WaxApi>().extendRest(CTokensApi);

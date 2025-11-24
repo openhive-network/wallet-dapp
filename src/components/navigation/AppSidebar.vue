@@ -6,6 +6,7 @@ import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem , useSidebar } from '@/components/ui/sidebar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
@@ -29,6 +30,8 @@ const walletStore = useWalletStore();
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 const hasHTMWallet = computed(() => !!tokensStore.wallet);
+
+const chainId = ref('');
 
 const tokenItems: Array<{ title: string; url: string; icon: string; badge?: string; visible?: Ref<boolean>; disabled?: Ref<boolean> }> = [
   {
@@ -155,6 +158,8 @@ onMounted(async () => {
   try {
     const wax = await getWax();
 
+    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+    chainId.value = (wax as any).chainId; // XXX: Wait for wax update to expose chainId properly
     waxVersion.value = wax.getVersion();
   } catch(error) {
     toastError('Failed to get WAX instance:', error);
@@ -244,6 +249,19 @@ onMounted(async () => {
         <pre>@hiveio/wax@{{ waxVersion }}</pre>
         <pre>{{ metamaskVersion }}</pre>
         <pre>Commit Hash: {{ commitHash.substring(0, 7) }}</pre>
+        <TooltipProvider :delay-duration="350">
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <pre>Chain ID: {{ chainId.substring(0, 10) }}…</pre>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              align="center"
+            >
+              <pre>Full Chain ID: {{ chainId }}</pre>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </sub>
     </SidebarFooter>
   </Sidebar>
