@@ -5,7 +5,7 @@ import { shallowRef } from 'vue';
 import { transformUserName } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
 import { isVesting } from '@/utils/nai-tokens';
-import type { CtokensAppAssetType, CtokensAppBalance, CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import { CtokensAppMetadataType, type CtokensAppAssetType, type CtokensAppBalance, type CtokensAppToken } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 export interface CTokenDisplayBase {
@@ -235,15 +235,15 @@ export const useTokensStore = defineStore('tokens', {
 
       return balances;
     },
-    async getCreatedTokens (user: string, page = 1): Promise<TokenStoreApiResponse<CTokenPairDefinition>> {
+    async loadTokens (page = 1, owner?: string): Promise<TokenStoreApiResponse<CTokenPairDefinition>> {
       this.isLoading = true;
 
       try {
         const wax = await getWax();
 
-        const cTokensCreated = await wax.restApi.ctokensApi.tokens({ owner: user, page, 'asset-type': 'token' as CtokensAppAssetType });
+        const cTokensCreated = await wax.restApi.ctokensApi.tokens({ page, 'asset-type': 'token' as CtokensAppAssetType, owner });
 
-        const normalizedTokens = cTokensCreated.items!.map(token => {
+        const definitions = cTokensCreated.items!.map(token => {
           const liquid = transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>, false);
           const vesting = transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>, false);
 
@@ -254,43 +254,103 @@ export const useTokensStore = defineStore('tokens', {
           };
         });
 
-        return transformToApiResponseFormat(normalizedTokens, cTokensCreated, page);
+        if (owner) // XXX: Maybe do not rely on owner param here to assign local values (Single resposibility principle)
+          this.fungibleTokensCreatedByUser = definitions;
+        else
+          this.fungibleTokenDefinitions = definitions;
+
+        return transformToApiResponseFormat(definitions, cTokensCreated, page);
       } finally {
         this.isLoading = false;
       }
     },
-    async loadCreatedTokens (page = 1): Promise<TokenStoreApiResponse<CTokenPairDefinition>> {
-      const operationalKey = this.getUserPublicKey();
-
-      if (!operationalKey)
-        throw new Error('CTokens operational key not found - failed to load created tokens');
-
-      const tokens = await this.getCreatedTokens(operationalKey, page);
-
-      this.fungibleTokensCreatedByUser = tokens.items;
-
-      return tokens;
-    },
-    async loadTokens (page = 1): Promise<TokenStoreApiResponse<CTokenPairDefinition>> {
+    async searchTokens (nameOrAssetSymbolOrSymbol: string, page = 1, owner: string | undefined): Promise<TokenStoreApiResponse<Partial<CTokenPairDefinition>>> {
       this.isLoading = true;
+
+      // This entire function should be replaced in future with a proper search API endpoint once available
 
       try {
         const wax = await getWax();
 
-        const cTokensCreated = await wax.restApi.ctokensApi.tokens({ page, 'asset-type': 'token' as CtokensAppAssetType });
+        const isAssetSymbol = Number.parseInt(nameOrAssetSymbolOrSymbol, 10).toString() === nameOrAssetSymbolOrSymbol;
+        if (isAssetSymbol) {
+          const assetData = await this.getTokenByAssetNum(Number(nameOrAssetSymbolOrSymbol));
+          if (owner && assetData.ownerPublicKey !== owner)
+          {return {
+            hasMore: false,
+            page: 1,
+            pages: 1,
+            total: 0,
+            items: []
+          };}
 
-        this.fungibleTokenDefinitions = cTokensCreated.items!.map(token => {
-          const liquid = transformTokenToDisplayFormat(wax, token.liquid as Required<CtokensAppToken>, false);
-          const vesting = transformTokenToDisplayFormat(wax, token.vesting as Required<CtokensAppToken>, false);
+          const liquid = assetData.isStaked ? undefined : assetData;
+          const vesting = assetData.isStaked ? assetData : undefined;
 
           return {
+            hasMore: false,
+            page: 1,
+            pages: 1,
+            total: 1,
+            items: [{
+              isNft: false,
+              liquid,
+              vesting
+            }]
+          };
+        }
+
+        const searchArray = [
+          wax.restApi.ctokensApi.metadata.metadataType({
+            metadataType: CtokensAppMetadataType.Token,
+            key: 'symbol',
+            value: nameOrAssetSymbolOrSymbol,
+            owner,
+            page
+          }),
+          wax.restApi.ctokensApi.metadata.metadataType({
+            metadataType: CtokensAppMetadataType.Token,
+            key: 'name',
+            value: nameOrAssetSymbolOrSymbol,
+            owner,
+            page
+          })
+        ];
+
+        const cTokensFound = await Promise.allSettled(searchArray);
+
+        const tokensRaw = new Map<number, CTokenDefinitionDisplay>();
+
+        let maxPages = 0, totalItems = 0;
+
+        for (const result of cTokensFound) {
+          if (result.status === 'fulfilled') {
+            for(const item of (result.value.items || []) as CtokensAppToken[])
+              tokensRaw.set(item.asset_num!, transformTokenToDisplayFormat(wax, item as Required<CtokensAppToken>, false));
+
+            maxPages = Math.max(maxPages, result.value.total_pages || 0);
+            totalItems += result.value.total_items || 0;
+          }
+        }
+
+        const tokensData: Array<Partial<CTokenPairDefinition>> = [];
+
+        for(const [, token] of tokensRaw) {
+          const liquid = token.isStaked ? undefined : token;
+          const vesting = token.isStaked ? token : undefined;
+
+          tokensData.push({
             liquid,
             vesting,
             isNft: false
-          };
-        });
+          });
+        }
 
-        return transformToApiResponseFormat(this.fungibleTokenDefinitions, cTokensCreated, page);
+        return transformToApiResponseFormat(tokensData, {
+          items: tokensData,
+          total_items: totalItems,
+          total_pages: maxPages
+        }, page);
       } finally {
         this.isLoading = false;
       }
