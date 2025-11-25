@@ -28,9 +28,6 @@ LABEL io.hive.image.commit.date="$GIT_LAST_COMMIT_DATE"
 ENV NODE_ENV=production
 ENV PORT=8080
 ENV HOST=0.0.0.0
-ENV NUXT_PUBLIC_CTOKENS_API_URL=
-ENV NUXT_PUBLIC_HIVE_NODE_ENDPOINT=
-ENV NUXT_PUBLIC_HIVE_CHAIN_ID=
 
 # .output contains the server and public assets built by Nuxt.
 COPY .output/ .output/
