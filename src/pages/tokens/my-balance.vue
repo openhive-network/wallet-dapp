@@ -384,7 +384,7 @@ onMounted(() => {
               <TooltipTrigger class="max-w-sm w-full">
                 <Input
                   v-model="searchQuery"
-                  placeholder="Search tokens by symbol, name, or NAI..."
+                  placeholder="Search tokens by symbol, name, or Asset num..."
                   class="w-full"
                   disabled
                 />
@@ -480,7 +480,7 @@ onMounted(() => {
                             v-else
                             class="text-sm font-medium text-primary"
                           >
-                            {{ balance.liquid.symbol!.charAt(0).toUpperCase() }}
+                            {{ balance.liquid.symbol?.charAt(0).toUpperCase() || '' }}
                           </span>
                         </div>
                         <div>

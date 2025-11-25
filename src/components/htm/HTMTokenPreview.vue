@@ -108,7 +108,7 @@ const handleClick = () => {
             </CardTitle>
           </div>
           <CardDescription class="text-xs truncate">
-            {{ token.nai || 'NAI will be generated' }}
+            {{ token.assetNum || 'Asset num will be generated' }}
           </CardDescription>
         </div>
 

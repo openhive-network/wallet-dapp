@@ -15,7 +15,7 @@ const props = defineProps<{
 }>();
 
 const isCopied = ref(false);
-const isNaiCopied = ref(false);
+const isAssetNumCopied = ref(false);
 
 // Copy owner address to clipboard
 const copyOwnerAddress = () => {
@@ -33,19 +33,19 @@ const copyOwnerAddress = () => {
   }
 };
 
-// Copy NAI to clipboard
-const copyNAI = () => {
-  if (!props.token?.nai) return;
+// Copy Asset Num to clipboard
+const copyAssetNum = () => {
+  if (!props.token?.assetNum) return;
 
   try {
-    copyText(props.token.nai);
-    toast.success('NAI copied to clipboard');
-    isNaiCopied.value = true;
+    copyText(props.token.assetNum.toString());
+    toast.success('Asset Num copied to clipboard');
+    isAssetNumCopied.value = true;
     setTimeout(() => {
-      isNaiCopied.value = false;
+      isAssetNumCopied.value = false;
     }, 1000);
   } catch (error) {
-    toastError('Failed to copy NAI', error);
+    toastError('Failed to copy Asset Num', error);
   }
 };
 </script>
@@ -114,13 +114,13 @@ const copyNAI = () => {
           <!-- Technical Details - Compact -->
           <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
             <div class="flex items-center gap-1">
-              <span class="font-medium">NAI:</span>
+              <span class="font-medium">Asset num:</span>
               <button
                 type="button"
                 class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono hover:bg-muted/80 transition-colors inline-flex items-center gap-1.5"
-                @click="copyNAI"
+                @click="copyAssetNum"
               >
-                {{ props.token.nai }}
+                {{ props.token.assetNum }}
                 <svg
                   width="14"
                   height="14"
@@ -130,7 +130,7 @@ const copyNAI = () => {
                 >
                   <path
                     style="fill: currentColor"
-                    :d="isNaiCopied ? mdiCheck : mdiContentCopy"
+                    :d="isAssetNumCopied ? mdiCheck : mdiContentCopy"
                   />
                 </svg>
               </button>

@@ -13,7 +13,7 @@ const props = defineProps<{
 
 // Models:
 
-/* This model is for the parsed amount in NAI-compatible form. */
+/* This model is for the parsed amount in Assset num-compatible form. */
 const model = defineModel<string>();
 
 /* This model is for the validation error message, if any */

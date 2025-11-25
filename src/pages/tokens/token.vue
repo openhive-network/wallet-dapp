@@ -30,7 +30,7 @@ const topHolders = ref<CTokenUserRanked[]>([]);
 const isLoading = ref(true);
 const isLoadingHolders = ref(false);
 
-// Get NAI from route parameter
+// Get Asset num from route parameter
 const assetNum = computed(() => Number(route.query['asset-num'] as string));
 
 // Check if user is logged in
@@ -45,8 +45,8 @@ const isTokenOwner = computed(() => {
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    // Fetch token details by NAI
-    // First try with just NAI, if that doesn't work, get all tokens and filter
+    // Fetch token details by Asset num
+    // First try with just Asset num, if that doesn't work, get all tokens and filter
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
     // Load user balance if user is logged in

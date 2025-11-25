@@ -23,7 +23,7 @@ const tokensStore = useTokensStore();
 const userStore = useUserStore();
 
 // State
-const token = ref<CTokenDefinitionDisplay | null>(null);
+const token = ref<CTokenDefinitionDisplay | undefined>(undefined);
 const isLoading = ref(true);
 
 // Get parameters from route query
@@ -204,7 +204,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
           :receiver-name="htmUserMetadata?.displayName || receiverDisplayName"
           :receiver-key="receiverKey"
           :receiver-avatar="htmUserMetadata?.profileImage"
-          :token-data="token!"
+          :token-data="token"
           :query-amount="queryAmount"
           :query-memo="queryMemo"
           :asset-num="assetNum"

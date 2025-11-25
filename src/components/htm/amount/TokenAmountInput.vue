@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 });
 
-const model = defineModel<string>(); /* This model is for the parsed amount in NAI-compatible form. '' (empty) is for invalid state */
+const model = defineModel<string>(); /* This model is for the parsed amount in asset num-compatible form. '' (empty) is for invalid state */
 const selectedToken = defineModel<CTokenDisplayBase | undefined>('token'); /* This model is for the selected token when variant is "selector" */
 
 const internalModel = ref<string>(''); /* This is the internal input model for the amount field */

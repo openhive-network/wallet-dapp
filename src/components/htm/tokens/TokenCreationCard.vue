@@ -18,49 +18,53 @@ interface Props {
     othersCanStake: boolean;
     othersCanUnstake: boolean;
   };
-  initialSupply: string;
-  generatedNai: string;
-  isCreatingToken: boolean;
+  initialSupply?: string;
+  generatedAssetNum?: string | number | bigint;
+  isSubmitting: boolean;
   symbolValidation: ReturnType<typeof validateTokenSymbol>;
-  hideSupplyFields?: boolean;
-  hideStakingOptions?: boolean;
-  hideNaiGeneration?: boolean;
+  mode?: 'create' | 'edit';
 }
 
 interface Emits {
   (e: 'update:token', value: Props['token']): void;
   (e: 'update:initialSupply', value: string | number): void;
-  (e: 'regenerateNAI'): void;
+  (e: 'regenerateAssetNum'): void;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  mode: 'create',
+  initialSupply: '',
+  generatedAssetNum: ''
+});
 const emit = defineEmits<Emits>();
 
-const naiGenerated = computed(() => !!props.generatedNai);
+const isCreateMode = computed(() => props.mode === 'create');
 
-const naiDisplayValue = computed(() => {
-  if (props.generatedNai)
-    return props.generatedNai;
+const assetNumGenerated = computed(() => !!props.generatedAssetNum);
+
+const assetNumDisplayValue = computed(() => {
+  if (props.generatedAssetNum)
+    return String(props.generatedAssetNum);
   if ((props.token.symbol || '').trim().length >= 3)
     return 'Generating...';
   return '';
 });
 
-const shouldShowNAIField = computed(() => {
+const shouldShowAssetNumField = computed(() => {
   return props.symbolValidation.isValid;
 });
 
-const regenerateNAI = () => {
-  emit('regenerateNAI');
+const regenerateAssetNum = () => {
+  emit('regenerateAssetNum');
 };
 
-// Copy NAI to clipboard
-const copyNAI = async () => {
+// Copy Asset Num to clipboard
+const copyAssetNum = async () => {
   try {
-    copyText(props.generatedNai);
-    toast.success('NAI copied to clipboard!');
+    copyText(String(props.generatedAssetNum));
+    toast.success('Asset Num copied to clipboard!');
   } catch (_error) {
-    toast.error('Failed to copy NAI');
+    toast.error('Failed to copy Asset Num');
   }
 };
 </script>
@@ -83,7 +87,7 @@ const copyNAI = async () => {
         Token Details
       </CardTitle>
       <CardDescription>
-        Enter the details for your new NAI token. Note: The token name is only a display property that can be changed. The NAI (Network Asset Identifier) is the only unique identifier for your token.
+        Enter the details for your new token. Note: The token name is only a display property that can be changed. The Asset Num is the only unique identifier for your token.
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
@@ -94,7 +98,7 @@ const copyNAI = async () => {
           id="token-name"
           :model-value="token.name"
           placeholder="e.g., My Awesome Token"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           @update:model-value="emit('update:token', { ...token, name: $event as string })"
         />
       </div>
@@ -109,7 +113,7 @@ const copyNAI = async () => {
           class="uppercase"
           :class="{ 'border-red-500': (token.symbol || '').length > 0 && !symbolValidation.isValid }"
           maxlength="10"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           @update:model-value="emit('update:token', { ...token, symbol: $event as string })"
         />
         <p
@@ -127,7 +131,7 @@ const copyNAI = async () => {
           id="token-description"
           :model-value="token.description"
           placeholder="Describe your token..."
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           rows="3"
           @update:model-value="emit('update:token', { ...token, description: $event as string })"
         />
@@ -143,7 +147,7 @@ const copyNAI = async () => {
           :model-value="token.image"
           type="url"
           placeholder="https://example.com/token-logo.png"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           class="font-mono text-sm"
           @update:model-value="emit('update:token', { ...token, image: $event as string })"
         />
@@ -160,7 +164,7 @@ const copyNAI = async () => {
           :model-value="token.website"
           type="url"
           placeholder="https://example.com"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           class="font-mono text-sm"
           @update:model-value="emit('update:token', { ...token, website: $event as string })"
         />
@@ -173,7 +177,7 @@ const copyNAI = async () => {
 
       <!-- Initial Supply -->
       <div
-        v-if="!hideSupplyFields"
+        v-if="isCreateMode"
         class="space-y-2"
       >
         <Label for="initial-supply">Initial Supply *</Label>
@@ -181,7 +185,7 @@ const copyNAI = async () => {
           id="initial-supply"
           :model-value="initialSupply"
           placeholder="1000000"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           @update:model-value="emit('update:initialSupply', $event)"
         />
         <p class="text-xs text-muted-foreground">
@@ -191,7 +195,7 @@ const copyNAI = async () => {
 
       <!-- Precision -->
       <div
-        v-if="!hideSupplyFields"
+        v-if="isCreateMode"
         class="space-y-2"
       >
         <Label for="precision">Decimal Precision *</Label>
@@ -203,7 +207,7 @@ const copyNAI = async () => {
           max="12"
           step="1"
           placeholder="3"
-          :disabled="isCreatingToken"
+          :disabled="isSubmitting"
           class="w-full"
           @update:model-value="emit('update:token', { ...token, precision: Number($event) })"
         />
@@ -214,7 +218,7 @@ const copyNAI = async () => {
 
       <!-- Staking Options -->
       <div
-        v-if="!hideStakingOptions"
+        v-if="isCreateMode"
         class="space-y-3"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 ml-6">
@@ -222,7 +226,7 @@ const copyNAI = async () => {
             <Checkbox
               id="others-can-stake"
               :model-value="token.othersCanStake"
-              :disabled="isCreatingToken"
+              :disabled="isSubmitting"
               @update:model-value="(val) => emit('update:token', { ...token, othersCanStake: val as boolean })"
             />
             <Label
@@ -237,7 +241,7 @@ const copyNAI = async () => {
             <Checkbox
               id="others-can-unstake"
               :model-value="token.othersCanUnstake"
-              :disabled="isCreatingToken"
+              :disabled="isSubmitting"
               @update:model-value="(val) => emit('update:token', { ...token, othersCanUnstake: val as boolean })"
             />
             <Label
@@ -250,21 +254,21 @@ const copyNAI = async () => {
         </div>
       </div>
 
-      <Separator v-if="!hideNaiGeneration" />
+      <Separator v-if="isCreateMode" />
 
-      <!-- Generated NAI -->
+      <!-- Generated Asset Num -->
       <div
-        v-if="!hideNaiGeneration"
+        v-if="isCreateMode"
         class="space-y-2"
       >
         <div class="flex items-center justify-between">
-          <Label>Generated NAI</Label>
+          <Label>Generated Asset Num</Label>
           <Button
-            v-if="naiGenerated"
+            v-if="assetNumGenerated"
             variant="outline"
             size="sm"
-            :disabled="isCreatingToken"
-            @click="regenerateNAI"
+            :disabled="isSubmitting"
+            @click="regenerateAssetNum"
           >
             <svg
               width="16"
@@ -283,20 +287,20 @@ const copyNAI = async () => {
         </div>
 
         <div
-          v-if="shouldShowNAIField"
+          v-if="shouldShowAssetNumField"
           class="flex items-center gap-2"
         >
           <Input
-            :value="naiDisplayValue"
+            :value="assetNumDisplayValue"
             readonly
             class="font-mono"
-            :class="{ 'text-muted-foreground': !generatedNai }"
+            :class="{ 'text-muted-foreground': !generatedAssetNum }"
           />
           <Button
-            v-if="naiGenerated"
+            v-if="assetNumGenerated"
             variant="outline"
             size="sm"
-            @click="copyNAI"
+            @click="copyAssetNum"
           >
             <svg
               width="16"

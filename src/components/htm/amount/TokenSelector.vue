@@ -66,8 +66,8 @@ const filteredTokens = computed((): TokenOption[] => {
 
   const query = searchQuery.value.toLowerCase();
   return ownedTokens.value.filter(token => {
-    return token.displayName.toLowerCase().includes(query) ||
-        token.balance?.symbol!.toLowerCase().includes(query) ||
+    return token.displayName?.toLowerCase().includes(query) ||
+        token.balance?.symbol?.toLowerCase().includes(query) ||
         String(token.balance.assetNum).includes(query);
   }
   );

@@ -29,18 +29,10 @@ const form = ref({
   memo: ''
 });
 
-// Get NAI from route parameters or selected token
+// Get Asset num from route parameters or selected token
 const assetNum = computed(() => {
   if (route.query['asset-num']) return Number(route.query['asset-num']);
   return token.value?.assetNum || null;
-});
-
-// Check if NAI is provided in URL
-const hasNaiFromUrl = computed(() => !!route.query['asset-num']);
-
-// Check if we should show token selector (when no asset-num is provided)
-const shouldShowTokenSelector = computed(() => {
-  return !hasNaiFromUrl.value && isLoggedIn.value;
 });
 
 // Check if user is logged in
@@ -56,7 +48,7 @@ const loadTokenDetails = async () => {
   if (!assetNum.value) return;
 
   try {
-    // Fetch token details by NAI
+    // Fetch token details by Asset num
     const tokens = await tokensStore.getTokenByAssetNum(Number(assetNum.value));
 
     token.value = tokens;
@@ -144,7 +136,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
         <Button
-          v-if="hasNaiFromUrl || token"
+          v-if="token"
           variant="ghost"
           size="sm"
           class="gap-2 hover:bg-accent"
@@ -195,14 +187,12 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
             Generate QR Code
           </h1>
           <p class="text-muted-foreground">
-            {{ hasNaiFromUrl ? 'Generate a QR code for others to scan and send you tokens.' : 'Select a token and generate a QR code for others to scan and send you tokens.' }}
+            Generate a QR code for others to scan and send you tokens.
           </p>
         </div>
 
         <!-- Send Transfer Card -->
         <SendTransferCard
-          :has-nai-from-url="hasNaiFromUrl"
-          :should-show-token-selector="shouldShowTokenSelector"
           :token="token || undefined"
           @update-token="handleTokenUpdate"
           @update-amount="form.amount = $event"

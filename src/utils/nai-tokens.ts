@@ -42,6 +42,12 @@ export const assetNumFromNAI = (nai: string, precision: number): bigint => {
   return (BigInt(Number.parseInt(nai.slice(2, -1))) << 5n) | 0x10n | BigInt(precision);
 };
 
+export const naiFromAssetNum = (assetNum: bigint): string => {
+  const naiVal = assetNum >> 5n;
+  const naiString = naiVal.toString().padStart(8, '0');
+  return `@@${naiString}${dammDigit(naiString)}`;
+};
+
 const generateRandomNAI = (symbol: string): string => {
   const timestamp = Date.now();
   const symbolUpper = symbol.trim().toUpperCase();

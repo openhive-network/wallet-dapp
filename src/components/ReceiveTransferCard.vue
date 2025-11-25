@@ -19,7 +19,7 @@ interface Props {
   receiverName?: string;
   receiverKey?: string;
   receiverAvatar?: string;
-  tokenData: CTokenDisplayBase;
+  tokenData: CTokenDisplayBase | undefined;
   queryAmount?: string;
   queryMemo?: string;
   assetNum: number;
@@ -34,13 +34,16 @@ const emit = defineEmits<{
 const router = useRouter();
 const tokensStore = useTokensStore();
 
-const amount = computed(() => props.queryAmount ? (props.queryAmount.slice(0, -props.tokenData.precision) + '.' + props.queryAmount.slice(-props.tokenData.precision)) : '');
+const tokenComputed = computed(() => props.tokenData);
+const amountComputed = computed(() => props.queryAmount ? props.tokenData ? (props.queryAmount.slice(0, -props.tokenData.precision) + '.' + props.queryAmount.slice(-props.tokenData.precision)) : '' : '');
 
 // Form state
 const form = ref({
-  amount: amount.value || '',
+  amount: amountComputed.value || '',
+  token: tokenComputed.value,
   memo: props.queryMemo || ''
 });
+
 
 const isSending = ref(false);
 const transferCompleted = ref(false);
@@ -52,13 +55,13 @@ const isLoggedIn = computed(() => !!tokensStore.wallet);
 // TODO: Fix validation
 
 const isFormValid = computed(() => {
-  if (!props.tokenData) return false;
+  if (!form.value.token) return false;
   if (form.value.amount.trim() === '') return false;
   return true;
 });
 
 const handleSend = async () => {
-  if (!props.tokenData) {
+  if (!form.value.token) {
     toastError('Token not loaded', new Error('Token details not available'));
     return;
   }
@@ -86,8 +89,8 @@ const handleSend = async () => {
         token_transfer_operation: {
           amount: {
             amount: form.value.amount,
-            nai: props.tokenData!.nai!,
-            precision: props.tokenData!.precision || 0
+            nai: form.value.token!.nai!,
+            precision: form.value.token!.precision || 0
           },
           receiver: props.receiverKey!,
           sender,
@@ -99,10 +102,10 @@ const handleSend = async () => {
 
     transferCompleted.value = true;
 
-    const balanceObj = await tokensStore.getBalanceSingleToken(sender, props.tokenData.assetNum);
+    const balanceObj = await tokensStore.getBalanceSingleToken(sender, form.value.token.assetNum);
 
     const receiverLabel = props.receiverName || props.receiverKey || 'Recipient';
-    const tokenLabel = props.tokenData.symbol || props.tokenData.name || String(props.tokenData.assetNum) || '';
+    const tokenLabel = form.value.token.symbol || form.value.token.name || String(form.value.token.assetNum) || '';
 
     const ts = new Date().toISOString();
 
@@ -125,7 +128,12 @@ const handleSend = async () => {
 // Watch query params changes to update form
 watch(() => props.queryAmount, (newValue) => {
   if (newValue)
-    form.value.amount = amount.value;
+    form.value.amount = amountComputed.value;
+});
+
+watch(() => props.tokenData, (newValue) => {
+  if (newValue)
+    form.value.token = newValue;
 });
 
 watch(() => props.queryMemo, (newValue) => {
@@ -155,8 +163,8 @@ watch(() => props.queryMemo, (newValue) => {
       <TokenAmountInput
         id="token-amount"
         v-model="form.amount"
-        variant="selector"
-        :token="tokenData"
+        :variant="tokenComputed ? 'explicit' : 'selector'"
+        :token="form.token"
       />
 
       <!-- Memo compact -->

@@ -10,7 +10,7 @@ import HTMView from '@/components/htm/HTMView.vue';
 import TokenCreationCard from '@/components/htm/tokens/TokenCreationCard.vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { CTokenDefinitionDisplay, CTokenDisplayBase } from '@/stores/tokens.store';
@@ -50,7 +50,7 @@ const formToken = ref<CTokenDisplayBase & { othersCanStake: boolean; othersCanUn
   othersCanUnstake: false
 });
 
-// Get NAI and precision from route parameters
+// Get Asset Num and precision from route parameters
 const assetNum = computed(() => Number(route.query['asset-num']));
 
 // Check if user is logged in
@@ -99,7 +99,7 @@ const hasChanges = computed(() => {
 // Load token details
 const loadTokenDetails = async () => {
   try {
-    // Fetch token details by NAI
+    // Fetch token details by Asset Num
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
     // Populate form token
@@ -277,13 +277,9 @@ onMounted(async () => {
           <!-- Token Metadata Form -->
           <TokenCreationCard
             :token="formToken"
-            initial-supply=""
-            generated-nai=""
-            :is-creating-token="isUpdating"
+            :is-submitting="isUpdating"
             :symbol-validation="symbolValidation"
-            :hide-supply-fields="true"
-            :hide-staking-options="true"
-            :hide-nai-generation="true"
+            mode="edit"
             @update:token="handleTokenUpdate"
           />
 
@@ -303,8 +299,8 @@ onMounted(async () => {
                   </p>
                   <div class="flex flex-wrap gap-4 mt-2 text-sm">
                     <div>
-                      <span class="text-muted-foreground">NAI:</span>
-                      <span class="ml-1 font-mono">{{ token.nai }}</span>
+                      <span class="text-muted-foreground">Asset num:</span>
+                      <span class="ml-1 font-mono">{{ token.assetNum }}</span>
                     </div>
                     <div>
                       <span class="text-muted-foreground">Precision:</span>

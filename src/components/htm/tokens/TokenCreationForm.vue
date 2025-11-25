@@ -15,14 +15,14 @@ import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
-import { generateNAI as generateHTMNAI, parseAssetAmount, toVesting, assetNumFromNAI } from '@/utils/nai-tokens';
+import { generateNAI as generateHTMNAI, parseAssetAmount, toVesting, assetNumFromNAI, naiFromAssetNum } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidTokenSupply, isValidTokenPrecision, validateTokenSymbol } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Generated token ID
-const generatedNAI = ref('');
+const generatedAssetNum = ref('');
 
 const router = useRouter();
 
@@ -52,8 +52,8 @@ const createButtonState = computed(() => {
     return { text: 'Creating Token...', disabled: true };
   if (!isFormValid.value)
     return { text: 'Create Token', disabled: true };
-  if (!generatedNAI.value && symbolValidation.value.isValid)
-    return { text: 'Generate NAI & Create Token', disabled: false };
+  if (!generatedAssetNum.value && symbolValidation.value.isValid)
+    return { text: 'Generate Asset Num & Create Token', disabled: false };
   return { text: 'Create Token', disabled: false };
 });
 
@@ -79,11 +79,11 @@ const createToken = async () => {
   // For fee payment
   await walletStore.createWalletFor(settingsStore.settings, 'active');
 
-  if (!generatedNAI.value) {
-    const nai = generateNAI();
+  if (!generatedAssetNum.value) {
+    const assetNum = generateAssetNum();
 
-    if (!nai) {
-      toast.error('Failed to generate token NAI. Please try again.');
+    if (!assetNum) {
+      toast.error('Failed to generate token Asset Num. Please try again.');
       return;
     }
   }
@@ -95,15 +95,16 @@ const createToken = async () => {
 
     await tokensStore.reset(await CTokensProvider.for(wax, 'active'));
     const identifierPrecision = parseInt(precision.value);
+    const nai = naiFromAssetNum(BigInt(generatedAssetNum.value));
 
     const identifier: asset = {
       amount: parseAssetAmount(initialSupply.value, identifierPrecision),
-      nai: generatedNAI.value,
+      nai,
       precision: identifierPrecision
     };
     const identifierVesting: asset = {
       amount: '0',
-      nai: toVesting(generatedNAI.value, identifierPrecision),
+      nai: toVesting(nai, identifierPrecision),
       precision: identifierPrecision
     };
     const owner = CTokensProvider.getOperationalPublicKey()!;
@@ -166,7 +167,7 @@ const createToken = async () => {
       'Token creation'
     );
 
-    const assetNum = assetNumFromNAI(generatedNAI.value, identifierPrecision);
+    const assetNum = Number(generatedAssetNum.value);
 
     const redirectUrl = `/tokens/token?asset-num=${assetNum}`;
 
@@ -184,8 +185,8 @@ const createToken = async () => {
 // Form data object matching CTokenDisplayBase
 const formToken = computed(() => ({
   isNft: false,
-  nai: generatedNAI.value,
-  assetNum: 0,
+  nai: generatedAssetNum.value ? naiFromAssetNum(BigInt(generatedAssetNum.value)) : '',
+  assetNum: generatedAssetNum.value ? Number(generatedAssetNum.value) : 0,
   isStaked: false,
   precision: parseInt(precision.value),
   metadata: {},
@@ -226,7 +227,7 @@ const resetForm = () => {
   othersCanStake.value = true;
   othersCanUnstake.value = true;
   agreedToDisclaimer.value = false;
-  generatedNAI.value = '';
+  generatedAssetNum.value = '';
 };
 
 // Handle symbol input - transform to uppercase letters only
@@ -259,35 +260,37 @@ watch(tokenSymbol, (newSymbol) => {
 
   // Reset state immediately when symbol is invalid
   if (!validateTokenSymbol(newSymbol).isValid) {
-    generatedNAI.value = '';
+    generatedAssetNum.value = '';
     return;
   }
 
   // Debounce the generation to avoid excessive calls
   debounceTimer = setTimeout(() => {
     if (symbolValidation.value.isValid)
-      generateNAI();
+      generateAssetNum();
   }, 300); // Wait 300ms after user stops typing
 });
 
 // Generate unique token ID
-const generateNAI = (): string | undefined => {
+const generateAssetNum = (): string | undefined => {
   if (!symbolValidation.value.isValid)
     return;
 
   try {
-    generatedNAI.value = generateHTMNAI(tokenSymbol.value, Number(precision.value));
+    const nai = generateHTMNAI(tokenSymbol.value, Number(precision.value));
+    const assetNum = assetNumFromNAI(nai, Number(precision.value));
+    generatedAssetNum.value = assetNum.toString();
 
-    return generatedNAI.value;
+    return generatedAssetNum.value;
   } catch (error) {
     toastError('Failed to generate token ID', error);
   }
 };
 
-// Handle regenerate NAI event from card
-const handleRegenerateNAI = () => {
-  generatedNAI.value = '';
-  generateNAI();
+// Handle regenerate Asset Num event from card
+const handleRegenerateAssetNum = () => {
+  generatedAssetNum.value = '';
+  generateAssetNum();
 };
 
 // Handle token updates from card
@@ -309,11 +312,11 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
     <TokenCreationCard
       v-model:initial-supply="initialSupply"
       :token="formToken"
-      :generated-nai="generatedNAI"
-      :is-creating-token="isCreatingToken"
+      :generated-asset-num="generatedAssetNum"
+      :is-submitting="isCreatingToken"
       :symbol-validation="symbolValidation"
       @update:token="handleTokenUpdate"
-      @regenerate-n-a-i="handleRegenerateNAI"
+      @regenerate-asset-num="handleRegenerateAssetNum"
     />
 
     <!-- Preview and Actions -->

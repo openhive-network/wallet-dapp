@@ -9,8 +9,6 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 
 interface Props {
-  hasNaiFromUrl: boolean;
-  shouldShowTokenSelector: boolean;
   token?: CTokenDisplayBase;
   initialAmount?: string;
   initialMemo?: string;
@@ -54,7 +52,7 @@ watch(() => form.value.memo, (newValue) => {
     <CardHeader>
       <CardTitle>Receive token</CardTitle>
       <CardDescription>
-        {{ hasNaiFromUrl ? 'Specify the transfer amount and generate a QR code' : 'Enter token details and generate a QR code for transfer' }}
+        Specify the transfer amount and generate a QR code
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
@@ -73,7 +71,7 @@ watch(() => form.value.memo, (newValue) => {
       <TokenAmountInput
         v-model="form.amount"
         v-model:token="selectedToken"
-        :variant="shouldShowTokenSelector ? 'selector' : 'explicit'"
+        :variant="token ? 'explicit' : 'selector'"
       />
 
       <!-- Memo compact -->
