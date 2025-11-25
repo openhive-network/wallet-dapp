@@ -177,8 +177,16 @@ deploy_prototyping_environment:
   script:
     # First start helper proxy, which redirects traffic to backend and frontend accordingly
     # This way we can use publicly one endpoint: https://prototyping.openhive.network both for the app like pointing backend
-    - ./scripts/ci-helpers/backend-api-proxy/start_api_proxy.sh
-    - !reference [.webapp_deploy_template, script]
+    - |
+      ./scripts/ci-helpers/backend-api-proxy/start_api_proxy.sh
+      # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
+      export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+      ./scripts/run_instance.sh \
+        --image="$IMAGE_NAME" \
+        --name="$CONTAINER_NAME" \
+        --port=$PORT \
+        --env-file="${DEPLOYMENT_ENV_FILE}" \
+        --detach
 
   rules:
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
