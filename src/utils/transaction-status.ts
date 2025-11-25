@@ -14,11 +14,11 @@ import { getWax } from '@/stores/wax.store';
  * @param intervalMs - Interval between polls in milliseconds (default: 2000)
  * @returns Promise that resolves with transaction status
  */
-export async function pollTransactionStatus (
+const pollTransactionStatus = async (
   refId: string,
   maxAttempts: number = 30,
   intervalMs: number = 2000
-): Promise<{ success: boolean; message: string; details?: string }> {
+): Promise<{ success: boolean; message: string; details?: string }> => {
   const wax = await getWax();
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -73,12 +73,12 @@ export async function pollTransactionStatus (
     message: 'Transaction status timeout',
     details: 'Could not confirm transaction status within the expected time.'
   };
-}
+};
 
 const broadcastHtmOperation = async (
   operationsFactory: (tx: ITransaction) => htm_operation[],
   l2Wallet: AEncryptionProvider | undefined = undefined
-): Promise<string> => {
+): Promise<[string] | [string, string]> => {
   const settingsStore = useSettingsStore();
   const tokensStore = useTokensStore();
   const wax = await getWax();
@@ -118,7 +118,7 @@ const broadcastHtmOperation = async (
 
   if (hasL1Wallet) {
     // Sign Layer 1 transaction with the Hive active key
-    await walletStore.createWalletFor(settingsStore.settings, l1Op.custom_json_operation!.required_auths.length > 0 ? 'active' : 'posting');
+    await walletStore.createWalletFor(settingsStore.settings, requiresActive ? 'active' : 'posting');
     await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction
@@ -128,11 +128,28 @@ const broadcastHtmOperation = async (
       trx: l2Transaction.transaction
     });
 
-    return refId!;
+    return [ refId! ];
   }
 
+  let legacyRefId: string | undefined = undefined;
+  // When the signature requires active authority, we have to deal with Hive assets.
+  // Some signers, such as Keychain use only legacy serialization for Hive assets.
+  // Therefore, we need to provide both legacy and new HTM transaction reference IDs for such transactions.
+  if (requiresActive) {
+    HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = true;
+
+    try {
+      // Get legacy transaction reference ID for active authority transactions
+      legacyRefId = l2Transaction.getRefId(l1Transaction);
+    } finally {
+      HtmTransaction.USE_LEGACY_HIVE_SERIALIZATION = false;
+    }
+  }
+
+  const refId = l2Transaction.getRefId(l1Transaction);
+
   // Return HTM transaction reference ID in proper serialization (legacy_id / id)
-  return l2Transaction.getRefId(l1Transaction);
+  return legacyRefId ? [ refId, legacyRefId ] : [ refId ];
 };
 
 /**
@@ -157,9 +174,9 @@ export const waitForTransactionStatus = async (
   }) : undefined;
 
   try {
-    const refId = await broadcastHtmOperation(operationsFactory, l2Wallet);
+    const refIds = await broadcastHtmOperation(operationsFactory, l2Wallet);
 
-    const result = await pollTransactionStatus(refId);
+    const result = await Promise.race(refIds.map(refId => pollTransactionStatus(refId)));
 
     if (!enableToasts) return;
 
