@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+
 import { GoogleAuth } from 'google-auth-library';
 import { defineEventHandler, readBody } from 'h3';
 import jwt from 'jsonwebtoken';
@@ -8,7 +10,13 @@ const classId = `${issuerId}.codelab_class`;
 const init = () => {
   const config = useRuntimeConfig();
 
-  const credentials = config.googleApplicationCredentialsJson;
+  const credentialsPath = config.googleApplicationCredentialsJson;
+
+  if (typeof credentialsPath !== 'string' || !credentialsPath)
+    throw new Error('Missing Google Application Credentials path');
+
+  const credentialsFile = readFileSync(credentialsPath, 'utf-8');
+  const credentials = JSON.parse(credentialsFile);
 
   if (typeof credentials !== 'object')
     throw new Error('Invalid Google Application Credentials');
