@@ -16,22 +16,19 @@ const addToGoogleWallet = async () => {
   try {
     const { operationalKey, name } = await tokensStore.getCurrentUserMetadata();
     const baseUrl = window.location.origin;
-    const res = await fetch('/api/google-wallet', {
+    const data = await $fetch<{ url?: string; error?: string; message?: string }>('/api/google-wallet', {
       method: 'POST',
-
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         operationalPublicKey: operationalKey,
         displayName: name || 'User',
         baseUrl
-      })
+      }
     });
-    const data = await res.text();
-    const parsed = JSON.parse(data);
-    if (parsed.url && !parsed.error)
-      window.open(parsed.url, '_blank');
+
+    if (data.url && !data.error)
+      window.open(data.url, '_blank');
     else
-      toastError('Failed to generate Google Wallet pass', new Error(parsed.message || data, { cause: parsed }));
+      toastError('Failed to generate Google Wallet pass', new Error(data.message || JSON.stringify(data), { cause: data }));
   } catch (error) {
     toastError('Error generating Google Wallet pass', error);
   } finally {
