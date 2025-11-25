@@ -6,8 +6,7 @@ import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem , useSidebar } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useTokensStore } from '@/stores/tokens.store';
+import { TextTooltip } from '@/components/ui/texttooltip';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
@@ -25,11 +24,9 @@ const router = useRouter();
 
 const { toggleSidebar, isMobile } = useSidebar();
 
-const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
-const hasHTMWallet = computed(() => !!tokensStore.wallet);
 
 const chainId = ref('');
 
@@ -37,8 +34,7 @@ const tokenItems: Array<{ title: string; url: string; icon: string; badge?: stri
   {
     title: 'My HTM Account',
     url: '/tokens/my-balance',
-    icon: mdiWallet,
-    visible: hasHTMWallet
+    icon: mdiWallet
   },
   {
     title: 'Tokens List',
@@ -48,8 +44,7 @@ const tokenItems: Array<{ title: string; url: string; icon: string; badge?: stri
   {
     title: 'My Token Definitions',
     url: '/tokens/my-tokens',
-    icon: mdiViewList,
-    visible: hasHTMWallet
+    icon: mdiViewList
   },
   {
     title: 'Register HTM Account',
@@ -245,23 +240,11 @@ onMounted(async () => {
     </SidebarContent>
     <SidebarFooter>
       <Separator />
-      <sub class="text-xs text-foreground/60 flex flex-col items-center">
-        <pre>@hiveio/wax@{{ waxVersion }}</pre>
-        <pre>{{ metamaskVersion }}</pre>
-        <pre>Commit Hash: {{ commitHash.substring(0, 7) }}</pre>
-        <TooltipProvider :delay-duration="350">
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <pre>Chain ID: {{ chainId.substring(0, 10) }}…</pre>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              align="center"
-            >
-              <pre>Full Chain ID: {{ chainId }}</pre>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <sub class="text-xs text-foreground/60 text-center">
+        <TextTooltip side="right">@hiveio/wax@{{ waxVersion }}</TextTooltip>
+        <TextTooltip side="right">{{ metamaskVersion }}</TextTooltip>
+        <TextTooltip side="right">Commit Hash: {{ commitHash.substring(0, 7) }}</TextTooltip>
+        <TextTooltip side="right">Chain ID: {{ chainId }}</TextTooltip>
       </sub>
     </SidebarFooter>
   </Sidebar>
