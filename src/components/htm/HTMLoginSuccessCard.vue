@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { mdiCheckCircle } from '@mdi/js';
-import { useRouter } from 'vue-router';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
-
-const router = useRouter();
-
-const goToMyAccount = () => {
-  router.push('/tokens/my-balance');
-};
 </script>
 
 <template>
@@ -46,13 +39,16 @@ const goToMyAccount = () => {
 
         <!-- Action Button -->
         <div class="flex flex-col gap-4 w-full">
-          <Button
-            size="lg"
-            class="mt-4"
-            @click="goToMyAccount"
+          <NuxtLink
+            to="/tokens/my-balance"
+            class="w-full mt-4"
           >
-            Go to My Account
-          </Button>
+            <Button
+              size="lg"
+            >
+              Go to My Account
+            </Button>
+          </NuxtLink>
           <AddToGoogleWallet class="mt-2" />
         </div>
       </div>

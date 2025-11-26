@@ -71,14 +71,6 @@ const loadTokenDetails = async () => {
   }
 };
 
-// Navigate back to token detail
-const goBack = () => {
-  router.push({
-    path: '/tokens/token',
-    query: { 'asset-num': assetNum.value }
-  });
-};
-
 // Initialize
 onMounted(async () => {
   // Allow viewing without login, but login will be required when clicking "Send Token"
@@ -143,27 +135,28 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
-        <Button
-          v-if="assetNum"
-          variant="ghost"
-          size="sm"
-          class="gap-2 hover:bg-accent"
-          @click="goBack"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
+        <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`">
+          <Button
+            v-if="assetNum"
+            variant="ghost"
+            size="sm"
+            class="gap-2 hover:bg-accent"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiArrowLeft"
-            />
-          </svg>
-          Back to Token
-        </Button>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiArrowLeft"
+              />
+            </svg>
+            Back to Token
+          </Button>
+        </NuxtLink>
       </div>
 
       <!-- Loading State -->

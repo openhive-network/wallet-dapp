@@ -96,19 +96,6 @@ const loadTopHolders = async () => {
   }
 };
 
-// Navigate back to token list
-const goBack = () => {
-  router.push('/tokens/list');
-};
-
-// Navigate to edit token
-const editToken = () => {
-  router.push({
-    path: '/tokens/edit',
-    query: { 'asset-num': assetNum.value }
-  });
-};
-
 const showQRCode = () => {
   router.push({
     path: '/tokens/pos/receive',
@@ -138,34 +125,11 @@ onMounted(async () => {
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
       <!-- Header with back button -->
       <div class="flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="gap-2 hover:bg-accent"
-          @click="goBack"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
-          >
-            <path
-              style="fill: currentColor"
-              d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
-            />
-          </svg>
-          Back to Tokens
-        </Button>
-        <div
-          class="flex gap-3"
-        >
+        <NuxtLink to="/tokens/list">
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            class="gap-2"
-            @click="showQRCode"
+            class="gap-2 hover:bg-accent"
           >
             <svg
               width="16"
@@ -176,17 +140,42 @@ onMounted(async () => {
             >
               <path
                 style="fill: currentColor"
-                :d="mdiQrcodeScan"
+                d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
               />
             </svg>
-            Show QR Code
+            Back to Tokens
           </Button>
+        </NuxtLink>
+        <div
+          class="flex gap-3"
+        >
+          <NuxtLink :to="`/tokens/pos/receive?asset-num=${assetNum}`">
+            <Button
+              variant="outline"
+              size="sm"
+              class="gap-2"
+              @click="showQRCode"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="flex-shrink-0"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiQrcodeScan"
+                />
+              </svg>
+              Show QR Code
+            </Button>
+          </NuxtLink>
+          <NuxtLink v-if="isTokenOwner" :to="`/tokens/edit?asset-num=${assetNum}`">
           <Button
-            v-if="isTokenOwner"
             variant="default"
             size="sm"
             class="gap-2"
-            @click="editToken"
           >
             <svg
               width="16"
@@ -202,6 +191,7 @@ onMounted(async () => {
             </svg>
             Edit Token Definition
           </Button>
+          </NuxtLink>
         </div>
       </div>
 

@@ -7,23 +7,13 @@ interface Props {
   token: CTokenDefinitionDisplay;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
-const emit = defineEmits<{
-  click: [token: CTokenDefinitionDisplay];
-}>();
-
-// Handle card click
-const handleClick = () => {
-  emit('click', props.token);
-};
 </script>
 
 <template>
   <HTMTokenPreview
     :token="token"
-    :clickable="true"
     :show-view-icon="true"
-    @click="handleClick"
   />
 </template>

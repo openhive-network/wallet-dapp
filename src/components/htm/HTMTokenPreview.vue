@@ -5,18 +5,12 @@ import type { CTokenDefinitionDisplay } from '@/stores/tokens.store';
 
 interface Props {
   token: CTokenDefinitionDisplay;
-  clickable?: boolean;
   showViewIcon?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  clickable: false,
+withDefaults(defineProps<Props>(), {
   showViewIcon: false
 });
-
-const emit = defineEmits<{
-  click: [token: CTokenDefinitionDisplay];
-}>();
 
 // Get avatar fallback text
 const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
@@ -29,23 +23,13 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
   if (token.ownerPublicKey)
     return token.ownerPublicKey.slice(3, 5).toUpperCase();
 
-  return 'TK';
-};
-
-// Handle card click
-const handleClick = () => {
-  if (props.clickable)
-    emit('click', props.token);
+  return '??';
 };
 </script>
 
 <template>
   <Card
-    :class="[
-      'transition-all',
-      clickable ? 'hover:shadow-lg cursor-pointer group' : ''
-    ]"
-    @click="handleClick"
+    class="transition-all"
   >
     <CardHeader class="pb-3">
       <div class="flex items-start gap-4">

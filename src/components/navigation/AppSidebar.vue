@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiViewList, mdiAccountGroup, mdiArrowLeft } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem , useSidebar } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { TextTooltip } from '@/components/ui/texttooltip';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
@@ -21,8 +21,6 @@ const props = defineProps({
 });
 
 const router = useRouter();
-
-const { toggleSidebar, isMobile } = useSidebar();
 
 const walletStore = useWalletStore();
 
@@ -40,11 +38,6 @@ const tokenItems: Array<{ title: string; url: string; icon: string; badge?: stri
     title: 'Tokens List',
     url: '/tokens/list',
     icon: mdiAccountGroup
-  },
-  {
-    title: 'My Token Definitions',
-    url: '/tokens/my-tokens',
-    icon: mdiViewList
   },
   {
     title: 'Register HTM Account',
@@ -135,13 +128,6 @@ const groups = computed(() => {
 
 });
 
-const navigateTo = (url: string) => {
-  router.push(url);
-
-  if (isMobile.value)
-    toggleSidebar();
-};
-
 const waxVersion = ref('');
 
 const defaultSnapOrigin = snapOrigin || 'npm:@hiveio/metamask-snap'; // local:http://localhost:8080
@@ -165,9 +151,9 @@ onMounted(async () => {
 <template>
   <Sidebar>
     <SidebarHeader class="p-0">
-      <div
+      <NuxtLink
+        to="/"
         class="flex items-center px-4 h-[60px] border-b cursor-pointer"
-        @click="navigateTo('/')"
       >
         <img
           src="/icon.svg"
@@ -178,7 +164,7 @@ onMounted(async () => {
           v-if="props.forceTokenView"
           class="text-foreground/60 ml-2 text-sm"
         >Tokens</span>
-      </div>
+      </NuxtLink>
     </SidebarHeader>
     <SidebarContent>
       <SidebarGroup
@@ -202,37 +188,41 @@ onMounted(async () => {
               v-for="item in group.items"
               :key="item.title"
             >
-              <SidebarMenuButton
-                v-if="item.visible === undefined || item.visible?.value"
-                as-child
-                :class="{ 'bg-primary/5': router.currentRoute.value.path === item.url }"
+              <NuxtLink
+                :to="item.url"
+                class="w-full"
               >
-                <Button
-                  variant="ghost"
-                  :disabled="item.disabled?.value"
-                  class="flex justify-start"
-                  @click="navigateTo(item.url)"
+                <SidebarMenuButton
+                  v-if="item.visible === undefined || item.visible?.value"
+                  as-child
+                  :class="{ 'bg-primary/5': router.currentRoute.value.path === item.url }"
                 >
-                  <svg
-                    width="24"
-                    height="24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                  ><path
-                    style="fill: hsl(var(--foreground))"
-                    :d="item.icon"
-                  /></svg>
-                  <span class="text-foreground/80 flex items-center">
-                    {{ item.title }}
-                    <span
-                      v-if="item.badge"
-                      class="ml-[6px] px-1 rounded-md bg-primary/5 text-[11px]/[14px] text-gray-600 border border-primary/20"
-                    >
-                      {{ item.badge }}
+                  <Button
+                    variant="ghost"
+                    :disabled="item.disabled?.value"
+                    class="flex justify-start"
+                  >
+                    <svg
+                      width="24"
+                      height="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    ><path
+                      style="fill: hsl(var(--foreground))"
+                      :d="item.icon"
+                    /></svg>
+                    <span class="text-foreground/80 flex items-center">
+                      {{ item.title }}
+                      <span
+                        v-if="item.badge"
+                        class="ml-[6px] px-1 rounded-md bg-primary/5 text-[11px]/[14px] text-gray-600 border border-primary/20"
+                      >
+                        {{ item.badge }}
+                      </span>
                     </span>
-                  </span>
-                </Button>
-              </SidebarMenuButton>
+                  </Button>
+                </SidebarMenuButton>
+              </NuxtLink>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>

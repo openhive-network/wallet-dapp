@@ -182,21 +182,10 @@ const handleSaveChanges = async () => {
   }
 };
 
-// Navigate back to token detail
-const goBack = () => {
-  router.push({
-    path: '/tokens/token',
-    query: { 'asset-num': assetNum.value }
-  });
-};
-
-// Initialize
-onMounted(async () => {
-  if (!isLoggedIn.value) {
-    toast.error('You must be logged in to edit tokens');
-    router.push('/tokens/register-account');
+const handleInit = async () => {
+  if (!isLoggedIn.value)
     return;
-  }
+
 
   isLoading.value = true;
   await loadTokenDetails();
@@ -210,6 +199,15 @@ onMounted(async () => {
       query: { 'asset-num': assetNum.value }
     });
   }
+};
+
+watch(isLoggedIn, () => {
+  void handleInit();
+});
+
+// Initialize
+onMounted(() => {
+  void handleInit();
 });
 </script>
 
@@ -218,26 +216,27 @@ onMounted(async () => {
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="gap-2 hover:bg-accent"
-          @click="goBack"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
+        <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="gap-2 hover:bg-accent"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiArrowLeft"
-            />
-          </svg>
-          Back to Token
-        </Button>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiArrowLeft"
+              />
+            </svg>
+            Back to Token
+          </Button>
+        </NuxtLink>
       </div>
 
       <!-- Loading State -->
@@ -317,15 +316,16 @@ onMounted(async () => {
 
             <!-- Action Buttons -->
             <div class="flex gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                class="flex-1"
-                :disabled="isUpdating"
-                @click="goBack"
-              >
-                Cancel
-              </Button>
+              <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  class="flex-1"
+                  :disabled="isUpdating"
+                >
+                  Cancel
+                </Button>
+              </NuxtLink>
               <Button
                 size="lg"
                 class="flex-1 gap-2"

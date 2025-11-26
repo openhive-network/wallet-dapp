@@ -2,7 +2,6 @@
 import { mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toast } from 'vue-sonner';
 
 import HTMView from '@/components/htm/HTMView.vue';
 import QRCodeCard from '@/components/htm/tokens/QRCodeCard.vue';
@@ -72,10 +71,9 @@ const goBack = () => {
 // Initialize
 onMounted(async () => {
   // Require login for send/generate QR mode
-  if (!isLoggedIn.value) {
-    toast.error('You must be logged in to use this feature');
+  if (!isLoggedIn.value)
     return;
-  }
+
 
   isLoading.value = true;
 
@@ -135,27 +133,28 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
-        <Button
-          v-if="token"
-          variant="ghost"
-          size="sm"
-          class="gap-2 hover:bg-accent"
-          @click="goBack"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
+        <NuxtLink v-if="token" :to="`/tokens/token?asset-num=${token!.assetNum}`">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="gap-2 hover:bg-accent"
+            @click="goBack"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiArrowLeft"
-            />
-          </svg>
-          Back to Token
-        </Button>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiArrowLeft"
+              />
+            </svg>
+            Back to Token
+          </Button>
+        </NuxtLink>
       </div>
 
       <!-- Loading State -->
