@@ -2,9 +2,6 @@ import { GoogleAuth } from 'google-auth-library';
 import { defineEventHandler, readBody } from 'h3';
 import jwt from 'jsonwebtoken';
 
-const issuerId = '3388000000023034095';
-const classId = `${issuerId}.codelab_class`;
-
 const init = () => {
   const config = useRuntimeConfig();
 
@@ -38,6 +35,11 @@ export default defineEventHandler(async (event) => {
 
   if (!credentials.client_email || !credentials.private_key)
     throw createError({ statusCode: 500, message: 'Invalid service account credentials' });
+
+  const appRuntimeConfig = useRuntimeConfig();
+  const issuerId = appRuntimeConfig.googleWalletIssuerId;
+  const classId = `${issuerId}.codelab_class`;
+
 
   // Use service account email for object suffix
   const objectSuffix = `${credentials.client_email.replace(/[^\w.-]/g, '_')}`;
