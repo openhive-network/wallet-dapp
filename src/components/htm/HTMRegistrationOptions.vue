@@ -4,7 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 
 const emit = defineEmits(['showRegistrationForm', 'showLoginForm']);
 
-// Show HTM login success
+// Navigate to registration page
+const showRegistration = () => {
+  emit('showRegistrationForm');
+};
+
+// Show HTM login
 const showHTMLogin = () => {
   emit('showLoginForm');
 };
@@ -14,10 +19,10 @@ const showHTMLogin = () => {
   <Card>
     <CardHeader class="text-center">
       <CardTitle class="text-2xl">
-        Register HTM Account
+        HTM Access Required
       </CardTitle>
       <CardDescription>
-        Create an account on the Hive Token Machine to manage your custom tokens
+        To access Hive Token Machine features, you need to register a new account or login to an existing one.
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-6">
@@ -32,7 +37,7 @@ const showHTMLogin = () => {
           <Button
             size="lg"
             class="w-full"
-            @click="emit('showRegistrationForm')"
+            @click="showRegistration"
           >
             Register New HTM Account
           </Button>

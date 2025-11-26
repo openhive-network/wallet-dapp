@@ -1,39 +1,46 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRouter } from 'vue-router';
 
 import HTMLoginForm from '@/components/htm/HTMLoginForm.vue';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { HTMRegistrationForm } from '@/components/htm/HTMRegistrationForm';
+import HTMRegistrationOptions from '@/components/htm/HTMRegistrationOptions.vue';
 import { useTokensStore } from '@/stores/tokens.store';
 
 
 const tokensStore = useTokensStore();
-const router = useRouter();
-
-const showLoginForm = ref(false);
 
 const props = defineProps<{
   isPublicPage?: boolean;
 }>();
 
+const showRegistrationForm = ref(false);
+const showLoginForm = ref(false);
+
 // Check if user is authenticated (has wallet connected)
 const isAuthenticated = computed(() => tokensStore.wallet || props.isPublicPage);
 
-// Show HTM login form
-const showHTMLogin = () => {
-  showLoginForm.value = true;
-};
-
-// Handle successful login
-const onLoginSuccess = () => {
+// Handle showing registration form
+const handleShowRegistration = () => {
+  showRegistrationForm.value = true;
   showLoginForm.value = false;
-  // The authentication state will be automatically updated
 };
 
-// Navigate to registration page
-const goToRegistration = () => {
-  router.push('/tokens/register-account');
+// Handle showing login form
+const handleShowLogin = () => {
+  showLoginForm.value = true;
+  showRegistrationForm.value = false;
+};
+
+// Handle successful login or registration
+const handleSuccess = () => {
+  showRegistrationForm.value = false;
+  showLoginForm.value = false;
+};
+
+// Go back to options
+const goBack = () => {
+  showRegistrationForm.value = false;
+  showLoginForm.value = false;
 };
 </script>
 
@@ -44,82 +51,34 @@ const goToRegistration = () => {
       <!-- Show slot content when authenticated -->
       <slot />
     </div>
-    <!-- Show login/registration page when not authenticated -->
+    <!-- Show login/registration options when not authenticated -->
     <div
       v-else
       class="container mx-auto py-12 px-4 max-w-2xl"
     >
-      <!-- Show HTM Login Form -->
-      <div
-        v-if="showLoginForm"
-        class="flex justify-center"
-      >
-        <HTMLoginForm
-          :show-close-button="true"
-          title="HTM Access"
-          description="Create or access your HTM wallet to manage custom tokens"
-          @success="onLoginSuccess"
-          @close="showLoginForm = false"
-        />
-      </div>
+      <!-- Show registration form -->
+      <HTMRegistrationForm
+        v-if="showRegistrationForm"
+        @go-back="goBack"
+        @success="handleSuccess"
+      />
 
-      <!-- Show selection options -->
-      <Card
+      <!-- Show login form -->
+      <HTMLoginForm
+        v-else-if="showLoginForm"
+        :show-close-button="true"
+        title="HTM Access"
+        description="Access your HTM wallet to manage custom tokens"
+        @success="handleSuccess"
+        @close="goBack"
+      />
+
+      <!-- Show options -->
+      <HTMRegistrationOptions
         v-else
-        class="text-center"
-      >
-        <CardHeader>
-          <CardTitle class="text-2xl">
-            HTM Access Required
-          </CardTitle>
-          <CardDescription>
-            To access Hive Token Machine features, you need to access your HTM wallet or register a new account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-3">
-            <p class="text-sm text-muted-foreground">
-              Choose one of the options below to get started:
-            </p>
-
-            <!-- HTM Access -->
-            <Button
-              size="lg"
-              class="w-full"
-              @click="showHTMLogin"
-            >
-              Login to HTM Wallet
-            </Button>
-
-            <!-- Or register new HTM account -->
-            <div class="relative">
-              <div class="absolute inset-0 flex items-center">
-                <span class="w-full border-t" />
-              </div>
-              <div class="relative flex justify-center text-xs uppercase">
-                <span class="bg-background px-2 text-muted-foreground">
-                  Or
-                </span>
-              </div>
-            </div>
-
-            <Button
-              variant="outline"
-              size="lg"
-              class="w-full"
-              @click="goToRegistration"
-            >
-              Register HTM Account
-            </Button>
-          </div>
-
-          <div class="pt-4 text-xs text-muted-foreground">
-            <p>
-              HTM accounts allow you to create, manage, and transfer custom tokens on the Hive blockchain.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        @show-registration-form="handleShowRegistration"
+        @show-login-form="handleShowLogin"
+      />
     </div>
   </div>
 </template>

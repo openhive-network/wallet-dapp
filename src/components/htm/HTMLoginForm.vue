@@ -4,10 +4,9 @@ import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 import HTMLoginContent from '@/components/htm/HTMLoginContent.vue';
+import HTMProvidePasswordContent from '@/components/htm/HTMProvidePasswordContent.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
@@ -35,11 +34,7 @@ const walletStore = useWalletStore();
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
 
-const isLoading = ref(false);
 const isCheckingWalletStatus = ref(true);
-
-// Existing account login
-const password = ref('');
 
 const tokensStore = useTokensStore();
 
@@ -69,17 +64,11 @@ onMounted(async () => {
   }
 });
 
-const switchToCreateWallet = () => {
-  mode.value = 'create';
-  password.value = '';
-};
-
 const switchToLoginMode = () => {
   if (!hasStoredHTMWallet.value)
     return;
 
   mode.value = 'login';
-  password.value = '';
 };
 
 const handleConditionalSiteLogin = async (operationalKey: string) => {
@@ -118,13 +107,9 @@ const handleSetAccount = async (account: string) => {
   }
 };
 
-// Login to existing HTM account
-const loginExisting = async () => {
+// Handle successful login from HTMProvidePasswordContent
+const handleLoginSuccess = async () => {
   try {
-    isLoading.value = true;
-
-    await CTokensProvider.login(password.value);
-
     // Get operational key after successful login
     const operationalKey = CTokensProvider.getOperationalPublicKey();
     if (!operationalKey)
@@ -132,13 +117,10 @@ const loginExisting = async () => {
 
     await handleConditionalSiteLogin(operationalKey);
 
-    toast.success('Logged in successfully!');
     emit('success');
     emit('setaccount', operationalKey);
   } catch (error) {
-    toastError('Failed to connect to HTM', error);
-  } finally {
-    isLoading.value = false;
+    toastError('Failed to setup HTM wallet after login', error);
   }
 };
 </script>
@@ -190,40 +172,10 @@ const loginExisting = async () => {
         v-else-if="mode === 'login'"
         class="space-y-4"
       >
-        <div class="space-y-2">
-          <p class="text-sm text-muted-foreground">
-            Enter your HTM wallet password:
-          </p>
-
-          <div class="space-y-1">
-            <Label for="wallet-password">Password</Label>
-            <Input
-              id="wallet-password"
-              v-model="password"
-              type="password"
-              placeholder="Enter your HTM wallet password"
-              @keyup.enter="loginExisting"
-            />
-          </div>
-        </div>
-
-        <Button
-          :disabled="isLoading || !password"
-          class="w-full"
-          @click="loginExisting"
-        >
-          <span v-if="isLoading">Logging in...</span>
-          <span v-else>Login to HTM</span>
-        </Button>
-
-        <Button
-          v-if="hasStoredHTMWallet"
-          variant="link"
-          class="w-full justify-center text-sm"
-          @click="switchToCreateWallet"
-        >
-          Create a new HTM wallet instead
-        </Button>
+        <HTMProvidePasswordContent
+          :embed="true"
+          @success="handleLoginSuccess"
+        />
       </div>
 
       <div
