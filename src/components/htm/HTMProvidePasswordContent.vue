@@ -67,7 +67,7 @@ const connect = async () => {
 };
 
 const openRegistration = () => {
-  close();
+  walletStore.isProvideWalletPasswordModalOpen = false;
   router.push('/tokens/register-account');
 };
 </script>

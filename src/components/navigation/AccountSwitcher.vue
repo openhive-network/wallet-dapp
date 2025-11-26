@@ -92,12 +92,10 @@ const connectToHTM = async () => {
   try {
     const hasStoredWallet = await CTokensProvider.hasWallet();
 
-    if (settingsStore.settings?.account || hasStoredWallet) {
+    if (hasStoredWallet)
       walletStore.isProvideWalletPasswordModalOpen = true;
-      return;
-    }
-
-    router.push('/tokens/register-account');
+    else
+      router.push('/tokens/register-account');
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   }
