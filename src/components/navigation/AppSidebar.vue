@@ -153,7 +153,7 @@ onMounted(async () => {
     <SidebarHeader class="p-0">
       <NuxtLink
         to="/"
-        class="flex items-center px-4 h-[60px] border-b cursor-pointer"
+        class="flex items-center px-4 h-[60px] border-b cursor-pointer keychainify-checked"
       >
         <img
           src="/icon.svg"
@@ -190,7 +190,7 @@ onMounted(async () => {
             >
               <NuxtLink
                 :to="item.url"
-                class="w-full"
+                class="w-full keychainify-checked"
               >
                 <SidebarMenuButton
                   v-if="item.visible === undefined || item.visible?.value"

@@ -41,10 +41,11 @@ import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
         <div class="flex flex-col gap-4 w-full">
           <NuxtLink
             to="/tokens/my-balance"
-            class="w-full mt-4"
+            class="w-full mt-4 keychainify-checked"
           >
             <Button
               size="lg"
+              class="w-full"
             >
               Go to My Account
             </Button>

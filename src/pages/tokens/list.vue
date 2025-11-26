@@ -187,7 +187,7 @@ onUnmounted(() => {
             content="You need to be logged in to create a new token."
             :ignore="!!settingsStore.account"
           >
-            <NuxtLink to="/tokens/create">
+            <NuxtLink :to="!!settingsStore.account ? '/tokens/create' : ''" class="keychainify-checked">
               <Button
                 :disabled="!settingsStore.account"
               >
@@ -297,6 +297,7 @@ onUnmounted(() => {
             <NuxtLink
               v-if="token.liquid"
               :to="`/tokens/token?asset-num=${token.liquid.assetNum}`"
+              class="keychainify-checked"
             >
               <HTMTokenCard
                 :token="token.liquid"
@@ -307,6 +308,7 @@ onUnmounted(() => {
             <NuxtLink
               v-if="token.vesting"
               :to="`/tokens/token?asset-num=${token.vesting.assetNum}`"
+              class="keychainify-checked"
             >
               <HTMTokenCard
                 :token="token.vesting"

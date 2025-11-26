@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
       <div class="space-y-6">
         <!-- Header -->
         <div class="flex items-center justify-between gap-4">
-          <NuxtLink to="/tokens/list">
+          <NuxtLink to="/tokens/list" class="keychainify-checked">
             <Button
               variant="ghost"
               size="sm"

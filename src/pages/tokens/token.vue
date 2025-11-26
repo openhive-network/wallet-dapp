@@ -125,7 +125,7 @@ onMounted(async () => {
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
       <!-- Header with back button -->
       <div class="flex items-center justify-between gap-4">
-        <NuxtLink to="/tokens/list">
+        <NuxtLink to="/tokens/list" class="keychainify-checked">
           <Button
             variant="ghost"
             size="sm"
@@ -149,7 +149,7 @@ onMounted(async () => {
         <div
           class="flex gap-3"
         >
-          <NuxtLink :to="`/tokens/pos/receive?asset-num=${assetNum}`">
+          <NuxtLink :to="`/tokens/pos/receive?asset-num=${assetNum}`" class="keychainify-checked">
             <Button
               variant="outline"
               size="sm"
@@ -171,7 +171,7 @@ onMounted(async () => {
               Show QR Code
             </Button>
           </NuxtLink>
-          <NuxtLink v-if="isTokenOwner" :to="`/tokens/edit?asset-num=${assetNum}`">
+          <NuxtLink v-if="isTokenOwner" :to="`/tokens/edit?asset-num=${assetNum}`" class="keychainify-checked">
           <Button
             variant="default"
             size="sm"

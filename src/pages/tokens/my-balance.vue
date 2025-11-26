@@ -456,7 +456,7 @@ onMounted(() => {
                   >
                     <NuxtLink
                       :to="`/tokens/token?asset-num=${balance.liquid.assetNum}`"
-                      class="contents"
+                      class="contents keychainify-checked"
                     >
                       <!-- Asset Info -->
                       <td class="p-4">
