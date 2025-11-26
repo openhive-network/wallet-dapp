@@ -62,6 +62,7 @@ export default defineNuxtConfig({
       snapOrigin: '',
       snapVersion: ''
     },
-    googleApplicationCredentialsJson: {}
+    googleApplicationCredentialsJson: {},
+    googleWalletIssuerId: ''
   }
 });
