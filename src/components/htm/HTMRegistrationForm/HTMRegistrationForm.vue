@@ -8,8 +8,9 @@ import type { HTMRegistrationContext } from '@/components/htm/HTMRegistrationFor
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useSettingsStore } from '@/stores/settings.store';
+import { UsedWallet, useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
+import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
@@ -20,6 +21,7 @@ import CTokensProvider from '@/utils/wallet/ctokens/signer';
 const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 const walletStore = useWalletStore();
+const userStore = useUserStore();
 
 const emit = defineEmits(['goBack', 'success']);
 
@@ -151,6 +153,31 @@ const downloadKeysFile = () => {
   URL.revokeObjectURL(url);
 };
 
+const handleConditionalSiteLogin = async (operationalKey: string) => {
+  const wax = await getWax();
+
+  if (walletStore.wallet !== undefined && !walletStore.isL2Wallet) {
+    // Already logged in using L1 wallet, so just add another layer on top of that
+    await tokensStore.reset(await CTokensProvider.for(wax, 'posting'));
+
+    return;
+  }
+
+  await tokensStore.getCurrentUserMetadata();
+
+  // Not logged in using any wallet so allow user log in using HTM wallet
+
+  // Set settings with the operational key as account and CTOKENS wallet
+  settingsStore.setSettings({
+    account: operationalKey,
+    wallet: UsedWallet.CTOKENS_IMPLEMENTATION
+  });
+
+  // Create wallet provider and parse user data
+  await walletStore.createWalletFor(settingsStore.settings, 'posting');
+  await userStore.parseUserData(operationalKey);
+};
+
 const registerHTMAccount = async () => {
   try {
     isLoading.value = true;
@@ -222,7 +249,7 @@ const registerHTMAccount = async () => {
       explicitWallet
     );
 
-    tokensStore.reset(await CTokensProvider.for(wax, 'posting', false));
+    await handleConditionalSiteLogin(keys.operational!);
 
     // After successful registration, redirect to login
     successShow();
