@@ -114,8 +114,12 @@ const transformToApiResponseFormat = <ActualDataResponse, T extends {
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
 
 export const formatAsset = (wax: IWaxBaseInterface, value: string | bigint, precision: number, name?: string): string => {
-  const formatted = wax.formatter.formatNumber(value, precision);
-  return name ? `${formatted} ${name}` : formatted;
+  const integer = String(value).slice(0, -precision) || '0';
+  const fraction = String(value).slice(-precision).padEnd(precision, '0');
+
+  const formatted = wax.formatter.formatNumber(integer, 0);
+  const numOut = `${formatted}.${fraction}`;
+  return name ? `${numOut} ${name}` : numOut;
 };
 
 export const transformTokenToDisplayFormat = (wax: IWaxBaseInterface, token: Required<CtokensAppToken>, isNft: boolean): CTokenDefinitionDisplay => {
