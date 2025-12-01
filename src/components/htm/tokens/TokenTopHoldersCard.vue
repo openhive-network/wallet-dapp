@@ -60,9 +60,10 @@ const props = defineProps<{
         v-else-if="props.topHolders.length > 0"
         class="space-y-2"
       >
-        <div
+        <NuxtLink
           v-for="(holder, index) in props.topHolders.slice(0, 10)"
           :key="holder.operationalKey"
+          :to="`/tokens/users/${holder.operationalKey}`"
           class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors"
         >
           <div class="relative flex-shrink-0">
@@ -118,7 +119,7 @@ const props = defineProps<{
               {{ props.token.symbol || 'tokens' }}
             </p>
           </div>
-        </div>
+        </NuxtLink>
       </div>
 
       <div
