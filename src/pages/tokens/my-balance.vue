@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
@@ -97,6 +98,11 @@ const loadAccountBalances = async (page = 1) => {
 // Load more items
 const loadMoreItems = () => {
   void loadAccountBalances(fetchedBalances.value!.page + 1);
+};
+
+const handlePageChange = (page: number) => {
+  if (isLoading.value) return;
+  void loadAccountBalances(page);
 };
 
 const openTransferDialog = (balance: CTokenBalanceDisplay) => {
@@ -436,9 +442,19 @@ onMounted(() => {
           @unstake="openTransformDialog"
         />
 
-        <!-- Load More Button -->
+        <!-- Pagination -->
+        <div v-if="fetchedBalances.items.length > 0" class="flex justify-center pt-4">
+          <Pagination
+            :current-page="fetchedBalances.page"
+            :total-pages="fetchedBalances.pages"
+            :loading="isLoading"
+            @page-change="handlePageChange"
+          />
+        </div>
+
+        <!-- Load More Button (kept as alternative if needed) -->
         <div
-          v-if="fetchedBalances.hasMore"
+          v-else-if="fetchedBalances.hasMore && fetchedBalances.pages <= 1"
           class="flex justify-center pt-4"
         >
           <Button

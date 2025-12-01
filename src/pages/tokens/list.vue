@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import TextTooltip from '@/components/ui/texttooltip/TextTooltip.vue';
 import { useSettingsStore } from '@/stores/settings.store';
@@ -106,12 +107,16 @@ watch(showOnlyMyTokens, () => {
   if (searchQuery.value.trim().length > 0)
     return void searchFn(searchQuery.value);
 
-  void loadTokens(tokensList.value.page);
+  void loadTokens(1); // Reset to page 1 when filtering
 });
 
-const loadMore = () => {
+const handlePageChange = (page: number) => {
   if (tokensStore.isLoading) return;
-  void loadTokens(tokensList.value.page + 1);
+
+  if (searchQuery.value.trim().length > 0)
+    void searchFn(searchQuery.value);
+  else
+    void loadTokens(page);
 };
 
 const clearSearch = () => {
@@ -319,35 +324,18 @@ onUnmounted(() => {
           </template>
         </div>
 
-        <!-- Load More Button -->
-        <div
-          v-else-if="tokensList.hasMore"
-          class="text-center pt-4"
-        >
-          <Button
-            variant="outline"
-            :disabled="tokensStore.isLoading"
-            @click="loadMore"
-          >
-            <svg
-              v-if="tokensStore.isLoading"
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="mr-2 animate-spin"
-            >
-              <path
-                style="fill: currentColor"
-                d="M12,4V2A10,10 0 0,0 2,12H4A8,8 0 0,1 12,4Z"
-              />
-            </svg>
-            {{ tokensStore.isLoading ? 'Loading...' : 'Load More Tokens' }}
-          </Button>
+        <!-- Pagination -->
+        <div v-if="tokensList.items.length > 0" class="flex justify-center pt-6">
+          <Pagination
+            :current-page="tokensList.page"
+            :total-pages="tokensList.pages"
+            :loading="tokensStore.isLoading"
+            @page-change="handlePageChange"
+          />
         </div>
 
         <!-- Empty State -->
-        <Card v-else>
+        <Card v-else-if="tokensList.items.length === 0">
           <CardContent class="text-center py-12">
             <svg
               width="64"

@@ -8,6 +8,7 @@ import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTokensStore, type CTokenUser, type TokenStoreApiResponse } from '@/stores/tokens.store';
 import { debounce } from '@/utils/debouncers';
@@ -77,6 +78,15 @@ const updateUrl = () => {
     '',
     url
   );
+};
+
+const handlePageChange = (page: number) => {
+  if (tokensStore.isLoading) return;
+
+  if (searchQuery.value.trim().length > 0)
+    void searchFn(searchQuery.value);
+  else
+    void loadUsers(page);
 };
 
 const loadMore = () => {
@@ -228,9 +238,19 @@ onUnmounted(() => {
           </NuxtLink>
         </div>
 
-        <!-- Load More Button -->
+        <!-- Pagination -->
+        <div v-if="usersList.items.length > 0" class="flex justify-center pt-6">
+          <Pagination
+            :current-page="usersList.page"
+            :total-pages="usersList.pages"
+            :loading="tokensStore.isLoading"
+            @page-change="handlePageChange"
+          />
+        </div>
+
+        <!-- Load More Button (kept for backward compatibility if hasMore is still used) -->
         <div
-          v-if="usersList.hasMore"
+          v-else-if="usersList.hasMore && usersList.pages <= 1"
           class="text-center pt-4"
         >
           <Button
