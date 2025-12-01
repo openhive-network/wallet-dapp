@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiAccountMultiple } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -38,6 +38,11 @@ const tokenItems: Array<{ title: string; url: string; icon: string; badge?: stri
     title: 'Tokens List',
     url: '/tokens/list',
     icon: mdiAccountGroup
+  },
+  {
+    title: 'Users Directory',
+    url: '/tokens/users',
+    icon: mdiAccountMultiple
   },
   {
     title: 'Register HTM Account',

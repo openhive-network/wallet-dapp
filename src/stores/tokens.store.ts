@@ -2,10 +2,9 @@ import type { IWaxBaseInterface } from '@hiveio/wax';
 import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 
-import { transformUserName } from '@/stores/user.store';
 import { getWax } from '@/stores/wax.store';
 import { isVesting } from '@/utils/nai-tokens';
-import { CtokensAppMetadataType, type CtokensAppAssetType, type CtokensAppBalance, type CtokensAppToken } from '@/utils/wallet/ctokens/api';
+import { CtokensAppMetadataType, type CtokensAppAssetType, type CtokensAppBalance, type CtokensAppToken, type CtokensAppUser } from '@/utils/wallet/ctokens/api';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 export interface CTokenDisplayBase {
@@ -24,13 +23,19 @@ export interface CTokenDisplayBase {
 }
 
 export interface CTokenUser {
+  managementKey: string;
   operationalKey: string;
+  hiveAccount?: string | null;
   metadata: Record<string, unknown>;
   displayName: string;
   about: string;
   name: string;
   profileImage: string;
   website: string;
+  email?: string;
+  location?: string;
+  twitter?: string;
+  github?: string;
 }
 
 export interface CTokenUserRanked extends CTokenUser {
@@ -82,19 +87,36 @@ const transformUserToDisplayFormat = <T extends {
   metadata?: Record<string, any>;
   user?: string;
   operational_key?: string;
+  management_key?: string;
+  hive_account?: string | null;
 }>(userData: T): CTokenUser => {
   const { metadata } = userData;
 
-  const operationalKey = userData.user || String(userData.operational_key);
+  const operationalKey = userData.user || String(userData.operational_key || '');
+  const managementKey = String(userData.management_key || '');
+
+  // Generate display name
+  let displayName = String(metadata?.name || '');
+  if (!displayName) {
+    // Use operational key as fallback, format it nicely
+    const keyPart = operationalKey.slice(3, 13);
+    displayName = `${keyPart.slice(0, 4)}...${keyPart.slice(-4)}`;
+  }
 
   return {
+    managementKey,
     operationalKey,
+    hiveAccount: userData.hive_account,
     metadata: metadata || {},
-    displayName: String(metadata?.name) || transformUserName(operationalKey),
+    displayName,
     about: metadata?.about as string,
     name: metadata?.name as string,
     profileImage: metadata?.profile_image as string,
-    website: metadata?.website as string
+    website: metadata?.website as string,
+    email: metadata?.email as string,
+    location: metadata?.location as string,
+    twitter: metadata?.twitter as string,
+    github: metadata?.github as string
   };
 };
 
@@ -114,6 +136,11 @@ const transformToApiResponseFormat = <ActualDataResponse, T extends {
 const cTokensProvider = shallowRef<CTokensProvider | undefined>(undefined);
 
 export const formatAsset = (wax: IWaxBaseInterface, value: string | bigint, precision: number, name?: string): string => {
+  if (precision === 0) {
+    const formatted = wax.formatter.formatNumber(String(value), 0);
+    return name ? `${formatted} ${name}` : formatted;
+  }
+
   const integer = String(value).slice(0, -precision) || '0';
   const fraction = String(value).slice(-precision).padEnd(precision, '0');
 
@@ -417,6 +444,96 @@ export const useTokensStore = defineStore('tokens', {
         });
 
         return transformToApiResponseFormat(topHolders, cTokensTopHolders, page);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async getUser (operationalKey: string): Promise<CTokenUser> {
+      this.isLoading = true;
+
+      try {
+        const wax = await getWax();
+
+        const user = await wax.restApi.ctokensApi.users({ user: operationalKey });
+
+        if (!user?.management_key)
+          throw new Error('User not found');
+
+        return transformUserToDisplayFormat(user);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async loadUsers (page = 1): Promise<TokenStoreApiResponse<CTokenUser>> {
+      this.isLoading = true;
+
+      try {
+        const wax = await getWax();
+
+        const usersResponse = await wax.restApi.ctokensApi.metadata.metadataType({
+          metadataType: CtokensAppMetadataType.User,
+          key: '',
+          value: '',
+          page
+        });
+
+        const users = (usersResponse.items || []).map((user) =>
+          transformUserToDisplayFormat(user as CtokensAppUser)
+        );
+
+        return transformToApiResponseFormat(users, usersResponse, page);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async searchUsers (query: string, page = 1): Promise<TokenStoreApiResponse<CTokenUser>> {
+      this.isLoading = true;
+
+      try {
+        const wax = await getWax();
+
+        // Search by name or other metadata fields
+        const searchArray = [
+          wax.restApi.ctokensApi.metadata.metadataType({
+            metadataType: CtokensAppMetadataType.User,
+            key: 'name',
+            value: query,
+            page
+          }),
+          wax.restApi.ctokensApi.metadata.metadataType({
+            metadataType: CtokensAppMetadataType.User,
+            key: 'about',
+            value: query,
+            page
+          })
+        ];
+
+        const usersFound = await Promise.allSettled(searchArray);
+
+        const usersRaw = new Map<string, CTokenUser>();
+
+        let maxPages = 0, totalItems = 0;
+
+        for (const result of usersFound) {
+          if (result.status === 'fulfilled') {
+            for (const item of (result.value.items || []) as CtokensAppUser[]) {
+              if (item.operational_key)
+                usersRaw.set(item.operational_key, transformUserToDisplayFormat(item));
+
+            }
+
+            maxPages = Math.max(maxPages, result.value.total_pages || 0);
+            totalItems += result.value.total_items || 0;
+          }
+        }
+
+        const usersData = Array.from(usersRaw.values());
+
+        return transformToApiResponseFormat(usersData, {
+          items: usersData,
+          total_items: totalItems,
+          total_pages: maxPages
+        }, page);
       } finally {
         this.isLoading = false;
       }
