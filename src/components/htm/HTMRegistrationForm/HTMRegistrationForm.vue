@@ -37,6 +37,8 @@ const successShow = () => {
 
 const hasConfirmedDownload = ref(false);
 const keysGenerated = ref(false);
+const encryptKeys = ref(true);
+const autoImport = ref(true);
 
 // Registration form data - simplified to match standard account creation flow
 const registrationData = ref({
@@ -111,11 +113,75 @@ const generateAndDownloadKeys = async () => {
 
 // Form validation - only basic info needed in step 1
 const isBasicInfoValid = computed(() => {
-  return registrationData.value.name.trim().length > 0 &&
+  const hasName = registrationData.value.name.trim().length > 0;
+
+  if (!encryptKeys.value) {
+    // If not encrypting, only name is required
+    return hasName;
+  }
+
+  // If encrypting, password is required and must match
+  return hasName &&
          registrationData.value.walletPassword.trim().length > 0 &&
          registrationData.value.repeatPassword.trim().length > 0 &&
          registrationData.value.walletPassword === registrationData.value.repeatPassword;
 });
+
+// Generate a random password when encryption is disabled
+const generateRandomPassword = (): string => {
+  const randomPart1 = Math.random().toString(36).substring(2, 15);
+  const randomPart2 = Math.random().toString(36).substring(2, 15);
+  const randomPart3 = Date.now().toString(36);
+  return `${randomPart1}${randomPart2}${randomPart3}`;
+};
+
+// Get the password to use (either user-provided or random)
+const getPasswordToUse = (): string => {
+  if (encryptKeys.value) {
+    return registrationData.value.walletPassword;
+  }
+
+  // Generate random password and store in localStorage
+  const randomPassword = generateRandomPassword();
+  localStorage.setItem('htm_random_password', randomPassword);
+
+  return randomPassword;
+};
+
+// Download operational private key as QR code
+const downloadPrivateKeyQR = async () => {
+  try {
+    /* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
+    const qrCode: typeof import('qrcode') = await import('qrcode');
+
+    const qrDataUrl = await qrCode.toDataURL(generatedKeys.value.operationalPrivateKey, {
+      width: 512,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    });
+
+    // Convert data URL to blob and download
+    const response = await fetch(qrDataUrl);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `htm-operational-key-${registrationData.value.name}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+    toast.success('QR code downloaded successfully');
+  } catch (error) {
+    toastError('Failed to generate QR code', error);
+  }
+};
 
 // Download HTM keys file (similar to Hive authority data file)
 const downloadKeysFile = () => {
@@ -190,16 +256,13 @@ const registerHTMAccount = async () => {
     if (!hasConfirmedDownload.value)
       throw new Error('Please confirm you have saved the keys file');
 
-
-    // Validate passwords match
-    if (registrationData.value.walletPassword !== registrationData.value.repeatPassword)
+    // Validate passwords match (only if encrypting)
+    if (encryptKeys.value && registrationData.value.walletPassword !== registrationData.value.repeatPassword)
       throw new Error('Passwords do not match');
-
 
     // Validate website URL if provided
     if (registrationData.value.website && !isValidUrl(registrationData.value.website))
       throw new Error('Please enter a valid website URL');
-
 
     // Validate profile image URL if provided
     if (registrationData.value.profile_image && !isValidUrl(registrationData.value.profile_image))
@@ -208,20 +271,30 @@ const registerHTMAccount = async () => {
     // Get wax instance
     const wax = await getWax();
 
-    // Create temporary beekeeper wallet to import keys and sign transactions
+    // Get the password to use (user-provided or random)
+    const passwordToUse = getPasswordToUse();
 
-    // Create HTM wallet for persistent storage
-    const keys = await CTokensProvider.createWallet(
-      registrationData.value.walletPassword,
-      generatedKeys.value.operationalPrivateKey,
-      generatedKeys.value.managementPrivateKey
-    );
+    // Create HTM wallet for persistent storage (only if auto-import is enabled)
+    let keys;
+    if (autoImport.value) {
+      keys = await CTokensProvider.createWallet(
+        passwordToUse,
+        generatedKeys.value.operationalPrivateKey,
+        generatedKeys.value.managementPrivateKey
+      );
 
-    await CTokensProvider.login(
-      registrationData.value.walletPassword
-    );
+      await CTokensProvider.login(passwordToUse);
+    } else {
+      // Just use the keys without creating a wallet
+      keys = {
+        operational: generatedKeys.value.operationalPublicKey,
+        management: generatedKeys.value.managementPublicKey
+      };
+    }
 
-    const explicitWallet = await CTokensProvider.for(wax, 'owner', false);
+    const explicitWallet = autoImport.value
+      ? await CTokensProvider.for(wax, 'owner', false)
+      : undefined;
 
     // Wait for transaction status
     await waitForTransactionStatus(
@@ -249,7 +322,10 @@ const registerHTMAccount = async () => {
       explicitWallet
     );
 
-    await handleConditionalSiteLogin(keys.operational!);
+    // Only handle login if auto-import is enabled
+    if (autoImport.value) {
+      await handleConditionalSiteLogin(keys.operational!);
+    }
 
     // After successful registration, redirect to login
     successShow();
@@ -266,24 +342,25 @@ provide<HTMRegistrationContext>(HTM_REGISTRATION_KEY, {
   generatedKeys,
   keysGenerated,
   hasConfirmedDownload,
+  encryptKeys,
+  autoImport,
   isLoading,
   isBasicInfoValid,
   generateAndDownloadKeys,
   downloadKeysFile,
+  downloadPrivateKeyQR,
   resetProcess
 });
 </script>
 
 <template>
-  <Card
-    class="w-full"
-  >
+  <Card class="w-full max-w-2xl mx-auto">
     <CardHeader>
       <CardTitle class="text-2xl">
         Register New HTM Account
       </CardTitle>
       <CardDescription>
-        Create your HTM account with auto-generated secure keys. Follow the simple steps below.
+        Create your HTM account with auto-generated secure keys.
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-6">
