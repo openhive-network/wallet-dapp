@@ -17,10 +17,13 @@ export interface HTMRegistrationContext {
   }>;
   keysGenerated: Ref<boolean>;
   hasConfirmedDownload: Ref<boolean>;
+  encryptKeys: Ref<boolean>;
+  autoImport: Ref<boolean>;
   isLoading: Ref<boolean>;
   isBasicInfoValid: ComputedRef<boolean>;
   generateAndDownloadKeys: () => Promise<void>;
   downloadKeysFile: () => void;
+  downloadPrivateKeyQR: () => Promise<void>;
   resetProcess: () => void;
 }
 

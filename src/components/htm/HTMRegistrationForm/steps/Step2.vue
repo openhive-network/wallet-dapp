@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { mdiNumeric2Circle, mdiRefresh, mdiDownload } from '@mdi/js';
+import { mdiNumeric2Circle, mdiRefresh, mdiDownload, mdiQrcode } from '@mdi/js';
 
 import { HTM_REGISTRATION_KEY } from '@/components/htm/HTMRegistrationForm/types';
 import type { HTMRegistrationContext } from '@/components/htm/HTMRegistrationForm/types';
@@ -15,6 +15,7 @@ const {
   isBasicInfoValid,
   generateAndDownloadKeys,
   downloadKeysFile,
+  downloadPrivateKeyQR,
   resetProcess
 } = inject<HTMRegistrationContext>(HTM_REGISTRATION_KEY)!;
 </script>
@@ -88,6 +89,29 @@ const {
       <span v-if="isLoading">Generating...</span>
       <span v-else-if="keysGenerated">Download Keys File Again</span>
       <span v-else>Generate & Download HTM Keys</span>
+    </Button>
+
+    <!-- Download QR Code button -->
+    <Button
+      v-if="keysGenerated"
+      type="button"
+      variant="outline"
+      class="w-full"
+      @click="downloadPrivateKeyQR"
+    >
+      <svg
+        width="16"
+        height="16"
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        class="mr-2"
+      >
+        <path
+          style="fill: currentColor"
+          :d="mdiQrcode"
+        />
+      </svg>
+      Download Operational Key as QR Code
     </Button>
 
     <!-- Show generated public keys (read-only) -->
