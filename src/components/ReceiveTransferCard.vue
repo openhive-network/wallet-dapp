@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 interface Props {
   receiverName?: string;
@@ -66,7 +65,7 @@ const handleSend = async () => {
     return;
   }
 
-  if (!isLoggedIn.value || !CTokensProvider.getOperationalPublicKey()) {
+  if (!isLoggedIn.value || !tokensStore.getUserPublicKey()) {
     toast.error('Please log in to your wallet first');
     router.push({
       path: '/tokens/list'
@@ -82,7 +81,7 @@ const handleSend = async () => {
   try {
     isSending.value = true;
 
-    const sender = CTokensProvider.getOperationalPublicKey()!;
+    const sender = tokensStore.getUserPublicKey()!;
 
     await waitForTransactionStatus(
       () => ([{

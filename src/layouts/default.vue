@@ -14,6 +14,7 @@ import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import checkGoogleAuthAndLoadWallet from '@/utils/wallet/google-drive/checkGoogleAuthAndLoadWallet';
+import { useFavoritesStore } from '@/stores/favorites.store';
 
 const route = useRoute();
 
@@ -30,10 +31,12 @@ const prefilledAccountName = ref<string | undefined>(undefined);
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 const userStore = useUserStore();
+const favoritesStore = useFavoritesStore();
 
 onMounted(async () => {
   isLoading.value = true;
   settingsStore.loadSettings();
+  favoritesStore.loadFromStorage();
 
   // Check for Google OAuth callback first
   const googleAuthResult = await checkGoogleAuthAndLoadWallet();

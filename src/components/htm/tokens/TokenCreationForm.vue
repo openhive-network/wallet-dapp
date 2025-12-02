@@ -107,7 +107,7 @@ const createToken = async () => {
       nai: toVesting(nai, identifierPrecision),
       precision: identifierPrecision
     };
-    const owner = CTokensProvider.getOperationalPublicKey()!;
+    const owner = tokensStore.getUserPublicKey()!;
     const assetTokenName = tokenName.value.trim();
     const trimmedSymbol = tokenSymbol.value.trim();
     const trimmedDescription = tokenDescription.value.trim();
@@ -206,7 +206,7 @@ const previewToken = computed(() => {
 
   return {
     ...formToken.value,
-    ownerPublicKey: CTokensProvider.getOperationalPublicKey() || '',
+    ownerPublicKey: tokensStore.getUserPublicKey() || '',
     displayTotalSupply: initialSupply.value || '0',
     totalSupply: supplyValue,
     maxSupply: capped.value ? supplyValue : BigInt(0),

@@ -17,9 +17,6 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenDisplayBase, type TokenStoreApiResponse, type CTokenPairDefinition } from '@/stores/tokens.store';
 import { debounce } from '@/utils/debouncers';
 import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
-
 
 // Router
 const router = useRouter();
@@ -50,7 +47,7 @@ const searchFn = async (query: string) => {
 
     updateUrl();
 
-    tokensList.value = await tokensStore.searchTokens(query, tokensList.value.page, showOnlyMyTokens.value ? CTokensProvider.getOperationalPublicKey()! : undefined);
+    tokensList.value = await tokensStore.searchTokens(query, tokensList.value.page, showOnlyMyTokens.value ? tokensStore.getUserPublicKey()! : undefined);
   } catch (error) {
     toastError('Failed to search tokens', error);
   }
@@ -66,7 +63,7 @@ const loadTokens = async (page: number = 1) => {
   try {
     updateUrl();
 
-    const result = await tokensStore.loadTokens(page, showOnlyMyTokens.value ? CTokensProvider.getOperationalPublicKey()! : undefined);
+    const result = await tokensStore.loadTokens(page, showOnlyMyTokens.value ? tokensStore.getUserPublicKey()! : undefined);
 
     if (result)
       tokensList.value = result;

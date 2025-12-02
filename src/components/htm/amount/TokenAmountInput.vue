@@ -2,7 +2,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 import Input from './Input.vue';
 import TokenSelector from './TokenSelector.vue';
@@ -57,7 +56,7 @@ watch(selectedToken, async newValue => {
   if (newValue && 'displayBalance' in newValue) // only for CTokenBalanceDisplay - selector variant
     selectedAvailableBalance.value = newValue.displayBalance as string;
   else if (newValue) {
-    const key = CTokensProvider.getOperationalPublicKey();
+    const key = tokensStore.getUserPublicKey();
     if (!key) return;
     try {
       const tokensBalance = await tokensStore.getBalanceSingleToken(key, newValue.assetNum);

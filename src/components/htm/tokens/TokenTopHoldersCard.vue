@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { mdiStar, mdiStarOutline } from '@mdi/js';
+import { toast } from 'vue-sonner';
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button as CopyButton } from '@/components/ui/copybutton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useFavoritesStore } from '@/stores/favorites.store';
 import type { CTokenDefinitionDisplay, CTokenUserRanked } from '@/stores/tokens.store';
 
 const props = defineProps<{
@@ -10,6 +14,33 @@ const props = defineProps<{
   topHolders: CTokenUserRanked[];
   isLoadingHolders: boolean;
 }>();
+
+const favoritesStore = useFavoritesStore();
+
+const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const isFavorited = favoritesStore.isAccountFavorited(holder.operationalKey);
+
+  if (isFavorited) {
+    favoritesStore.removeAccountFromFavorites(holder.operationalKey);
+    toast.success('Removed from favorites', {
+      description: `${holder.displayName} has been removed from your favorites`
+    });
+  } else {
+    favoritesStore.addAccountToFavorites({
+      operationalKey: holder.operationalKey,
+      displayName: holder.displayName,
+      name: holder.name,
+      profileImage: holder.profileImage,
+      about: holder.about
+    });
+    toast.success('Added to favorites', {
+      description: `${holder.displayName} has been added to your favorites`
+    });
+  }
+};
 </script>
 
 <template>
@@ -64,7 +95,7 @@ const props = defineProps<{
           v-for="(holder, index) in props.topHolders.slice(0, 10)"
           :key="holder.operationalKey"
           :to="`/tokens/users/${holder.operationalKey}`"
-          class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors"
+          class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors group"
         >
           <div class="relative flex-shrink-0">
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-bold text-primary border-2 border-primary/20">
@@ -95,16 +126,44 @@ const props = defineProps<{
               <p class="font-semibold text-foreground truncate">
                 {{ holder.displayName }}
               </p>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <CopyButton :value="holder.operationalKey" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Copy holder address</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <div class="flex items-center gap-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <CopyButton :value="holder.operationalKey" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Copy holder address</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <button
+                        class="inline-flex items-center justify-center p-1.5 rounded-md transition-colors hover:bg-accent opacity-0 group-hover:opacity-100"
+                        @click="(e) => toggleFavorite(holder, e)"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          :class="favoritesStore.isAccountFavorited(holder.operationalKey) ? 'text-yellow-500' : 'text-muted-foreground'"
+                        >
+                          <path
+                            style="fill: currentColor"
+                            :d="favoritesStore.isAccountFavorited(holder.operationalKey) ? mdiStar : mdiStarOutline"
+                          />
+                        </svg>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{{ favoritesStore.isAccountFavorited(holder.operationalKey) ? 'Remove from favorites' : 'Add to favorites' }}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
             <p class="text-sm text-muted-foreground">
               Rank #{{ holder.rank }}

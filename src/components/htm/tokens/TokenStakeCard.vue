@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/stores/settings.store';
-import type { CTokenBalanceDisplay, CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { isVesting, toLiquid, toVesting } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
@@ -30,6 +30,7 @@ const emit = defineEmits<{
 
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
+const tokensStore = useTokensStore();
 const router = useRouter();
 
 const isStaking = ref(false);
@@ -100,7 +101,7 @@ const handleStake = async () => {
     await waitForTransactionStatus(
       () => ([{
         token_transform_operation: {
-          holder: CTokensProvider.getOperationalPublicKey()!,
+          holder: tokensStore.getUserPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
             amount: stakeForm.value.amount,
@@ -170,7 +171,7 @@ const handleUnstake = async () => {
     await waitForTransactionStatus(
       () => ([{
         token_transform_operation: {
-          holder: CTokensProvider.getOperationalPublicKey()!,
+          holder: tokensStore.getUserPublicKey()!,
           receiver: stakeForm.value.receiver || undefined,
           amount: {
             amount: stakeForm.value.amount,

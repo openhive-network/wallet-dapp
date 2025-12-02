@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiStar, mdiStarOutline } from '@mdi/js';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CTokenUser } from '@/stores/tokens.store';
@@ -6,11 +8,19 @@ import type { CTokenUser } from '@/stores/tokens.store';
 interface Props {
   user: CTokenUser;
   showViewIcon?: boolean;
+  showStar?: boolean;
+  isFavorited?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
-  showViewIcon: false
+const props = withDefaults(defineProps<Props>(), {
+  showViewIcon: false,
+  showStar: false,
+  isFavorited: false
 });
+
+const emit = defineEmits<{
+  toggleFavorite: [event: Event];
+}>();
 
 // Get avatar fallback text
 const getAvatarFallback = (user: CTokenUser): string => {
@@ -24,6 +34,13 @@ const getAvatarFallback = (user: CTokenUser): string => {
     return user.operationalKey.slice(3, 5).toUpperCase();
 
   return '??';
+};
+
+// Handle star click
+const handleStarClick = (event: Event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  emit('toggleFavorite', event);
 };
 </script>
 
@@ -76,9 +93,29 @@ const getAvatarFallback = (user: CTokenUser): string => {
           </CardDescription>
         </div>
 
+        <!-- Star Icon -->
+        <button
+          v-if="showStar"
+          class="flex-shrink-0 p-1 rounded-full hover:bg-accent transition-colors"
+          :class="{ 'text-yellow-500': isFavorited, 'text-muted-foreground': !isFavorited }"
+          @click="handleStarClick"
+        >
+          <svg
+            width="20"
+            height="20"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: currentColor"
+              :d="isFavorited ? mdiStar : mdiStarOutline"
+            />
+          </svg>
+        </button>
+
         <!-- View Icon -->
         <svg
-          v-if="showViewIcon"
+          v-else-if="showViewIcon"
           width="20"
           height="20"
           xmlns="http://www.w3.org/2000/svg"

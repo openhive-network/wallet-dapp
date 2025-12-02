@@ -12,7 +12,6 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
@@ -28,11 +27,11 @@ const isLoading = ref(true);
 
 // Get parameters from route query
 const assetNum = computed(() => Number(route.query['asset-num']));
-const receiverKey = computed(() => route.query.to as string || CTokensProvider.getOperationalPublicKey());
+const receiverKey = computed(() => route.query.to as string || tokensStore.getUserPublicKey());
 const queryAmount = computed(() => route.query.amount as string | undefined);
 const queryMemo = computed(() => route.query.memo as string | undefined);
 
-const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
+const userOperationalKey = computed(() => tokensStore.getUserPublicKey());
 
 // Check if user is logged in
 const isLoggedIn = computed(() => !!tokensStore.wallet);

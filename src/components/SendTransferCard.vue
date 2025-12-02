@@ -4,9 +4,7 @@ import { computed, ref, watch } from 'vue';
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
 import { TokenAmountInput } from '@/components/htm/amount';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CTokenDisplayBase } from '@/stores/tokens.store';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
-
+import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 
 interface Props {
   token?: CTokenDisplayBase;
@@ -22,6 +20,8 @@ const emit = defineEmits<{
   updateMemo: [value: string];
 }>();
 
+const tokensStore = useTokensStore();
+
 // Form state
 const form = ref({
   amount: props.initialAmount || '',
@@ -35,7 +35,7 @@ const selectedToken = computed<CTokenDisplayBase | undefined>({
   }
 });
 
-const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
+const userOperationalKey = computed(() => tokensStore.getUserPublicKey());
 
 // Watch form changes to emit updates
 watch(() => form.value.amount, (newValue) => {

@@ -56,7 +56,7 @@ const connect = async () => {
         await tokensStore.reset(ctokensWallet);
       } else {
         await walletStore.createWalletFor({
-          account: CTokensProvider.getOperationalPublicKey(),
+          account: tokensStore.getUserPublicKey(),
           wallet: UsedWallet.CTOKENS_IMPLEMENTATION
         }, 'posting');
         if (settingsStore.settings?.account)

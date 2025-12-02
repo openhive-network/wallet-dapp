@@ -111,7 +111,7 @@ const handleSetAccount = async (account: string) => {
 const handleLoginSuccess = async () => {
   try {
     // Get operational key after successful login
-    const operationalKey = CTokensProvider.getOperationalPublicKey();
+    const operationalKey = tokensStore.getUserPublicKey();
     if (!operationalKey)
       throw new Error('Failed to get operational key after login');
 
