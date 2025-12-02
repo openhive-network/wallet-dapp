@@ -17,8 +17,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
+import { useSettingsStore } from '@/stores/settings.store';
 
 const googleDrive = useGoogleDriveWallet();
+const settingsStore = useSettingsStore();
 
 // State
 const isLoading = ref(true);
@@ -29,7 +31,7 @@ const configuredRoles = ref<TRole[]>([]);
 
 // Dialog state
 const showAddDialog = ref(false);
-const showRemoveDialog = ref(false);
+const showDeleteWalletDialog = ref(false);
 const selectedRole = ref<TRole | null>(null);
 const newPrivateKey = ref('');
 const isProcessing = ref(false);
@@ -62,13 +64,25 @@ const loadWalletInfo = async () => {
     isAuthenticated.value = await googleDrive.checkAuth();
 
     if (isAuthenticated.value) {
-      const info = await googleDrive.getWalletInfo();
+      const savedAccountName = settingsStore.settings.account;
+      if (!savedAccountName) {
+        walletExists.value = false;
+        return;
+      }
+
+      // First check if wallet exists by trying to load any role
+      const info = await googleDrive.getWalletInfo(savedAccountName, 'posting');
       walletExists.value = info.exists;
       accountName.value = info.accountName;
-      configuredRoles.value = info.roles ?? [];
+
+      if (walletExists.value)
+        // Get all configured roles by probing each one individually
+        configuredRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
+      else
+        configuredRoles.value = [];
     }
   } catch {
-    // Silently fail - user will see "not authenticated" state
+    // User will see "not authenticated" state
   } finally {
     isLoading.value = false;
   }
@@ -88,11 +102,11 @@ const closeAddDialog = () => {
 };
 
 const handleAddKey = async () => {
-  if (!selectedRole.value || !newPrivateKey.value.trim()) return;
+  if (!selectedRole.value || !newPrivateKey.value.trim() || !accountName.value) return;
 
   isProcessing.value = true;
   try {
-    await googleDrive.addKey(selectedRole.value, newPrivateKey.value.trim());
+    await googleDrive.addKey(accountName.value, selectedRole.value, newPrivateKey.value.trim());
     toast.success(`${selectedRole.value} key added successfully`);
     closeAddDialog();
     await loadWalletInfo();
@@ -104,28 +118,44 @@ const handleAddKey = async () => {
   }
 };
 
-// Remove key dialog
-const openRemoveDialog = (role: TRole) => {
-  selectedRole.value = role;
-  showRemoveDialog.value = true;
+// Delete wallet
+const openDeleteWalletDialog = () => {
+  showDeleteWalletDialog.value = true;
 };
 
-const closeRemoveDialog = () => {
-  showRemoveDialog.value = false;
-  selectedRole.value = null;
+const closeDeleteWalletDialog = () => {
+  showDeleteWalletDialog.value = false;
 };
 
-const handleRemoveKey = async () => {
-  if (!selectedRole.value) return;
-
+const handleDeleteWallet = async () => {
   isProcessing.value = true;
   try {
-    await googleDrive.removeKey(selectedRole.value);
-    toast.success(`${selectedRole.value} key removed`);
-    closeRemoveDialog();
-    await loadWalletInfo();
+    // Clear localStorage encryption key
+    googleDrive.clearEncryptionKey();
+
+    // Clear settings account
+    settingsStore.settings.account = undefined;
+
+    // If authenticated with Google, try to delete from Drive
+    if (isAuthenticated.value) {
+      try {
+        await $fetch('/api/google-drive/delete-wallet', { method: 'DELETE' });
+      } catch (error) {
+        // Ignore Drive deletion errors - local data is cleared anyway
+        // eslint-disable-next-line no-console
+        console.warn('Failed to delete from Google Drive:', error);
+      }
+    }
+
+    toast.success('Wallet data cleared successfully');
+    closeDeleteWalletDialog();
+
+    // Reset state
+    walletExists.value = false;
+    accountName.value = undefined;
+    configuredRoles.value = [];
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to remove key';
+    const message = error instanceof Error ? error.message : 'Failed to delete wallet';
     toast.error(message);
   } finally {
     isProcessing.value = false;
@@ -224,15 +254,6 @@ onMounted(() => {
               <span class="text-sm">Configured</span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            class="text-destructive hover:text-destructive hover:bg-destructive/10"
-            @click="openRemoveDialog(role)"
-          >
-            <Trash2 class="w-4 h-4" />
-            Remove
-          </Button>
         </div>
 
         <!-- Not configured roles -->
@@ -274,6 +295,28 @@ onMounted(() => {
           <li><strong>Memo:</strong> Encrypt/decrypt private messages</li>
         </ul>
       </div>
+
+      <!-- Delete Wallet Section -->
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+        <div class="p-3 border border-destructive/30 rounded-lg bg-destructive/5">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium">Delete Wallet</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Clear wallet data and remove file from Google Drive
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              @click="openDeleteWalletDialog"
+            >
+              <Trash2 class="w-4 h-4 mr-1" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
     </template>
 
     <!-- Add Key Dialog -->
@@ -305,7 +348,6 @@ onMounted(() => {
           </div>
 
           <Alert variant="warning">
-            <AlertTriangle class="w-4 h-4" />
             <AlertDescription>
               Your key will be encrypted and stored securely in Google Drive.
               Never share your private keys with anyone.
@@ -335,19 +377,19 @@ onMounted(() => {
       </DialogContent>
     </Dialog>
 
-    <!-- Remove Key Dialog -->
+    <!-- Delete Wallet Dialog -->
     <Dialog
-      :open="showRemoveDialog"
-      @update:open="(open: boolean) => !open && closeRemoveDialog()"
+      :open="showDeleteWalletDialog"
+      @update:open="(open: boolean) => !open && closeDeleteWalletDialog()"
     >
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-destructive">
             <Trash2 class="w-5 h-5" />
-            Remove {{ selectedRole }} Key?
+            Delete Wallet?
           </DialogTitle>
           <DialogDescription>
-            This action cannot be undone. You will need to re-enter the private key if you want to use it again.
+            This will clear your local wallet data{{ isAuthenticated ? ' and delete the encrypted file from Google Drive' : '' }}.
           </DialogDescription>
         </DialogHeader>
 
@@ -357,28 +399,37 @@ onMounted(() => {
         >
           <AlertTriangle class="w-4 h-4" />
           <AlertDescription>
-            Make sure you have a backup of your {{ selectedRole }} private key before removing it.
+            <strong>Warning:</strong> This action cannot be undone. Make sure you have backups of all your private keys before proceeding.
           </AlertDescription>
         </Alert>
+
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+          <p>This will:</p>
+          <ul class="list-disc list-inside space-y-1 ml-2">
+            <li>Clear your locally stored recovery password</li>
+            <li>Remove account information from settings</li>
+            <li v-if="isAuthenticated">Delete the encrypted wallet file from Google Drive</li>
+          </ul>
+        </div>
 
         <DialogFooter>
           <Button
             variant="outline"
             :disabled="isProcessing"
-            @click="closeRemoveDialog"
+            @click="closeDeleteWalletDialog"
           >
             Cancel
           </Button>
           <Button
             variant="destructive"
             :disabled="isProcessing"
-            @click="handleRemoveKey"
+            @click="handleDeleteWallet"
           >
             <Loader2
               v-if="isProcessing"
               class="w-4 h-4 animate-spin"
             />
-            {{ isProcessing ? 'Removing...' : 'Remove Key' }}
+            {{ isProcessing ? 'Deleting...' : 'Delete Wallet' }}
           </Button>
         </DialogFooter>
       </DialogContent>

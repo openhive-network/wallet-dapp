@@ -1,6 +1,8 @@
-import type { TPublicKey, TRole } from '@hiveio/wax';
+import type { TAccountName, TPublicKey, TRole } from '@hiveio/wax';
+import type { IExternalWalletContent } from '@hiveio/wax-signers-external';
 
-import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
+import { AccountNameEntryCancelledError } from '@/stores/account-name-prompt.store';
+import GoogleDriveWalletProvider, { RecoveryPasswordRequiredError } from '@/utils/wallet/google-drive/provider';
 
 /**
  * Composable for Google Drive wallet operations
@@ -13,42 +15,57 @@ export function useGoogleDriveWallet () {
 
   const createWallet = async (
     accountName: string,
-    keys: {
-      posting?: string;
-      active?: string;
-      owner?: string;
-      memo?: string;
-    }
-  ): Promise<{ [K in TRole]?: TPublicKey }> => {
-    return await GoogleDriveWalletProvider.createWallet(accountName, keys);
+    key: string,
+    role: TRole,
+    recoveryPassword: string
+  ): Promise<IExternalWalletContent> => {
+    return await GoogleDriveWalletProvider.createWallet(accountName, key, role, recoveryPassword);
   };
 
-  const loadWallet = async (): Promise<{ accountName: string; roles: TRole[] }> => {
-    return await GoogleDriveWalletProvider.loadWallet();
+  const loadWallet = async (accountName: TAccountName, role: TRole): Promise<{ accountName: string; role?: TRole }> => {
+    return await GoogleDriveWalletProvider.loadWallet(accountName, role);
   };
 
-  const getWalletInfo = async (): Promise<{
+  const getWalletInfo = async (accountName: TAccountName, role: TRole): Promise<{
     exists: boolean;
     accountName?: string;
-    roles?: TRole[];
+    role?: TRole;
   }> => {
-    return await GoogleDriveWalletProvider.getWalletInfo();
+    return await GoogleDriveWalletProvider.getWalletInfo(accountName, role);
   };
 
-  const deleteWallet = async (): Promise<void> => {
-    await GoogleDriveWalletProvider.deleteWallet();
+  const getAllConfiguredRoles = async (accountName: TAccountName): Promise<TRole[]> => {
+    return await GoogleDriveWalletProvider.getAllConfiguredRoles(accountName);
   };
 
   const logout = async (): Promise<void> => {
     await GoogleDriveWalletProvider.logout();
   };
 
-  const addKey = async (role: TRole, privateKey: string): Promise<TPublicKey> => {
-    return await GoogleDriveWalletProvider.addKey(role, privateKey);
+  const addKey = async (accountName: TAccountName, role: TRole, privateKey: string): Promise<{ publicKey: TPublicKey }> => {
+    return await GoogleDriveWalletProvider.addKey(accountName, role, privateKey);
   };
 
-  const removeKey = async (role: TRole): Promise<void> => {
-    await GoogleDriveWalletProvider.removeKey(role);
+  // TODO: Add key removal once it is supported by the wax-signers-external library
+
+  const setEncryptionKey = (keyWif: string): void => {
+    GoogleDriveWalletProvider.setEncryptionKey(keyWif);
+  };
+
+  const getEncryptionKey = (): string | undefined => {
+    return GoogleDriveWalletProvider.getEncryptionKey();
+  };
+
+  const clearEncryptionKey = (): void => {
+    GoogleDriveWalletProvider.clearEncryptionKey();
+  };
+
+  const hasEncryptionKey = (): boolean => {
+    return GoogleDriveWalletProvider.hasEncryptionKey();
+  };
+
+  const requestAccountName = async (): Promise<string> => {
+    return await GoogleDriveWalletProvider.requestAccountName();
   };
 
   return {
@@ -65,9 +82,17 @@ export function useGoogleDriveWallet () {
     createWallet,
     loadWallet,
     getWalletInfo,
-    deleteWallet,
+    getAllConfiguredRoles,
     logout,
     addKey,
-    removeKey
+    setEncryptionKey,
+    getEncryptionKey,
+    clearEncryptionKey,
+    hasEncryptionKey,
+    requestAccountName,
+
+    // Errors
+    RecoveryPasswordRequiredError,
+    AccountNameEntryCancelledError
   };
 }

@@ -114,7 +114,6 @@ const disconnectFromHive = async () => {
     if (isGoogleDriveWallet.value)
       await GoogleDriveWalletProvider.logout();
 
-    settingsStore.resetSettings();
     walletStore.resetWallet();
     userStore.resetSettings();
     // If only Hive was connected, also reset tokens

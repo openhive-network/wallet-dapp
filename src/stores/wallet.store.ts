@@ -139,7 +139,7 @@ export const useWalletStore = defineStore('wallet', {
         break;
       }
       case UsedWallet.GOOGLE_DRIVE: {
-        currentWallet.value = await GoogleDriveWalletProvider.for(role);
+        currentWallet.value = await GoogleDriveWalletProvider.for(settings.account!, role);
         this.isL2Wallet = false;
 
         break;

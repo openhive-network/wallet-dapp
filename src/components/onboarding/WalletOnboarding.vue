@@ -12,6 +12,7 @@ import { UsedWallet } from '@/stores/settings.store';
 
 interface Props {
   preselectedWallet?: UsedWallet;
+  prefilledAccountName?: string;
 }
 
 const props = defineProps<Props>();
@@ -71,6 +72,7 @@ onMounted(() => {
       <div v-if="stage_2_connect_wallet">
         <GoogleDriveConnect
           v-if="selectedWallet === UsedWallet.GOOGLE_DRIVE"
+          :account-name="prefilledAccountName"
           @close="backToStage1"
           @setaccount="setAccount"
         />
