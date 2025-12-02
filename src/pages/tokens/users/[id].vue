@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiStar, mdiStarOutline } from '@mdi/js';
 import { onMounted, ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 
@@ -10,6 +11,7 @@ import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useFavoritesStore } from '@/stores/favorites.store';
 import { useTokensStore, type CTokenUser, type CTokenPairBalanceDefinition } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
@@ -18,6 +20,7 @@ const route = useRoute();
 
 // Stores
 const tokensStore = useTokensStore();
+const favoritesStore = useFavoritesStore();
 
 // State
 const user = ref<CTokenUser | null>(null);
@@ -28,10 +31,40 @@ const isLoadingBalances = ref(false);
 // Get operational key from route parameter
 const operationalKey = computed(() => decodeURIComponent(route.params.id as string));
 
+// Check if account is favorited
+const isFavorited = computed(() => favoritesStore.isAccountFavorited(operationalKey.value));
+
+// Toggle favorite
+const toggleFavorite = () => {
+  if (!user.value) return;
+
+  if (isFavorited.value) {
+    favoritesStore.removeAccountFromFavorites(operationalKey.value);
+  } else {
+    favoritesStore.addAccountToFavorites({
+      operationalKey: user.value.operationalKey,
+      displayName: user.value.displayName,
+      name: user.value.name,
+      profileImage: user.value.profileImage,
+      about: user.value.about
+    });
+  }
+};
+
 // Load user details
 const loadUserDetails = async () => {
   try {
     user.value = await tokensStore.getUser(operationalKey.value);
+    
+    // Update favorite info if it exists
+    if (user.value && isFavorited.value) {
+      favoritesStore.updateAccountInfo(operationalKey.value, {
+        displayName: user.value.displayName,
+        name: user.value.name,
+        profileImage: user.value.profileImage,
+        about: user.value.about
+      });
+    }
   } catch (error) {
     toastError('Failed to load user details', error);
   }
@@ -67,9 +100,9 @@ onMounted(async () => {
 <template>
   <HTMView is-public-page>
     <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
-      <!-- Header with back button -->
+      <!-- Header with back button and favorite toggle -->
       <div class="flex items-center justify-between gap-4">
-        <NuxtLink to="/tokens/users" class="keychainify-checked">
+        <NuxtLink to="/tokens/users/favorites" class="keychainify-checked">
           <Button
             variant="ghost"
             size="sm"
@@ -87,9 +120,31 @@ onMounted(async () => {
                 d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
               />
             </svg>
-            Back to Users
+            Back to Favorites
           </Button>
         </NuxtLink>
+
+        <Button
+          v-if="user"
+          variant="outline"
+          size="sm"
+          @click="toggleFavorite"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="mr-2"
+            :class="{ 'text-yellow-500': isFavorited }"
+          >
+            <path
+              style="fill: currentColor"
+              :d="isFavorited ? mdiStar : mdiStarOutline"
+            />
+          </svg>
+          {{ isFavorited ? 'Unfavorite' : 'Add to Favorites' }}
+        </Button>
       </div>
 
       <!-- Loading State -->
@@ -190,8 +245,8 @@ onMounted(async () => {
           <p class="text-muted-foreground mb-4">
             The user you're looking for doesn't exist or has been removed.
           </p>
-          <NuxtLink to="/tokens/users" class="keychainify-checked">
-            <Button>Back to Users Directory</Button>
+          <NuxtLink to="/tokens/users/favorites" class="keychainify-checked">
+            <Button>Back to Favorites</Button>
           </NuxtLink>
         </CardContent>
       </Card>

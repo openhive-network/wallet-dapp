@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import { useTokensStore } from '@/stores/tokens.store';
 
 const props = defineProps<{
   assetNum: number | string;
@@ -11,9 +11,11 @@ const props = defineProps<{
   memo?: string;
 }>();
 
+const tokensStore = useTokensStore();
+
 const qrCodeDataUrl = ref<string>('');
 
-const userOperationalKey = computed(() => CTokensProvider.getOperationalPublicKey());
+const userOperationalKey = computed(() => tokensStore.getUserPublicKey());
 
 /* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
 let qrCode: undefined | typeof import('qrcode') = undefined;

@@ -18,7 +18,6 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { validateTokenSymbol } from '@/utils/validators';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
@@ -58,8 +57,8 @@ const isLoggedIn = computed(() => !!settingsStore.settings.account);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.ownerPublicKey || !CTokensProvider.getOperationalPublicKey()) return false;
-  return token.value.ownerPublicKey === CTokensProvider.getOperationalPublicKey();
+  if (!token.value?.ownerPublicKey || !tokensStore.getUserPublicKey()) return false;
+  return token.value.ownerPublicKey === tokensStore.getUserPublicKey();
 });
 
 // Symbol validation for TokenCreationCard
@@ -157,7 +156,7 @@ const handleSaveChanges = async () => {
             nai: token.value!.nai!,
             precision: token.value!.precision!
           },
-          owner: CTokensProvider.getOperationalPublicKey()!,
+          owner: tokensStore.getUserPublicKey()!,
           metadata: {
             items: Object.entries(metadata).map(([key, value]) => ({
               key,

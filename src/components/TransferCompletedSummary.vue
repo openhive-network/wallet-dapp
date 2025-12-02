@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import { useTokensStore } from '@/stores/tokens.store';
 
 interface Props {
   amount: string;
@@ -23,10 +23,14 @@ const props = defineProps<Props>();
 
 const router = useRouter();
 
+const tokensStore = useTokensStore();
+
 const generateInvoice = () => {
+  const pk = tokensStore.getUserPublicKey();
+
   const params = new URLSearchParams({
-    fromPk: props.isReceiveMode ? CTokensProvider.getOperationalPublicKey() || '' : CTokensProvider.getOperationalPublicKey() || '',
-    toPk: props.isReceiveMode ? props.receiverKey || '' : CTokensProvider.getOperationalPublicKey() || '',
+    fromPk: pk || '',
+    toPk: props.isReceiveMode ? props.receiverKey || '' : pk || '',
     'asset-num': props.assetNum.toString(),
     amount: props.amount
   });

@@ -11,7 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
-
+import { useFavoritesStore } from '@/stores/favorites.store';
 
 const route = useRoute();
 
@@ -25,8 +25,10 @@ const hasUser = ref(true);
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 const userStore = useUserStore();
+const favoritesStore = useFavoritesStore();
 onMounted(async () => {
   settingsStore.loadSettings();
+  favoritesStore.loadFromStorage();
   hasUser.value = settingsStore.settings.account !== undefined;
   if (hasUser.value) {
     walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {

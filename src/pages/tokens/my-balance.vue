@@ -7,14 +7,15 @@ import {
   mdiArrowDown,
   mdiPlusCircle,
   mdiWallet,
-  mdiImageMultiple
+  mdiImageMultiple,
+  mdiStar
 } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import { TokenAmountInput } from '@/components/htm/amount';
+import { TokenAmountInput, UserSelector } from '@/components/htm/amount';
 import HTMTokenBalancesTable from '@/components/htm/HTMTokenBalancesTable.vue';
 import HTMView from '@/components/htm/HTMView.vue';
 import { Button } from '@/components/ui/button';
@@ -26,12 +27,13 @@ import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
+import { useFavoritesStore } from '@/stores/favorites.store';
 import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 const tokensStore = useTokensStore();
+const favoritesStore = useFavoritesStore();
 
 // State
 const isLoading = ref(false);
@@ -40,7 +42,7 @@ const searchQuery = ref('');
 // Transfer dialog state
 const isTransferDialogOpen = ref(false);
 const transferAmount = ref('');
-const transferRecipient = ref('');
+const transferRecipient = ref<any>(undefined);
 const transferMemo = ref('');
 const selectedTokenForTransfer = ref<CTokenBalanceDisplay | null>(null);
 const isTransferLoading = ref(false);
@@ -74,7 +76,7 @@ const loadAccountBalances = async (page = 1) => {
     isLoading.value = true;
 
     const [createdTokens, balances] = await Promise.all([
-      tokensStore.loadTokens(1, CTokensProvider.getOperationalPublicKey()!),
+      tokensStore.loadTokens(1, tokensStore.getUserPublicKey()!),
       tokensStore.loadBalances(page)
     ]);
     createdTokensCount.value = createdTokens.total;
@@ -113,7 +115,7 @@ const openTransferDialog = (balance: CTokenBalanceDisplay) => {
 
   selectedTokenForTransfer.value = balance;
   transferAmount.value = '';
-  transferRecipient.value = '';
+  transferRecipient.value = undefined;
   transferMemo.value = '';
   isTransferDialogOpen.value = true;
 };
@@ -131,8 +133,8 @@ const transferTokens = async () => {
     await waitForTransactionStatus(
       () => ([{
         token_transfer_operation: {
-          receiver: transferRecipient.value,
-          sender: CTokensProvider.getOperationalPublicKey()!,
+          receiver: transferRecipient.value.operationalKey,
+          sender: tokensStore.getUserPublicKey()!,
           amount: {
             amount: transferAmount.value,
             nai: selectedTokenForTransfer.value?.nai || '',
@@ -153,6 +155,8 @@ const transferTokens = async () => {
     isTransferLoading.value = false;
   }
 };
+
+
 
 const openTransformDialog = (balance: CTokenBalanceDisplay) => {
   selectedToken.value = balance;
@@ -179,7 +183,7 @@ const transformTokens = async () => {
             nai: selectedToken.value!.nai!,
             precision: selectedToken.value!.precision!
           },
-          holder: CTokensProvider.getOperationalPublicKey()!
+          holder: tokensStore.getUserPublicKey()!
         }
       } satisfies htm_operation]),
       transformDirection.value === 'liquid-to-staked' ? 'Stake' : 'Unstake'
@@ -255,33 +259,38 @@ onMounted(() => {
 
       <!-- Summary Cards -->
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">
-              Created Tokens
-            </CardTitle>
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="text-muted-foreground"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiPlusCircle"
-              />
-            </svg>
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              {{ formatCount(createdTokensCount) }}
-            </div>
-            <p class="text-xs text-muted-foreground">
-              Tokens you've created
-            </p>
-          </CardContent>
-        </Card>
+        <NuxtLink
+          to="/tokens/list?mytokens=1"
+          class="keychainify-checked"
+        >
+          <Card class="cursor-pointer hover:bg-accent/50 transition-colors h-full">
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">
+                Created Tokens
+              </CardTitle>
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="text-muted-foreground"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiPlusCircle"
+                />
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold">
+                {{ formatCount(createdTokensCount) }}
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Tokens you've created
+              </p>
+            </CardContent>
+          </Card>
+        </NuxtLink>
 
         <Card>
           <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -339,33 +348,38 @@ onMounted(() => {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle class="text-sm font-medium">
-              Staked Tokens
-            </CardTitle>
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="text-muted-foreground"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiArrowUp"
-              />
-            </svg>
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold">
-              {{ formatCount(stakedTokensCount) }}
-            </div>
-            <p class="text-xs text-muted-foreground">
-              Tokens currently staked
-            </p>
-          </CardContent>
-        </Card>
+        <NuxtLink
+          to="/tokens/users/favorites"
+          class="keychainify-checked"
+        >
+          <Card class="cursor-pointer hover:bg-accent/50 transition-colors h-full">
+            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle class="text-sm font-medium">
+                Favorite Accounts
+              </CardTitle>
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="text-muted-foreground"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiStar"
+                />
+              </svg>
+            </CardHeader>
+            <CardContent>
+              <div class="text-2xl font-bold">
+                {{ formatCount(favoritesStore.favoriteAccountsCount) }}
+              </div>
+              <p class="text-xs text-muted-foreground">
+                Quick access to saved accounts
+              </p>
+            </CardContent>
+          </Card>
+        </NuxtLink>
       </div>
 
       <!-- Search -->
@@ -542,10 +556,8 @@ onMounted(() => {
           <div class="grid gap-4 py-4">
             <div class="grid gap-2">
               <Label for="recipient">Recipient Account</Label>
-              <Input
-                id="recipient"
+              <UserSelector
                 v-model="transferRecipient"
-                placeholder="Enter account name"
               />
             </div>
 

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/stores/settings.store';
-import type { CTokenBalanceDisplay, CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -28,6 +28,7 @@ const emit = defineEmits<{
 
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
+const tokensStore = useTokensStore();
 const router = useRouter();
 
 const isTransferring = ref(false);
@@ -91,7 +92,7 @@ const handleTransfer = async () => {
             precision: props.token!.precision
           },
           receiver: transferForm.value.to,
-          sender: CTokensProvider.getOperationalPublicKey()!,
+          sender: tokensStore.getUserPublicKey()!,
           memo: transferForm.value.memo
         }
       } satisfies htm_operation]),

@@ -11,10 +11,11 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
-import type CTokensProvider from '@/utils/wallet/ctokens/signer';
+import { useTokensStore } from '@/stores/tokens.store';
 
 const walletStore = useWalletStore();
 const settingsStore = useSettingsStore();
+const tokensStore = useTokensStore();
 
 const hasWallet = computed(() => walletStore.hasWallet);
 const wallet = computed(() => walletStore.wallet);
@@ -48,7 +49,7 @@ const useMyMemoKey = async () => {
 
     if(walletStore.isL2Wallet) {
       // XXX: Maybe handle this in a better way in the future - maybe a common interface for L2 wallets?
-      const key = (wallet.value as CTokensProvider)!.publicKey;
+      const key = tokensStore.getUserPublicKey();
       if (key)
         encryptForKey.value = key;
     } else {

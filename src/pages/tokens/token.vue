@@ -14,7 +14,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { formatAsset, useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay, type CTokenUserRanked } from '@/stores/tokens.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
-import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
 // Router
 const route = useRoute();
@@ -38,8 +37,8 @@ const isLoggedIn = computed(() => !!tokensStore.wallet);
 
 // Check if current user is the token owner
 const isTokenOwner = computed(() => {
-  if (!token.value?.ownerPublicKey || !CTokensProvider.getOperationalPublicKey()) return false;
-  return token.value.ownerPublicKey === CTokensProvider.getOperationalPublicKey();
+  if (!token.value?.ownerPublicKey || !tokensStore.getUserPublicKey()) return false;
+  return token.value.ownerPublicKey === tokensStore.getUserPublicKey();
 });
 
 // Load token details
@@ -53,7 +52,7 @@ const loadTokenDetails = async () => {
     if (isLoggedIn.value) {
       try {
         userBalance.value = await tokensStore.getBalanceSingleToken(
-          CTokensProvider.getOperationalPublicKey()!,
+          tokensStore.getUserPublicKey()!,
           assetNum.value
         );
       } catch {
