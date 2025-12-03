@@ -90,7 +90,7 @@ export class CTokensProvider extends AEncryptionProvider {
     if (!CTokensProvider.#beekeeper) {
       // XXX: Fix dynamic beekeeeper import
       CTokensProvider.#beekeeper = await (import('@hiveio/beekeeper')).then(async bk => {
-        return await bk.default({ inMemory: false, enableLogs: false, unlockTimeout: /* 1 day: */ 1440 });
+        return await bk.default({ inMemory: false, enableLogs: false, unlockTimeout: /* 1 day: */ 86400 });
       });
     }
   }

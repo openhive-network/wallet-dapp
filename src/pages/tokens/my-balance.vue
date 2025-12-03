@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   mdiRefresh,
-  mdiSend,
   mdiAccount,
   mdiArrowUp,
   mdiArrowDown,
@@ -14,21 +13,20 @@ import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref } from 'vue';
 import { toast } from 'vue-sonner';
 
-import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import { TokenAmountInput, UserSelector } from '@/components/htm/amount';
+import { TokenAmountInput } from '@/components/htm/amount';
 import HTMTokenBalancesTable from '@/components/htm/HTMTokenBalancesTable.vue';
 import HTMView from '@/components/htm/HTMView.vue';
+import TokenTransferCard from '@/components/htm/tokens/TokenTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import AddToGoogleWallet from '@/components/wallet/AddToGoogleWallet.vue';
 import { useFavoritesStore } from '@/stores/favorites.store';
-import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse } from '@/stores/tokens.store';
+import { useTokensStore, type CTokenBalanceDisplay, type CTokenPairBalanceDefinition, type TokenStoreApiResponse, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 
@@ -41,11 +39,9 @@ const searchQuery = ref('');
 
 // Transfer dialog state
 const isTransferDialogOpen = ref(false);
-const transferAmount = ref('');
-const transferRecipient = ref<any>(undefined);
-const transferMemo = ref('');
 const selectedTokenForTransfer = ref<CTokenBalanceDisplay | null>(null);
-const isTransferLoading = ref(false);
+const selectedTokenDefinition = ref<CTokenDefinitionDisplay | null>(null);
+const isLoadingTokenDefinition = ref(false);
 
 // Transform dialog state
 const isTransformDialogOpen = ref(false);
@@ -107,53 +103,30 @@ const handlePageChange = (page: number) => {
   void loadAccountBalances(page);
 };
 
-const openTransferDialog = (balance: CTokenBalanceDisplay) => {
+const openTransferDialog = async (balance: CTokenBalanceDisplay) => {
   if (balance.isStaked) {
     toast.error('No liquid balance available for transfer');
     return;
   }
 
   selectedTokenForTransfer.value = balance;
-  transferAmount.value = '';
-  transferRecipient.value = undefined;
-  transferMemo.value = '';
   isTransferDialogOpen.value = true;
+  
+  // Fetch full token definition
+  try {
+    isLoadingTokenDefinition.value = true;
+    selectedTokenDefinition.value = await tokensStore.getTokenByAssetNum(balance.assetNum);
+  } catch (error) {
+    toastError('Failed to load token details', error);
+    isTransferDialogOpen.value = false;
+  } finally {
+    isLoadingTokenDefinition.value = false;
+  }
 };
 
-const transferTokens = async () => {
-  if (!selectedTokenForTransfer.value || !transferAmount.value || !transferRecipient.value) {
-    toast.error('Please fill in all fields');
-    return;
-  }
-
-  try {
-    isTransferLoading.value = true;
-
-    // Wait for transaction status
-    await waitForTransactionStatus(
-      () => ([{
-        token_transfer_operation: {
-          receiver: transferRecipient.value.operationalKey,
-          sender: tokensStore.getUserPublicKey()!,
-          amount: {
-            amount: transferAmount.value,
-            nai: selectedTokenForTransfer.value?.nai || '',
-            precision: selectedTokenForTransfer.value?.precision || 0
-          },
-          memo: transferMemo.value
-        }
-      } satisfies htm_operation]),
-      'Transfer'
-    );
-
-    // Refresh balances on success
-    await loadAccountBalances();
-    isTransferDialogOpen.value = false;
-  } catch (error) {
-    toastError('Failed to transfer tokens', error);
-  } finally {
-    isTransferLoading.value = false;
-  }
+const handleTransferComplete = async () => {
+  isTransferDialogOpen.value = false;
+  await loadAccountBalances();
 };
 
 
@@ -197,13 +170,6 @@ const transformTokens = async () => {
   } finally {
     isTransformLoading.value = false;
   }
-};
-
-// Set max transfer amount - use raw amount without precision formatting
-const setMaxTransferAmount = async () => {
-  if (!selectedTokenForTransfer.value) return;
-
-  transferAmount.value = String(selectedTokenForTransfer.value.balance);
 };
 
 // Set max transform amount - use raw amount without precision formatting
@@ -529,96 +495,26 @@ onMounted(() => {
 
       <!-- Transfer Dialog -->
       <Dialog v-model:open="isTransferDialogOpen">
-        <DialogContent class="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <div class="flex items-center gap-3 mb-2">
-              <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                <img
-                  v-if="selectedTokenForTransfer && selectedTokenForTransfer.image"
-                  :src="selectedTokenForTransfer.image"
-                  :alt="selectedTokenForTransfer.symbol"
-                  class="h-full w-full object-cover"
-                >
-                <span
-                  v-else
-                  class="text-base font-medium text-primary"
-                >
-                  {{ selectedTokenForTransfer ? selectedTokenForTransfer.symbol!.charAt(0).toUpperCase() : '' }}
-                </span>
-              </div>
-              <DialogTitle>Transfer {{ selectedTokenForTransfer ? selectedTokenForTransfer.name : '' }}</DialogTitle>
-            </div>
+            <DialogTitle>Transfer {{ selectedTokenForTransfer?.name || 'Token' }}</DialogTitle>
             <DialogDescription>
-              Send tokens to another account. Available balance: {{ selectedTokenForTransfer ? selectedTokenForTransfer.displayBalance : '0' }} {{ selectedTokenForTransfer ? selectedTokenForTransfer.symbol : '' }}
+              Send {{ selectedTokenForTransfer?.symbol || selectedTokenForTransfer?.name }} tokens to another account
             </DialogDescription>
           </DialogHeader>
-
-          <div class="grid gap-4 py-4">
-            <div class="grid gap-2">
-              <Label for="recipient">Recipient Account</Label>
-              <UserSelector
-                v-model="transferRecipient"
-              />
-            </div>
-
-            <TokenAmountInput
-              v-if="selectedTokenForTransfer"
-              v-model="transferAmount"
-              variant="explicit"
-              :token="selectedTokenForTransfer"
-              :disabled="isTransferLoading"
-              :available-balance="selectedTokenForTransfer!.displayBalance"
-              @max="setMaxTransferAmount"
-            />
-
-            <!-- memo -->
-            <CollapsibleMemoInput
-              v-model="transferMemo"
-              :disabled="isTransferLoading"
-              placeholder="Add memo..."
-              :rows="4"
-            />
+          
+          <div v-if="isLoadingTokenDefinition" class="mt-4 p-8">
+            <Skeleton class="h-64 w-full" />
           </div>
-
-          <div class="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              @click="isTransferDialogOpen = false"
-            >
-              Cancel
-            </Button>
-            <Button
-              :disabled="isTransferLoading || !transferAmount || !transferRecipient"
-              @click="transferTokens"
-            >
-              <svg
-                v-if="isTransferLoading"
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="mr-2 animate-spin"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiRefresh"
-                />
-              </svg>
-              <svg
-                v-else
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="mr-2"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiSend"
-                />
-              </svg>
-              {{ isTransferLoading ? 'Transferring...' : 'Transfer' }}
-            </Button>
+          
+          <div v-else-if="selectedTokenDefinition" class="mt-4">
+            <TokenTransferCard
+              :token="selectedTokenDefinition"
+              :user-balance="selectedTokenForTransfer"
+              :is-logged-in="true"
+              :asset-num="selectedTokenDefinition.assetNum"
+              @refresh="handleTransferComplete"
+            />
           </div>
         </DialogContent>
       </Dialog>

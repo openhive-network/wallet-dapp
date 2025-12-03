@@ -9,6 +9,7 @@ import TokenSelector from './TokenSelector.vue';
 type CommonProps = {
   disabled?: boolean;
   id?: string;
+  publicKey?: string;
 }
 
 type Props = (CommonProps & {
@@ -52,14 +53,22 @@ watch(validationError, () => {
   if (validationError.value)
     model.value = '';
 });
+const publicKey = computed(() => props.publicKey || tokensStore.getUserPublicKey());
+const refetchAvailableBalance = async(newValue: string | undefined) => {
+  if (!newValue || !selectedToken.value) return;
+  try {
+    const tokensBalance = await tokensStore.getBalanceSingleToken(newValue, selectedToken.value.assetNum);
+    selectedAvailableBalance.value = tokensBalance.displayBalance;
+  } catch {} // TODO: Move this balance fetching logic to the components above
+};
+watch(publicKey, refetchAvailableBalance);
 watch(selectedToken, async newValue => {
   if (newValue && 'displayBalance' in newValue) // only for CTokenBalanceDisplay - selector variant
     selectedAvailableBalance.value = newValue.displayBalance as string;
   else if (newValue) {
-    const key = tokensStore.getUserPublicKey();
-    if (!key) return;
+    if (!publicKey.value) return;
     try {
-      const tokensBalance = await tokensStore.getBalanceSingleToken(key, newValue.assetNum);
+      const tokensBalance = await tokensStore.getBalanceSingleToken(publicKey.value, newValue.assetNum);
       selectedAvailableBalance.value = tokensBalance.displayBalance;
     } catch {} // TODO: Move this balance fetching logic to the components above
   }
@@ -85,6 +94,8 @@ onMounted(() => {
     selectedToken.value = props.token;
   if (props.variant === 'explicit' && props.availableBalance)
     selectedAvailableBalance.value = props.availableBalance;
+  if (publicKey.value)
+    refetchAvailableBalance(publicKey.value);
 });
 </script>
 

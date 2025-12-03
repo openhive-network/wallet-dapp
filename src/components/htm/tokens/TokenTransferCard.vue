@@ -41,7 +41,7 @@ const router = useRouter();
 const isTransferring = ref(false);
 const showQrScanner = ref(false);
 const scannedPrivateKey = ref<string | null>(null);
-const tempSigner = ref<TempCTokensSigner | null>(null);
+const tempSigner = shallowRef<TempCTokensSigner | null>(null);
 
 // Transfer form
 const transferForm = ref({
