@@ -7,7 +7,7 @@ import type { IBeekeeperInstance, IBeekeeperUnlockedWallet } from '@hiveio/beeke
  * Does not persist the key - only exists in memory for the transaction
  */
 export class TempCTokensSigner extends AEncryptionProvider {
-  private static beekeeper?: IBeekeeperInstance;
+  private static beekeeper?: Promise<IBeekeeperInstance>;
 
   #wallet: IBeekeeperUnlockedWallet;
 
@@ -26,14 +26,16 @@ export class TempCTokensSigner extends AEncryptionProvider {
     // Initialize beekeeper if needed
     if (!TempCTokensSigner.beekeeper) {
       const bk = await import('@hiveio/beekeeper');
-      TempCTokensSigner.beekeeper = await bk.default({
+      TempCTokensSigner.beekeeper = bk.default({
         inMemory: true,
         enableLogs: false,
         unlockTimeout: 120 // Very short timeout - just for this transaction - two minutes
       });
     }
 
-    const session = TempCTokensSigner.beekeeper.createSession(Math.random().toString());
+    const bk = await TempCTokensSigner.beekeeper;
+
+    const session = bk.createSession(Math.random().toString());
 
     const tempPassword = Math.random().toString(36);
     const walletName = `TEMP_WALLET_${Math.random()}`;

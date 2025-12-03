@@ -29,7 +29,7 @@
 
 ## General Guidelines
 - Prefer using `NuxtLink` for internal navigation over `<a>` tags. External links should use `<a>` with `target="_blank"` and `rel="noopener noreferrer"`.
-- Do not create markdown files for documentation unless absolutely necessary
+- Do not create markdown files for documentation and instructions.
 - When using any component creating a link/navigation, ensure it has a class `keychainify-checked` to avoid hydration issues when keychain is installed.
 - Write self-documenting code; add comments only where intent is not obvious.
 - Prefer fallback-safe, defensive programming for external interactions (APIs, wallets, etc.).
