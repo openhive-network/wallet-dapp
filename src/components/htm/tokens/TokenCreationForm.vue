@@ -20,6 +20,7 @@ import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidTokenSupply, isValidTokenPrecision, validateTokenSymbol } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import { debounce } from '@/utils/debouncers';
 
 // Generated token ID
 const generatedAssetNum = ref('');
@@ -249,27 +250,21 @@ const isFormValid = computed(() => {
 // Symbol validation state
 const symbolValidation = computed(() => validateTokenSymbol(tokenSymbol.value));
 
-// Debounced token ID generation
-let debounceTimer: NodeJS.Timeout | null = null;
-
 // Auto-generate token ID when symbol changes (debounced)
-watch(tokenSymbol, (newSymbol) => {
-  // Clear previous timer
-  if (debounceTimer)
-    clearTimeout(debounceTimer);
-
+watch(tokenSymbol, debounce((newSymbol) => {
   // Reset state immediately when symbol is invalid
   if (!validateTokenSymbol(newSymbol).isValid) {
     generatedAssetNum.value = '';
     return;
   }
 
-  // Debounce the generation to avoid excessive calls
-  debounceTimer = setTimeout(() => {
-    if (symbolValidation.value.isValid)
-      generateAssetNum();
-  }, 300); // Wait 300ms after user stops typing
-});
+  generateAssetNum();
+}));
+
+// Auto-generate token ID when symbol changes (debounced)
+watch(precision, debounce(() => {
+  generateAssetNum();
+}));
 
 // Generate unique token ID
 const generateAssetNum = (): string | undefined => {
