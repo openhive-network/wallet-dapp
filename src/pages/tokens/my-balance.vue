@@ -11,7 +11,6 @@ import {
 } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref } from 'vue';
-import { toast } from 'vue-sonner';
 
 import { TokenAmountInput } from '@/components/htm/amount';
 import HTMTokenBalancesTable from '@/components/htm/HTMTokenBalancesTable.vue';
@@ -105,13 +104,13 @@ const handlePageChange = (page: number) => {
 
 const openTransferDialog = async (balance: CTokenBalanceDisplay) => {
   if (balance.isStaked) {
-    toast.error('No liquid balance available for transfer');
+    toastError('No liquid balance available for transfer');
     return;
   }
 
   selectedTokenForTransfer.value = balance;
   isTransferDialogOpen.value = true;
-  
+
   // Fetch full token definition
   try {
     isLoadingTokenDefinition.value = true;
@@ -140,7 +139,7 @@ const openTransformDialog = (balance: CTokenBalanceDisplay) => {
 
 const transformTokens = async () => {
   if (!selectedToken.value || !transformAmount.value) {
-    toast.error('Please enter an amount');
+    toastError('Please enter an amount');
     return;
   }
 
@@ -502,11 +501,11 @@ onMounted(() => {
               Send {{ selectedTokenForTransfer?.symbol || selectedTokenForTransfer?.name }} tokens to another account
             </DialogDescription>
           </DialogHeader>
-          
+
           <div v-if="isLoadingTokenDefinition" class="mt-4 p-8">
             <Skeleton class="h-64 w-full" />
           </div>
-          
+
           <div v-else-if="selectedTokenDefinition" class="mt-4">
             <TokenTransferCard
               :token="selectedTokenDefinition"

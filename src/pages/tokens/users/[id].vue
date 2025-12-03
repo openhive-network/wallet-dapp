@@ -38,9 +38,9 @@ const isFavorited = computed(() => favoritesStore.isAccountFavorited(operational
 const toggleFavorite = () => {
   if (!user.value) return;
 
-  if (isFavorited.value) {
+  if (isFavorited.value)
     favoritesStore.removeAccountFromFavorites(operationalKey.value);
-  } else {
+  else {
     favoritesStore.addAccountToFavorites({
       operationalKey: user.value.operationalKey,
       displayName: user.value.displayName,
@@ -55,7 +55,7 @@ const toggleFavorite = () => {
 const loadUserDetails = async () => {
   try {
     user.value = await tokensStore.getUser(operationalKey.value);
-    
+
     // Update favorite info if it exists
     if (user.value && isFavorited.value) {
       favoritesStore.updateAccountInfo(operationalKey.value, {

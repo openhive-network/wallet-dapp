@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { onUnmounted, ref, watch } from 'vue';
+import type { Html5Qrcode } from 'html5-qrcode';
 import { X } from 'lucide-vue-next';
+import { onUnmounted, ref, watch } from 'vue';
+
 import { Button } from '@/components/ui/button';
 import { toastError } from '@/utils/parse-error';
 
@@ -18,7 +20,7 @@ const emit = defineEmits<Emits>();
 
 const scannerContainer = ref<HTMLDivElement>();
 const isLoading = ref(true);
-const html5QrCode = ref<any>(null);
+const html5QrCode = ref<Html5Qrcode | null>(null);
 
 const closeScanner = () => {
   emit('update:modelValue', false);
@@ -57,7 +59,7 @@ const startScanner = async () => {
     const config = {
       fps: 10,
       qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0,
+      aspectRatio: 1.0
     };
 
     await html5QrCode.value.start(
@@ -79,9 +81,9 @@ watch(() => props.modelValue, async (newValue) => {
   if (newValue) {
     isLoading.value = true;
     await startScanner();
-  } else {
+  } else
     await stopScanner();
-  }
+
 }, { immediate: true });
 
 onUnmounted(async () => {

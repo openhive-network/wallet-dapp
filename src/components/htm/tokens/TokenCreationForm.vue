@@ -2,7 +2,6 @@
 import type { asset, ITransaction } from '@hiveio/wax';
 import { mdiRocket, mdiLoading } from '@mdi/js';
 import type { asset_definition, asset_metadata_update, htm_operation } from '@mtyszczak-cargo/htm';
-import { toast } from 'vue-sonner';
 
 import HTMTokenPreview from '@/components/htm/HTMTokenPreview.vue';
 import TokenCreationCard from '@/components/htm/tokens/TokenCreationCard.vue';
@@ -15,12 +14,12 @@ import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
+import { debounce } from '@/utils/debouncers';
 import { generateNAI as generateHTMNAI, parseAssetAmount, toVesting, assetNumFromNAI, naiFromAssetNum } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidTokenSupply, isValidTokenPrecision, validateTokenSymbol } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-import { debounce } from '@/utils/debouncers';
 
 // Generated token ID
 const generatedAssetNum = ref('');
@@ -61,19 +60,19 @@ const createButtonState = computed(() => {
 // Create token using HTM
 const createToken = async () => {
   if (!isFormValid.value) {
-    toast.error('Please fill all required fields and agree to disclaimer');
+    toastError('Please fill all required fields and agree to disclaimer');
     return;
   }
 
   // Check if user has a wallet connected
   if (!tokensStore.wallet) {
-    toast.error('Please connect your HTM wallet first');
+    toastError('Please connect your HTM wallet first');
     return;
   }
 
   // Check if user has a wallet connected
   if (walletStore.isL2Wallet) {
-    toast.error('Please connect your L1 wallet first');
+    toastError('Please connect your L1 wallet first');
     return;
   }
 
@@ -84,7 +83,7 @@ const createToken = async () => {
     const assetNum = generateAssetNum();
 
     if (!assetNum) {
-      toast.error('Failed to generate token Asset Num. Please try again.');
+      toastError('Failed to generate token Asset Num. Please try again.');
       return;
     }
   }

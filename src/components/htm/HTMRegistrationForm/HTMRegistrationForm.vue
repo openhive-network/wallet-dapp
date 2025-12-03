@@ -73,7 +73,7 @@ const resetProcess = () => {
 // Generate HTM keys automatically (called during registration)
 const generateAndDownloadKeys = async () => {
   if (!isBasicInfoValid.value) {
-    toast.error('Please fill in all required fields');
+    toastError('Please fill in all required fields');
     return;
   }
 
@@ -137,9 +137,9 @@ const generateRandomPassword = (): string => {
 
 // Get the password to use (either user-provided or random)
 const getPasswordToUse = (): string => {
-  if (encryptKeys.value) {
+  if (encryptKeys.value)
     return registrationData.value.walletPassword;
-  }
+
 
   // Generate random password and store in localStorage
   const randomPassword = generateRandomPassword();
@@ -323,9 +323,9 @@ const registerHTMAccount = async () => {
     );
 
     // Only handle login if auto-import is enabled
-    if (autoImport.value) {
+    if (autoImport.value)
       await handleConditionalSiteLogin(keys.operational!);
-    }
+
 
     // After successful registration, redirect to login
     successShow();

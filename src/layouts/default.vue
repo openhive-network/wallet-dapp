@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, defineAsyncComponent } from 'vue';
-import { toast } from 'vue-sonner';
 
 import AccountNamePromptDialog from '@/components/AccountNamePromptDialog.vue';
 import HTMProvidePassword from '@/components/htm/HTMProvidePassword.vue';
@@ -8,13 +7,13 @@ import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import RecoveryPasswordDialog from '@/components/RecoveryPasswordDialog.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
-import type { UsedWallet , UsedWallet as UsedWalletEnum } from '@/stores/settings.store';
+import { useFavoritesStore } from '@/stores/favorites.store';
+import type { UsedWallet } from '@/stores/settings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import checkGoogleAuthAndLoadWallet from '@/utils/wallet/google-drive/checkGoogleAuthAndLoadWallet';
-import { useFavoritesStore } from '@/stores/favorites.store';
 
 const route = useRoute();
 
@@ -26,7 +25,7 @@ const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboard
 
 const hasUser = ref(false);
 const isLoading = ref(true);
-const preselectedWallet = ref<UsedWalletEnum | undefined>(undefined);
+const preselectedWallet = ref<UsedWallet | undefined>(undefined);
 const prefilledAccountName = ref<string | undefined>(undefined);
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
@@ -58,7 +57,7 @@ onMounted(async () => {
   if (hasUser.value) {
     walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
       userStore.parseUserData(settingsStore.settings.account!).catch(error => {
-        toast.error(`Failed to load user data: ${(error as Error).message}`);
+        toastError('Failed to load user data', error);
       });
     });
   }

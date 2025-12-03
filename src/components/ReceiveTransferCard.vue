@@ -4,19 +4,19 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import QrScanner from '@/components/QrScanner.vue';
 import { TokenAmountInput } from '@/components/htm/amount';
+import QrScanner from '@/components/QrScanner.vue';
 import ReceiverTokenSummary from '@/components/ReceiverTokenSummary.vue';
 import TransferCompletedSummary from '@/components/TransferCompletedSummary.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
-import { TempCTokensSigner } from '@/utils/wallet/ctokens/temp-signer';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-import { useWalletStore } from '@/stores/wallet.store';
+import { TempCTokensSigner } from '@/utils/wallet/ctokens/temp-signer';
 
 interface TransferSummary {
   amount: string;
@@ -76,7 +76,7 @@ const amountComputed = computed(() => {
 // QR code signing state
 const showQrScanner = ref(false);
 const scannedPrivateKey = ref<string | null>(null);
-const tempSigner = shallowRef<TempCTokensSigner | null>(null);
+const tempSigner = shallowRef<TempCTokensSigner | undefined>(undefined);
 
 const router = useRouter();
 
@@ -106,7 +106,7 @@ const handleQrScan = async (privateKey: string) => {
   } catch (error) {
     toastError('Invalid private key from QR code', error);
     scannedPrivateKey.value = null;
-    tempSigner.value = null;
+    tempSigner.value = undefined;
   }
 };
 
@@ -115,7 +115,7 @@ const clearScannedKey = () => {
   scannedPrivateKey.value = null;
   if (tempSigner.value) {
     tempSigner.value.destroy();
-    tempSigner.value = null;
+    tempSigner.value = undefined;
   }
   senderPublicKey.value = tokensStore.getUserPublicKey() || '';
 };
@@ -153,9 +153,9 @@ const handleSend = async () => {
       ? tempSigner.value.publicKey
       : tokensStore.getUserPublicKey();
 
-    if (!sender) {
+    if (!sender)
       throw new Error('Could not determine sender public key');
-    }
+
 
     await waitForTransactionStatus(
       () => ([{
@@ -172,7 +172,7 @@ const handleSend = async () => {
       } satisfies htm_operation]),
       'Transfer',
       true,
-      (tempSigner.value as any) || undefined // Use temp signer if available
+      tempSigner.value // Use temp signer if available
     );
 
     transferCompleted.value = true;
@@ -211,12 +211,12 @@ const handleSend = async () => {
 };
 
 const conditionalLogin = async () => {
-  if (await CTokensProvider.hasWallet()) {
+  if (await CTokensProvider.hasWallet())
     walletStore.isProvideWalletPasswordModalOpen = true;
-  } else {
+  else
     router.push({ path: '/tokens/register-account' });
-  }
-}
+
+};
 
 // Watch query params changes to update form
 watch(() => props.queryAmount, (newValue) => {
@@ -345,7 +345,7 @@ onMounted(() => {
           </p>
 
           <!-- Alternative: Connect Wallet -->
-          <div class="pt-2 border-t" v-if="!isLoggedIn && !tempSigner">
+          <div v-if="!isLoggedIn && !tempSigner" class="pt-2 border-t">
             <Button
               variant="link"
               size="sm"

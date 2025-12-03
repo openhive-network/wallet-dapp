@@ -56,7 +56,7 @@ const parseMetamaskPublicKeys = async () => {
       await metamaskStore.connect(0, 'posting');
       isMetamaskConnected.value = metamaskStore.isConnected;
     } catch {
-      toast.error('Metamask is not installed or not connected');
+      toastError('Metamask is not installed or not connected');
       return;
     }
 

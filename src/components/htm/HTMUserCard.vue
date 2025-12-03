@@ -12,7 +12,7 @@ interface Props {
   isFavorited?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   showViewIcon: false,
   showStar: false,
   isFavorited: false

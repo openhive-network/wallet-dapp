@@ -3,7 +3,6 @@ import { mdiArrowLeft, mdiContentSave, mdiLoading } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { toast } from 'vue-sonner';
 
 import HTMTokenPreview from '@/components/htm/HTMTokenPreview.vue';
 import HTMView from '@/components/htm/HTMView.vue';
@@ -192,7 +191,7 @@ const handleInit = async () => {
 
   // Check ownership after loading
   if (!isTokenOwner.value) {
-    toast.error('You do not have permission to edit this token');
+    toastError('You do not have permission to edit this token');
     router.push({
       path: '/tokens/token',
       query: { 'asset-num': assetNum.value }

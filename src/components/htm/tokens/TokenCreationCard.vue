@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import { copyText } from '@/utils/copy';
+import { toastError } from '@/utils/parse-error';
 import type { validateTokenSymbol } from '@/utils/validators';
 
 interface Props {
@@ -63,8 +64,8 @@ const copyAssetNum = async () => {
   try {
     copyText(String(props.generatedAssetNum));
     toast.success('Asset Num copied to clipboard!');
-  } catch (_error) {
-    toast.error('Failed to copy Asset Num');
+  } catch {
+    toastError('Failed to copy Asset Num');
   }
 };
 </script>

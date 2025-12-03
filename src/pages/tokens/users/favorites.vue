@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiStar, mdiStarOutline, mdiRefresh, mdiCloseCircle, mdiDownload, mdiUpload, mdiDeleteOutline, mdiClose, mdiStarOff } from '@mdi/js';
+import { mdiStarOutline, mdiCloseCircle, mdiDownload, mdiUpload, mdiDeleteOutline, mdiStarOff } from '@mdi/js';
 import { onMounted, ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TextTooltip } from '@/components/ui/texttooltip';
 import { useFavoritesStore, type FavoriteAccount } from '@/stores/favorites.store';
+import { toastError } from '@/utils/parse-error';
 
 // Store
 const favoritesStore = useFavoritesStore();
@@ -21,12 +22,12 @@ const searchQuery = ref('');
 
 // Computed
 const filteredAccounts = computed(() => {
-  if (!searchQuery.value.trim()) {
+  if (!searchQuery.value.trim())
     return favoritesStore.accounts;
-  }
+
 
   const query = searchQuery.value.toLowerCase();
-  return favoritesStore.accounts.filter(account => 
+  return favoritesStore.accounts.filter(account =>
     account.operationalKey.toLowerCase().includes(query) ||
     account.displayName?.toLowerCase().includes(query) ||
     account.name?.toLowerCase().includes(query) ||
@@ -42,7 +43,7 @@ const clearSearch = () => {
 const handleUnfavorite = (account: FavoriteAccount) => {
   const removedAccount = { ...account };
   favoritesStore.removeAccountFromFavorites(account.operationalKey);
-  
+
   toast.success(`Removed ${account.displayName || account.name || account.operationalKey} from favorites`, {
     action: {
       label: 'Undo',
@@ -78,7 +79,7 @@ const exportFavorites = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  
+
   toast.success('Favorites exported successfully');
 };
 
@@ -92,29 +93,26 @@ const importFavorites = (event: Event) => {
     try {
       const data = JSON.parse(e.target?.result as string);
       const result = favoritesStore.importFavorites(data);
-      
+
       if (result.accountsImported > 0 || result.tokensImported > 0) {
         const parts = [];
-        if (result.accountsImported > 0) {
+        if (result.accountsImported > 0)
           parts.push(`${result.accountsImported} account${result.accountsImported > 1 ? 's' : ''}`);
-        }
-        if (result.tokensImported > 0) {
+
+        if (result.tokensImported > 0)
           parts.push(`${result.tokensImported} token${result.tokensImported > 1 ? 's' : ''}`);
-        }
+
         toast.success(`Imported ${parts.join(' and ')}`);
-      } else {
+      } else
         toast.info('No new favorites to import');
-      }
-      
-      if (result.errors.length > 0) {
-        toast.error(`${result.errors.length} invalid item${result.errors.length > 1 ? 's' : ''} skipped`);
-        console.warn('Import errors:', result.errors);
-      }
-    } catch (error) {
-      toast.error('Failed to import favorites. Invalid file format.');
-      console.error('Import error:', error);
+
+
+      if (result.errors.length > 0)
+        toastError(`${result.errors.length} invalid item${result.errors.length > 1 ? 's' : ''} skipped`);
+    } catch {
+      toastError('Failed to import favorites. Invalid file format.');
     }
-    
+
     // Reset input so the same file can be selected again
     input.value = '';
   };
