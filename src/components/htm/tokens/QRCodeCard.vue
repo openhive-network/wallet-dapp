@@ -2,8 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { toastError } from '@/utils/parse-error';
 import { useTokensStore } from '@/stores/tokens.store';
+import { toastError } from '@/utils/parse-error';
 
 const props = defineProps<{
   assetNum: number | string;

@@ -2,8 +2,8 @@ import { toast } from 'vue-sonner';
 
 import { useErrorDialogStore } from '@/stores/error-dialog.store';
 
-export const toastError = (title: string, error: unknown) => {
-  let description: string;
+export const toastError = (title: string, error?: unknown) => {
+  let description: string | undefined = undefined;
 
   if (typeof error === 'object' && error && 'message' in error) {
     if ('name' in error
@@ -19,11 +19,11 @@ export const toastError = (title: string, error: unknown) => {
       description = error.apiError.error.message as string;
     else
       description = error.message as string;}
-  else
+  else if (error)
     description = String(error);
 
   toast.error(title, {
-    description: description.length > 100 ? description.slice(0, 100) + '...' : description,
+    description: description ? description.length > 100 ? description.slice(0, 100) + '...' : description : undefined,
     duration: 8_000,
     action: {
       label: 'Details',

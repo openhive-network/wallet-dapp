@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiNumeric1Circle, mdiAlertCircle } from '@mdi/js';
+import { mdiNumeric1Circle } from '@mdi/js';
 
 import { HTM_REGISTRATION_KEY } from '@/components/htm/HTMRegistrationForm/types';
 import type { HTMRegistrationContext } from '@/components/htm/HTMRegistrationForm/types';

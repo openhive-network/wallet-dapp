@@ -90,7 +90,7 @@ const loadTokenDetails = async () => {
 onMounted(async () => {
   // Validate required params
   if (!fromPk.value || !toPk.value || !amount.value || !assetNum.value) {
-    toast.error('Missing required invoice parameters');
+    toastError('Missing required invoice parameters');
     router.push('/tokens/list');
     return;
   }

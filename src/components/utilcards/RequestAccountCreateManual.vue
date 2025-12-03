@@ -131,7 +131,7 @@ const resetProcess = () => {
 
 const generateAndDownloadAuthorityData = async () => {
   if (!accountNameValid.value) {
-    toast.error('Please enter a valid account name first');
+    toastError('Please enter a valid account name first');
     return;
   }
 
@@ -169,9 +169,6 @@ const generateAndDownloadAuthorityData = async () => {
     toast.success('Authority data generated and downloaded successfully!');
 
   } catch (error) {
-    toast.error('Failed to generate authority data', {
-      description: 'Please try again or check your connection.'
-    });
     toastError('Failed to generate authority data', error);
   } finally {
     isGeneratingKeys.value = false;

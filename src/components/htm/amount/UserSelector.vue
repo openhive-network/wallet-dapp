@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { mdiArrowDown, mdiStar } from '@mdi/js';
-import { Check, QrCode, Search, UserPlus } from 'lucide-vue-next';
+import { Check, QrCode, Search } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 
+import QrScanner from '@/components/QrScanner.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import QrScanner from '@/components/QrScanner.vue';
 import { useFavoritesStore } from '@/stores/favorites.store';
 import { useTokensStore, type CTokenUser } from '@/stores/tokens.store';
-import { toastError } from '@/utils/parse-error';
 import { debounce } from '@/utils/debouncers';
+import { toastError } from '@/utils/parse-error';
 
 interface UserOption {
   operationalKey: string;
@@ -92,9 +92,9 @@ const filteredUsers = computed((): UserOption[] => {
   }
 
   // Don't filter until we have at least 2 characters
-  if (query.length < 2) {
+  if (query.length < 2)
     return favoriteUsers.value;
-  }
+
 
   const lowerQuery = query.toLowerCase();
 
@@ -174,9 +174,9 @@ const selectUser = (user: UserOption) => {
 // Get initials for avatar fallback
 const getInitials = (displayName: string): string => {
   const words = displayName.trim().split(/\s+/);
-  if (words.length >= 2 && words[0]?.[0] && words[1]?.[0]) {
+  if (words.length >= 2 && words[0]?.[0] && words[1]?.[0])
     return (words[0][0] + words[1][0]).toUpperCase();
-  }
+
   return displayName.substring(0, 2).toUpperCase();
 };
 
@@ -188,13 +188,13 @@ const handleQrScan = async (decodedText: string) => {
 
   try {
     const url = new URL(trimmedText);
-    const toSearch = url.searchParams.get("to");
+    const toSearch = url.searchParams.get('to');
     if (toSearch)
       pk = toSearch;
   } catch {
-    if (isPublicKey(trimmedText)) {
+    if (isPublicKey(trimmedText))
       pk = trimmedText;
-    } else {
+    else {
       // Private key
       if(trimmedText.length === 51) {
         try {
@@ -224,7 +224,7 @@ const handleQrScan = async (decodedText: string) => {
     } catch {}
   }
 
-  toastError('Failed to load user from QR code', new Error("No valid STM public key found"));
+  toastError('Failed to load user from QR code', new Error('No valid STM public key found'));
 };
 
 const openQrScanner = () => {

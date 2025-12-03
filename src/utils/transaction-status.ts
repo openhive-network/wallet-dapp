@@ -38,9 +38,9 @@ const pollTransactionStatus = async (
       }
     } catch (error: unknown) {
       // Check HTTP status code from error
-      const errorObj = error as Record<string, unknown>;
-      const response = errorObj?.response as Record<string, unknown> | undefined;
-      const httpCode = response?.status;
+      const errorObj = error as WaxRequestError<Record<string, unknown>>;
+      const response = errorObj.response;
+      const httpCode = response.status;
 
       // 404 means transaction not yet processed - keep polling
       if (httpCode === 404) {
@@ -62,7 +62,7 @@ const pollTransactionStatus = async (
       return {
         success: false,
         message: 'Transaction failed',
-        details: (response?.response as Record<string, unknown>)?.message as string || JSON.stringify(error)
+        details: response.response?.message as string || JSON.stringify(error)
       };
     }
   }

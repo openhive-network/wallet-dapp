@@ -2,15 +2,14 @@
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import QrScanner from '@/components/QrScanner.vue';
 import { TokenAmountInput, UserSelector } from '@/components/htm/amount';
+import QrScanner from '@/components/QrScanner.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/stores/settings.store';
 import { type CTokenUser, useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
-import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidPublicKey, validateAmountPrecision } from '@/utils/validators';
@@ -41,7 +40,7 @@ const router = useRouter();
 const isTransferring = ref(false);
 const showQrScanner = ref(false);
 const scannedPrivateKey = ref<string | null>(null);
-const tempSigner = shallowRef<TempCTokensSigner | null>(null);
+const tempSigner = shallowRef<TempCTokensSigner | undefined>(undefined);
 
 // Transfer form
 const transferForm = ref({
@@ -76,7 +75,7 @@ const handleQrScan = async (privateKey: string) => {
   } catch (error) {
     toastError('Invalid private key from QR code', error);
     scannedPrivateKey.value = null;
-    tempSigner.value = null;
+    tempSigner.value = undefined;
   }
 };
 
@@ -85,7 +84,7 @@ const clearScannedKey = () => {
   scannedPrivateKey.value = null;
   if (tempSigner.value) {
     tempSigner.value.destroy();
-    tempSigner.value = null;
+    tempSigner.value = undefined;
   }
 };
 
@@ -128,9 +127,9 @@ const handleTransfer = async () => {
       ? tempSigner.value.publicKey
       : tokensStore.getUserPublicKey();
 
-    if (!senderPublicKey) {
+    if (!senderPublicKey)
       throw new Error('Could not determine sender public key');
-    }
+
 
     // Wait for transaction status
     await waitForTransactionStatus(
@@ -148,7 +147,7 @@ const handleTransfer = async () => {
       } satisfies htm_operation]),
       'Transfer',
       true,
-      (tempSigner.value as any) || undefined // Use temp signer if available
+      tempSigner.value // Use temp signer if available
     );
 
     // Reset form on success
@@ -330,7 +329,7 @@ const connectToHTM = async () => {
           </p>
 
           <!-- Alternative: Connect Wallet -->
-          <div class="pt-2 border-t" v-if="!props.isLoggedIn && !tempSigner">
+          <div v-if="!props.isLoggedIn && !tempSigner" class="pt-2 border-t">
             <Button
               variant="link"
               size="sm"

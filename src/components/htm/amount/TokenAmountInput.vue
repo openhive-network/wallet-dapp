@@ -54,7 +54,7 @@ watch(validationError, () => {
     model.value = '';
 });
 const publicKey = computed(() => props.publicKey || tokensStore.getUserPublicKey());
-const refetchAvailableBalance = async(newValue: string | undefined) => {
+const refetchAvailableBalance = async (newValue: string | undefined) => {
   if (!newValue || !selectedToken.value) return;
   try {
     const tokensBalance = await tokensStore.getBalanceSingleToken(newValue, selectedToken.value.assetNum);

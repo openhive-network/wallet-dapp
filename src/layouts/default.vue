@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, defineAsyncComponent } from 'vue';
-import { toast } from 'vue-sonner';
 
 import HTMProvidePassword from '@/components/htm/HTMProvidePassword.vue';
 import AppSidebar from '@/components/navigation';
 import AppHeader from '@/components/navigation/AppHeader.vue';
 import { SidebarProvider } from '@/components/ui/sidebar';
+import { useFavoritesStore } from '@/stores/favorites.store';
 import type { UsedWallet } from '@/stores/settings.store';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
-import { useFavoritesStore } from '@/stores/favorites.store';
 
 const route = useRoute();
 
@@ -33,7 +32,7 @@ onMounted(async () => {
   if (hasUser.value) {
     walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
       userStore.parseUserData(settingsStore.settings.account!).catch(error => {
-        toast.error(`Failed to load user data: ${(error as Error).message}`);
+        toastError('Failed to load user data', error);
       });
     });
   }

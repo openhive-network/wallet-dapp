@@ -1,6 +1,6 @@
-import type { ISignatureTransaction, TPublicKey, TRole, TSignature } from '@hiveio/wax';
-import { AEncryptionProvider } from '@hiveio/wax';
 import type { IBeekeeperInstance, IBeekeeperUnlockedWallet } from '@hiveio/beekeeper';
+import type { ISignatureTransaction, TPublicKey, TSignature } from '@hiveio/wax';
+import { AEncryptionProvider } from '@hiveio/wax';
 
 /**
  * Temporary signer for one-time transactions using a private key from QR code
@@ -11,7 +11,7 @@ export class TempCTokensSigner extends AEncryptionProvider {
 
   #wallet: IBeekeeperUnlockedWallet;
 
-  private constructor(
+  private constructor (
     wallet: IBeekeeperUnlockedWallet,
     public readonly publicKey: TPublicKey
   ) {
@@ -22,7 +22,7 @@ export class TempCTokensSigner extends AEncryptionProvider {
   /**
    * Create a temporary signer from a private key (e.g., scanned from QR code)
    */
-  public static async for(privateKey: string): Promise<TempCTokensSigner> {
+  public static async for (privateKey: string): Promise<TempCTokensSigner> {
     // Initialize beekeeper if needed
     if (!TempCTokensSigner.beekeeper) {
       const bk = await import('@hiveio/beekeeper');
@@ -50,11 +50,11 @@ export class TempCTokensSigner extends AEncryptionProvider {
   /**
    * Clean up temporary resources
    */
-  public async destroy(): Promise<void> {
+  public async destroy (): Promise<void> {
     this.#wallet.close();
   }
 
-  public override async generateSignatures(transaction: ISignatureTransaction): Promise<TSignature[]> {
+  public override async generateSignatures (transaction: ISignatureTransaction): Promise<TSignature[]> {
     if (!TempCTokensSigner.beekeeper)
       throw new Error('Beekeeper not initialized');
 
@@ -66,11 +66,11 @@ export class TempCTokensSigner extends AEncryptionProvider {
   }
 
   // Encryption/decryption not supported for temp signers
-  public async encryptData(_content: string, _recipient: TPublicKey): Promise<string> {
+  public async encryptData (_content: string, _recipient: TPublicKey): Promise<string> {
     throw new Error('Encryption not supported for temporary signers');
   }
 
-  public async decryptData(_content: string): Promise<string> {
+  public async decryptData (_content: string): Promise<string> {
     throw new Error('Decryption not supported for temporary signers');
   }
 }

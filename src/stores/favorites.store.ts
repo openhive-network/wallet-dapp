@@ -41,7 +41,7 @@ export const useFavoritesStore = defineStore('favorites', {
 
   actions: {
     // Load from localStorage
-    loadFromStorage() {
+    loadFromStorage () {
       try {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
@@ -49,35 +49,32 @@ export const useFavoritesStore = defineStore('favorites', {
           this.accounts = data.accounts || [];
           this.tokens = data.tokens || [];
         }
-      } catch (error) {
-        console.error('Failed to load favorites from storage:', error);
+      } catch {
         this.accounts = [];
         this.tokens = [];
       }
     },
 
     // Save to localStorage
-    saveToStorage() {
+    saveToStorage () {
       try {
         const data: FavoritesData = {
           accounts: this.accounts,
           tokens: this.tokens
         };
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      } catch (error) {
-        console.error('Failed to save favorites to storage:', error);
-      }
+      } catch {}
     },
 
     // Account methods
-    isAccountFavorited(operationalKey: string): boolean {
+    isAccountFavorited (operationalKey: string): boolean {
       return this.favoriteAccountKeys.has(operationalKey);
     },
 
-    addAccountToFavorites(account: Omit<FavoriteAccount, 'addedAt'>) {
-      if (this.isAccountFavorited(account.operationalKey)) {
+    addAccountToFavorites (account: Omit<FavoriteAccount, 'addedAt'>) {
+      if (this.isAccountFavorited(account.operationalKey))
         return;
-      }
+
 
       this.accounts.push({
         ...account,
@@ -86,20 +83,20 @@ export const useFavoritesStore = defineStore('favorites', {
       this.saveToStorage();
     },
 
-    removeAccountFromFavorites(operationalKey: string) {
+    removeAccountFromFavorites (operationalKey: string) {
       this.accounts = this.accounts.filter(acc => acc.operationalKey !== operationalKey);
       this.saveToStorage();
     },
 
-    toggleAccountFavorite(account: Omit<FavoriteAccount, 'addedAt'>) {
-      if (this.isAccountFavorited(account.operationalKey)) {
+    toggleAccountFavorite (account: Omit<FavoriteAccount, 'addedAt'>) {
+      if (this.isAccountFavorited(account.operationalKey))
         this.removeAccountFromFavorites(account.operationalKey);
-      } else {
+      else
         this.addAccountToFavorites(account);
-      }
+
     },
 
-    updateAccountInfo(operationalKey: string, updates: Partial<Omit<FavoriteAccount, 'operationalKey' | 'addedAt'>>) {
+    updateAccountInfo (operationalKey: string, updates: Partial<Omit<FavoriteAccount, 'operationalKey' | 'addedAt'>>) {
       const index = this.accounts.findIndex(acc => acc.operationalKey === operationalKey);
       if (index !== -1) {
         this.accounts[index] = {
@@ -111,14 +108,14 @@ export const useFavoritesStore = defineStore('favorites', {
     },
 
     // Token methods
-    isTokenFavorited(nai: string): boolean {
+    isTokenFavorited (nai: string): boolean {
       return this.favoriteTokenNais.has(nai);
     },
 
-    addTokenToFavorites(token: Omit<FavoriteToken, 'addedAt'>) {
-      if (this.isTokenFavorited(token.nai)) {
+    addTokenToFavorites (token: Omit<FavoriteToken, 'addedAt'>) {
+      if (this.isTokenFavorited(token.nai))
         return;
-      }
+
 
       this.tokens.push({
         ...token,
@@ -127,38 +124,38 @@ export const useFavoritesStore = defineStore('favorites', {
       this.saveToStorage();
     },
 
-    removeTokenFromFavorites(nai: string) {
+    removeTokenFromFavorites (nai: string) {
       this.tokens = this.tokens.filter(token => token.nai !== nai);
       this.saveToStorage();
     },
 
-    toggleTokenFavorite(token: Omit<FavoriteToken, 'addedAt'>) {
-      if (this.isTokenFavorited(token.nai)) {
+    toggleTokenFavorite (token: Omit<FavoriteToken, 'addedAt'>) {
+      if (this.isTokenFavorited(token.nai))
         this.removeTokenFromFavorites(token.nai);
-      } else {
+      else
         this.addTokenToFavorites(token);
-      }
+
     },
 
     // General methods
-    clearAll() {
+    clearAll () {
       this.accounts = [];
       this.tokens = [];
       this.saveToStorage();
     },
 
-    clearAccounts() {
+    clearAccounts () {
       this.accounts = [];
       this.saveToStorage();
     },
 
-    clearTokens() {
+    clearTokens () {
       this.tokens = [];
       this.saveToStorage();
     },
 
     // Export data for backup (minimal format)
-    exportFavorites() {
+    exportFavorites () {
       return {
         accounts: this.accounts.map(acc => acc.operationalKey),
         tokens: this.tokens.map(token => token.nai)
@@ -166,7 +163,7 @@ export const useFavoritesStore = defineStore('favorites', {
     },
 
     // Import data from backup (validates format)
-    importFavorites(data: { accounts?: string[]; tokens?: string[] }) {
+    importFavorites (data: { accounts?: string[]; tokens?: string[] }) {
       const importedAccounts: string[] = [];
       const importedTokens: string[] = [];
       const errors: string[] = [];
@@ -174,22 +171,22 @@ export const useFavoritesStore = defineStore('favorites', {
       // Process accounts
       if (Array.isArray(data.accounts)) {
         for (const item of data.accounts) {
-          if (typeof item === 'string' && item.trim()) {
+          if (typeof item === 'string' && item.trim())
             importedAccounts.push(item.trim());
-          } else {
+          else
             errors.push(`Invalid account format: ${JSON.stringify(item)}`);
-          }
+
         }
       }
 
       // Process tokens
       if (Array.isArray(data.tokens)) {
         for (const item of data.tokens) {
-          if (typeof item === 'string' && item.trim()) {
+          if (typeof item === 'string' && item.trim())
             importedTokens.push(item.trim());
-          } else {
+          else
             errors.push(`Invalid token format: ${JSON.stringify(item)}`);
-          }
+
         }
       }
 
