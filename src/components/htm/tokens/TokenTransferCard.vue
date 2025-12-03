@@ -2,13 +2,12 @@
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
-import { TokenAmountInput } from '@/components/htm/amount';
+import { TokenAmountInput, UserSelector } from '@/components/htm/amount';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/stores/settings.store';
-import { useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
+import { type CTokenUser, useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -25,6 +24,11 @@ const props = defineProps<{
 const emit = defineEmits<{
   refresh: [];
 }>();
+
+const recipientData = ref<CTokenUser | undefined>(undefined);
+watch(recipientData, (newVal) => {
+  transferForm.value.to = newVal ? newVal.operationalKey : '';
+});
 
 const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
@@ -226,13 +230,13 @@ const connectToHTM = async () => {
           >
             Recipient Address (Public Key)
           </Label>
-          <Input
+          <UserSelector
             id="recipient"
-            v-model="transferForm.to"
-            placeholder="Enter recipient public key address (STM...)"
+            v-model="recipientData"
             :disabled="isTransferring"
             class="transition-colors font-mono text-sm"
             :class="transferForm.to ? (isRecipientValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
+            placeholder="Enter recipient public key (STM...)"
           />
           <p class="text-xs text-muted-foreground">
             Enter a valid public key address starting with STM (not a Hive account name)
