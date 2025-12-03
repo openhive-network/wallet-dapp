@@ -1,4 +1,4 @@
-import type { AEncryptionProvider, ITransaction } from '@hiveio/wax';
+import type { AEncryptionProvider, ITransaction, WaxRequestError } from '@hiveio/wax';
 import { HtmTransaction, type htm_operation, PROTOCOL_OPERATION_ID } from '@mtyszczak-cargo/htm';
 import { toast } from 'vue-sonner';
 
@@ -40,7 +40,7 @@ const pollTransactionStatus = async (
       // Check HTTP status code from error
       const errorObj = error as Record<string, unknown>;
       const response = errorObj?.response as Record<string, unknown> | undefined;
-      const httpCode = errorObj?.httpCode || errorObj?.status || response?.status;
+      const httpCode = response?.status;
 
       // 404 means transaction not yet processed - keep polling
       if (httpCode === 404) {
@@ -61,8 +61,8 @@ const pollTransactionStatus = async (
       // Any other error means transaction failed
       return {
         success: false,
-        message: (errorObj?.message as string) || 'Transaction failed',
-        details: (errorObj?.details as string) || (errorObj?.hint as string) || JSON.stringify(error)
+        message: 'Transaction failed',
+        details: (response?.response as Record<string, unknown>)?.message as string || JSON.stringify(error)
       };
     }
   }
