@@ -2,6 +2,7 @@
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 
 import CollapsibleMemoInput from '@/components/CollapsibleMemoInput.vue';
+import QrScanner from '@/components/QrScanner.vue';
 import { TokenAmountInput, UserSelector } from '@/components/htm/amount';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,10 +10,12 @@ import { Label } from '@/components/ui/label';
 import { useSettingsStore } from '@/stores/settings.store';
 import { type CTokenUser, useTokensStore, type CTokenBalanceDisplay, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
+import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidPublicKey, validateAmountPrecision } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
+import { TempCTokensSigner } from '@/utils/wallet/ctokens/temp-signer';
 
 const props = defineProps<{
   token: CTokenDefinitionDisplay;
@@ -36,6 +39,9 @@ const tokensStore = useTokensStore();
 const router = useRouter();
 
 const isTransferring = ref(false);
+const showQrScanner = ref(false);
+const scannedPrivateKey = ref<string | null>(null);
+const tempSigner = ref<TempCTokensSigner | null>(null);
 
 // Transfer form
 const transferForm = ref({
@@ -58,10 +64,41 @@ const amountValidation = computed(() => {
   return validateAmountPrecision(transferForm.value.amount, props.token.precision);
 });
 
+// Handle QR code scan
+const handleQrScan = async (privateKey: string) => {
+  try {
+    scannedPrivateKey.value = privateKey;
+
+    // Create a temporary signer from the scanned private key
+    tempSigner.value = await TempCTokensSigner.for(privateKey);
+
+    showQrScanner.value = false;
+  } catch (error) {
+    toastError('Invalid private key from QR code', error);
+    scannedPrivateKey.value = null;
+    tempSigner.value = null;
+  }
+};
+
+// Clear scanned key
+const clearScannedKey = () => {
+  scannedPrivateKey.value = null;
+  if (tempSigner.value) {
+    tempSigner.value.destroy();
+    tempSigner.value = null;
+  }
+};
+
 // Handle transfer (simplified for now)
 const handleTransfer = async () => {
-  if (!props.token || !props.isLoggedIn) {
-    toastError('You must be logged in to transfer tokens', new Error('Not logged in'));
+  if (!props.token) {
+    toastError('Token information not available', new Error('Token not found'));
+    return;
+  }
+
+  // For non-logged-in users, require QR code
+  if (!props.isLoggedIn && !tempSigner.value) {
+    toastError('Please scan your private key QR code to sign the transaction', new Error('No signer available'));
     return;
   }
 
@@ -86,6 +123,15 @@ const handleTransfer = async () => {
   try {
     isTransferring.value = true;
 
+    // Determine the sender's public key
+    const senderPublicKey = tempSigner.value
+      ? tempSigner.value.publicKey
+      : tokensStore.getUserPublicKey();
+
+    if (!senderPublicKey) {
+      throw new Error('Could not determine sender public key');
+    }
+
     // Wait for transaction status
     await waitForTransactionStatus(
       () => ([{
@@ -96,11 +142,13 @@ const handleTransfer = async () => {
             precision: props.token!.precision
           },
           receiver: transferForm.value.to,
-          sender: tokensStore.getUserPublicKey()!,
+          sender: senderPublicKey,
           memo: transferForm.value.memo
         }
       } satisfies htm_operation]),
-      'Transfer'
+      'Transfer',
+      true,
+      (tempSigner.value as any) || undefined // Use temp signer if available
     );
 
     // Reset form on success
@@ -109,6 +157,9 @@ const handleTransfer = async () => {
       amount: '',
       memo: ''
     };
+
+    // Clear scanned key after successful transfer
+    clearScannedKey();
 
     // Emit refresh event to parent
     emit('refresh');
@@ -159,39 +210,9 @@ const connectToHTM = async () => {
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-6 flex-1">
-      <!-- Not logged in state -->
-      <div
-        v-if="!props.isLoggedIn"
-        class="text-center py-12 space-y-4"
-      >
-        <div class="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
-          <svg
-            width="24"
-            height="24"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="text-muted-foreground"
-          >
-            <path
-              style="fill: currentColor"
-              d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z"
-            />
-          </svg>
-        </div>
-        <p class="text-muted-foreground font-medium">
-          Connect your wallet to transfer tokens
-        </p>
-        <Button
-          size="lg"
-          @click="connectToHTM"
-        >
-          Connect Wallet
-        </Button>
-      </div>
-
       <!-- No balance / token not owned state -->
       <div
-        v-else-if="!props.userBalance || props.userBalance.balance === 0n"
+        v-if="(props.isLoggedIn && !tempSigner) && (!props.userBalance || props.userBalance.balance === 0n)"
         class="text-center py-12 space-y-4"
       >
         <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
@@ -218,11 +239,109 @@ const connectToHTM = async () => {
         </div>
       </div>
 
-      <!-- Transfer form - only shown when logged in and has balance -->
+      <!-- Transfer form - shown when logged in OR has scanned QR code -->
       <div
         v-else
         class="space-y-5"
       >
+        <!-- QR Code Signing Section (for non-logged-in users) -->
+        <div
+          class="p-4 border rounded-lg bg-muted/50 space-y-3"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg
+                width="20"
+                height="20"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="text-primary"
+              >
+                <path
+                  style="fill: currentColor"
+                  d="M3,11H5V13H3V11M11,5H13V9H11V5M9,11H13V15H11V13H9V11M15,11H17V13H19V11H21V13H19V15H21V19H19V21H17V19H13V21H11V17H15V15H17V13H15V11M19,19V15H17V19H19M15,3H21V9H15V3M17,5V7H19V5H17M3,3H9V9H3V3M5,5V7H7V5H5M3,15H9V21H3V15M5,17V19H7V17H5Z"
+                />
+              </svg>
+              <Label class="text-sm font-medium">Sign with QR Code</Label>
+            </div>
+            <Button
+              v-if="!tempSigner"
+              size="sm"
+              variant="outline"
+              @click="showQrScanner = true"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-1.5"
+              >
+                <path
+                  style="fill: currentColor"
+                  d="M4,4H10V10H4V4M20,4V10H14V4H20M14,15H16V13H14V11H16V13H18V11H20V13H18V15H20V18H18V20H16V18H13V20H11V16H14V15M16,15V18H18V15H16M4,20V14H10V20H4M6,6V8H8V6H6M16,6V8H18V6H16M6,16V18H8V16H6M4,11H6V13H4V11M9,11H13V15H11V13H9V11M11,6H13V10H11V6M2,2V6H0V2A2,2 0 0,1 2,0H6V2H2M22,0A2,2 0 0,1 24,2V6H22V2H18V0H22M2,18V22H6V24H2A2,2 0 0,1 0,22V18H2M22,22V18H24V22A2,2 0 0,1 22,24H18V22H22Z"
+                />
+              </svg>
+              Scan Private Key
+            </Button>
+          </div>
+
+          <!-- Scanned Key Display -->
+          <div
+            v-if="tempSigner"
+            class="flex items-center gap-2 p-2 bg-background rounded border border-green-500"
+          >
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="text-green-500 flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"
+              />
+            </svg>
+            <span class="text-xs font-mono text-muted-foreground flex-1 truncate">
+              {{ tempSigner.publicKey }}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              @click="clearScannedKey"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  style="fill: currentColor"
+                  d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                />
+              </svg>
+            </Button>
+          </div>
+
+          <p class="text-xs text-muted-foreground">
+            {{ tempSigner ? 'Private key loaded. Ready to sign transaction.' : 'Scan your private key QR code to sign the transfer without logging in.' }}
+          </p>
+
+          <!-- Alternative: Connect Wallet -->
+          <div class="pt-2 border-t" v-if="!props.isLoggedIn && !tempSigner">
+            <Button
+              variant="link"
+              size="sm"
+              class="w-full text-xs"
+              @click="connectToHTM"
+            >
+              Or connect your persistent wallet instead
+            </Button>
+          </div>
+        </div>
+
         <div class="space-y-2">
           <Label
             for="recipient"
@@ -301,4 +420,10 @@ const connectToHTM = async () => {
       </div>
     </CardContent>
   </Card>
+
+  <!-- QR Scanner Modal -->
+  <QrScanner
+    v-model="showQrScanner"
+    @scan="handleQrScan"
+  />
 </template>
