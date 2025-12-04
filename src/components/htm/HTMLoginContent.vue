@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import HTMPasswordFields from '@/components/htm/HTMPasswordFields.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useHTMAutoLogin } from '@/composables/useHTMAutoLogin';
 import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
@@ -27,13 +29,28 @@ const isLoading = ref(false);
 
 const managementKey = ref('');
 const operationalKey = ref('');
-const password = ref('');
-const repeatPassword = ref('');
 
 const walletStore = useWalletStore();
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 const tokensStore = useTokensStore();
+
+// Use auto-login composable
+const {
+  encryptKeys,
+  password,
+  repeatPassword,
+  showEncryptionWarning,
+  passwordsMatch,
+  isPasswordValid,
+  getPasswordToUse
+} = useHTMAutoLogin();
+
+// Form validation
+const isFormValid = computed(() => {
+  const hasOperationalKey = operationalKey.value.trim().length > 0;
+  return hasOperationalKey && isPasswordValid.value;
+});
 
 const handleConditionalSiteLogin = async (operationalKey: string) => {
   const wax = await getWax();
@@ -62,7 +79,8 @@ const handleConditionalSiteLogin = async (operationalKey: string) => {
 
 const connect = async () => {
   try {
-    if (password.value !== repeatPassword.value) {
+    // Validate passwords match (only if encrypting)
+    if (encryptKeys.value && password.value !== repeatPassword.value) {
       toastError('Failed to connect to HTM', 'The provided passwords do not match');
 
       return;
@@ -70,9 +88,12 @@ const connect = async () => {
 
     isLoading.value = true;
 
-    const { operational } = await CTokensProvider.createWallet(password.value, operationalKey.value, managementKey.value.length === 0 ? undefined : managementKey.value);
+    // Get the password to use (user-provided or random)
+    const passwordToUse = getPasswordToUse();
 
-    await CTokensProvider.login(password.value);
+    const { operational } = await CTokensProvider.createWallet(passwordToUse, operationalKey.value, managementKey.value.length === 0 ? undefined : managementKey.value);
+
+    await CTokensProvider.login(passwordToUse);
 
     await handleConditionalSiteLogin(operational);
 
@@ -118,22 +139,15 @@ const connect = async () => {
           />
         </div>
         <Separator />
-        <div class="mt-3 mb-1 space-y-1">
-          <Label for="password">Password</Label>
-          <Input
-            id="password"
-            v-model="password"
-            type="password"
-            placeholder="Enter a password to encrypt the wallet"
-          />
-        </div>
-        <div class="space-y-1">
-          <Label for="repeatPassword">Repeat Password</Label>
-          <Input
-            id="repeatPassword"
-            v-model="repeatPassword"
-            type="password"
-            placeholder="Repeat the password"
+
+        <!-- Password Fields Component -->
+        <div class="mt-4">
+          <HTMPasswordFields
+            v-model:encrypt-keys="encryptKeys"
+            v-model:password="password"
+            v-model:repeat-password="repeatPassword"
+            :show-warning="showEncryptionWarning"
+            :passwords-match="passwordsMatch"
           />
         </div>
       </div>
@@ -142,7 +156,7 @@ const connect = async () => {
         <p>Step 2: Click this button to verify your configuration and connect to the wallet:</p>
         <div class="flex justify-center mt-4">
           <Button
-            :disabled="isLoading"
+            :disabled="isLoading || !isFormValid"
             variant="outline"
             size="lg"
             class="px-8 py-4 border-[#FBA510] border-[2px]"
@@ -154,7 +168,7 @@ const connect = async () => {
       </div>
       <div v-else>
         <Button
-          :disabled="isLoading || !operationalKey || !password || !repeatPassword"
+          :disabled="isLoading || !isFormValid"
           class="w-full"
           @click="connect"
         >

@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { mdiNumeric1Circle } from '@mdi/js';
 
+import HTMPasswordFields from '@/components/htm/HTMPasswordFields.vue';
 import { HTM_REGISTRATION_KEY } from '@/components/htm/HTMRegistrationForm/types';
 import type { HTMRegistrationContext } from '@/components/htm/HTMRegistrationForm/types';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 
 // Inject the registration context from parent
-const { registrationData, encryptKeys } = inject<HTMRegistrationContext>(HTM_REGISTRATION_KEY)!;
-
-// Show warning when encryption is disabled
-const showEncryptionWarning = computed(() => !encryptKeys.value);
+const { registrationData, encryptKeys, password, repeatPassword, showEncryptionWarning, passwordsMatch } = inject<HTMRegistrationContext>(HTM_REGISTRATION_KEY)!;
 </script>
 
 <template>
@@ -99,69 +95,15 @@ const showEncryptionWarning = computed(() => !encryptKeys.value);
 
     <Separator />
 
-    <!-- Encryption Toggle -->
+    <!-- Password Fields Component -->
     <div class="space-y-4">
-      <div class="flex items-center justify-between space-x-2">
-        <div class="space-y-0.5">
-          <Label for="encrypt-keys" class="text-base">
-            Encrypt keys using password
-          </Label>
-          <p class="text-sm text-muted-foreground">
-            Protect your keys with a password (recommended)
-          </p>
-        </div>
-        <Switch
-          id="encrypt-keys"
-          v-model="encryptKeys"
-        />
-      </div>
-
-      <!-- Warning when encryption is disabled -->
-      <Alert v-if="showEncryptionWarning" variant="warning">
-        <AlertDescription>
-          <strong>Auto-Login Enabled:</strong> Your keys will be encrypted with a random password that's automatically stored in your browser. You'll be logged in automatically when you visit HTM pages. This is convenient but less secure than using a password you control.
-        </AlertDescription>
-      </Alert>
-
-      <!-- Password fields (only when encryption is enabled) -->
-      <div v-if="encryptKeys" class="space-y-4">
-        <!-- Wallet Password (required) -->
-        <div class="space-y-2">
-          <Label for="wallet-password">
-            Wallet Password *
-          </Label>
-          <Input
-            id="wallet-password"
-            v-model="registrationData.walletPassword"
-            type="password"
-            placeholder="Enter a secure password"
-            required
-          />
-          <p class="text-xs text-muted-foreground">
-            Create a password to encrypt and secure your HTM wallet locally
-          </p>
-        </div>
-
-        <!-- Repeat Password (required) -->
-        <div class="space-y-2">
-          <Label for="repeat-password">
-            Repeat Password *
-          </Label>
-          <Input
-            id="repeat-password"
-            v-model="registrationData.repeatPassword"
-            type="password"
-            placeholder="Repeat your password"
-            required
-          />
-        </div>
-
-        <div v-if="registrationData.walletPassword && registrationData.repeatPassword && registrationData.walletPassword !== registrationData.repeatPassword">
-          <p class="text-sm text-red-500">
-            Passwords do not match
-          </p>
-        </div>
-      </div>
+      <HTMPasswordFields
+        v-model:encrypt-keys="encryptKeys"
+        v-model:password="password"
+        v-model:repeat-password="repeatPassword"
+        :show-warning="showEncryptionWarning"
+        :passwords-match="passwordsMatch"
+      />
     </div>
   </div>
 </template>

@@ -12,6 +12,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
+import { canAutoLogin, performAutoLogin } from '@/utils/auto-login';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -35,6 +36,7 @@ const userStore = useUserStore();
 const settingsStore = useSettingsStore();
 
 const isCheckingWalletStatus = ref(true);
+const isAutoLoginAvailable = ref(false);
 
 const tokensStore = useTokensStore();
 
@@ -55,6 +57,22 @@ onMounted(async () => {
 
     hasStoredHTMWallet.value = walletExists;
     mode.value = walletExists ? 'login' : 'create';
+
+    // Check for auto-login availability
+    isAutoLoginAvailable.value = await canAutoLogin();
+
+    // If auto-login is available, try it automatically
+    if (isAutoLoginAvailable.value) {
+      const success = await performAutoLogin();
+      if (success) {
+        const operationalKey = tokensStore.getUserPublicKey();
+        if (operationalKey) {
+          await handleConditionalSiteLogin(operationalKey);
+          emit('success');
+          emit('setaccount', operationalKey);
+        }
+      }
+    }
   } catch (error) {
     toastError('Failed to verify existing HTM wallet', error);
     hasStoredHTMWallet.value = false;
@@ -161,8 +179,19 @@ const handleLoginSuccess = async () => {
       <CardDescription>{{ description }}</CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
+      <!-- Auto-login in progress message -->
       <div
-        v-if="isCheckingWalletStatus"
+        v-if="isCheckingWalletStatus && isAutoLoginAvailable"
+        class="text-center space-y-2 py-4"
+      >
+        <div class="animate-spin mx-auto h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+        <p class="text-sm text-muted-foreground">
+          Automatically logging you in...
+        </p>
+      </div>
+
+      <div
+        v-else-if="isCheckingWalletStatus"
         class="text-sm text-muted-foreground text-center py-6"
       >
         Checking for existing HTM wallet...

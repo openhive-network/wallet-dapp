@@ -6,8 +6,6 @@ export interface HTMRegistrationContext {
     about: string;
     website: string;
     profile_image: string;
-    walletPassword: string;
-    repeatPassword: string;
   }>;
   generatedKeys: Ref<{
     operationalPrivateKey: string;
@@ -18,6 +16,10 @@ export interface HTMRegistrationContext {
   keysGenerated: Ref<boolean>;
   hasConfirmedDownload: Ref<boolean>;
   encryptKeys: Ref<boolean>;
+  password: Ref<string>;
+  repeatPassword: Ref<string>;
+  showEncryptionWarning: ComputedRef<boolean>;
+  passwordsMatch: ComputedRef<boolean>;
   autoImport: Ref<boolean>;
   isLoading: Ref<boolean>;
   isBasicInfoValid: ComputedRef<boolean>;
