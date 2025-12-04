@@ -102,8 +102,11 @@ export class GoogleDriveWalletProvider {
     }
   }
 
-  public static getLoginUrl (): string {
-    return '/api/auth/google/login';
+  public static getLoginUrl (returnUrl?: string): string {
+    const url = '/api/auth/google/login';
+    if (returnUrl)
+      return `${url}?returnUrl=${encodeURIComponent(returnUrl)}`;
+    return url;
   }
 
   /**
@@ -220,6 +223,12 @@ export class GoogleDriveWalletProvider {
       const content = await wallet.loadForHiveKey(accountName, role);
       const r = [...content.enumStoredHiveKeys(accountName, role)][0]?.role;
 
+      // Extract and store the encryption key WIF if not already stored
+      if (!getStoredEncryptionKey()) {
+        const encryptionKeyWif = wallet.getEncryptionKeyWif();
+        setStoredEncryptionKey(encryptionKeyWif);
+      }
+
       return {
         exists: true,
         accountName,
@@ -247,12 +256,20 @@ export class GoogleDriveWalletProvider {
     const allRoles: TRole[] = ['posting', 'active', 'owner', 'memo'];
     const configuredRoles: TRole[] = [];
     const wallet = await getWallet();
+    let keyStored = false;
 
     for (const role of allRoles) {
       try {
         // Try to load this specific role
         await wallet.loadForHiveKey(accountName, role);
         configuredRoles.push(role);
+
+        // Extract and store the encryption key WIF if not already stored (only once)
+        if (!keyStored && !getStoredEncryptionKey()) {
+          const encryptionKeyWif = wallet.getEncryptionKeyWif();
+          setStoredEncryptionKey(encryptionKeyWif);
+          keyStored = true;
+        }
       } catch (error) {
         // Re-throw PasswordEntryCancelledError so UI can handle it
         if (error instanceof PasswordEntryCancelledError)
@@ -263,6 +280,40 @@ export class GoogleDriveWalletProvider {
     }
 
     return configuredRoles;
+  }
+
+  /**
+   * Get public key for a specific role
+   * @param accountName - The Hive account name
+   * @param role - The role to get public key for
+   * @returns Object with public key or null if not found
+   */
+  public static async getPublicKeyForRole (accountName: TAccountName, role: TRole): Promise<{ publicKey: TPublicKey } | null> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      return null;
+
+    try {
+      const wallet = await getWallet();
+      const content = await wallet.loadForHiveKey(accountName, role);
+      const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
+
+      // Extract and store the encryption key WIF if not already stored
+      if (!getStoredEncryptionKey()) {
+        const encryptionKeyWif = wallet.getEncryptionKeyWif();
+        setStoredEncryptionKey(encryptionKeyWif);
+      }
+
+      if (!keyInfo)
+        return null;
+
+      return { publicKey: keyInfo.publicKey };
+    } catch (error) {
+      // Re-throw PasswordEntryCancelledError so UI can handle it
+      if (error instanceof PasswordEntryCancelledError)
+        throw error;
+
+      return null;
+    }
   }
 
   /**
@@ -307,6 +358,13 @@ export class GoogleDriveWalletProvider {
       walletInstance = null;
     }
 
+    // Update settings store to reflect logged out state
+    const { useSettingsStore } = await import('@/stores/settings.store');
+    const settingsStore = useSettingsStore();
+    settingsStore.isGoogleAuthenticated = false;
+    settingsStore.googleUser = null;
+    settingsStore.settings.googleDriveSync = false;
+    settingsStore.saveSettings();
   }
 
   /**
@@ -324,7 +382,15 @@ export class GoogleDriveWalletProvider {
 
     try {
       // Try to load the requested role
-      return await wallet.loadForHiveKey(accountName, role) as unknown as  AEncryptionProvider;
+      const content = await wallet.loadForHiveKey(accountName, role) as unknown as AEncryptionProvider;
+
+      // Extract and store the encryption key WIF if not already stored
+      if (!getStoredEncryptionKey()) {
+        const encryptionKeyWif = wallet.getEncryptionKeyWif();
+        setStoredEncryptionKey(encryptionKeyWif);
+      }
+
+      return content;
     } catch {
       // Fall back to loading any available key for this account
       const content = await wallet.loadForHiveKey(accountName, role);
@@ -332,6 +398,12 @@ export class GoogleDriveWalletProvider {
 
       if (roles.length === 0)
         throw new Error('No wallet found or wallet has no keys');
+
+      // Extract and store the encryption key WIF if not already stored
+      if (!getStoredEncryptionKey()) {
+        const encryptionKeyWif = wallet.getEncryptionKeyWif();
+        setStoredEncryptionKey(encryptionKeyWif);
+      }
 
       return content as unknown as AEncryptionProvider;
     }

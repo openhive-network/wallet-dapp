@@ -11,13 +11,14 @@ export default defineEventHandler(async (event) => {
 
   const code = query.code as string;
   const error = query.error as string;
+  const returnUrl = (query.state as string) || '/';
 
   if (error)
-    return sendRedirect(event, `${config.public.appUrl}/?error=${encodeURIComponent(error)}`);
+    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=${encodeURIComponent(error)}`);
 
 
   if (!code)
-    return sendRedirect(event, `${config.public.appUrl}/?error=no_code`);
+    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=no_code`);
 
 
   try {
@@ -76,10 +77,10 @@ export default defineEventHandler(async (event) => {
       maxAge: 60 * 60 * 24 * 7
     });
 
-    // Redirect back to app
-    return sendRedirect(event, `${config.public.appUrl}/?auth=success`);
+    // Redirect back to the page user was on
+    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?auth=success`);
   } catch (err) {
     console.error('OAuth callback error:', err);
-    return sendRedirect(event, `${config.public.appUrl}/?error=auth_failed`);
+    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=auth_failed`);
   }
 });

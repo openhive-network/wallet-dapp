@@ -7,6 +7,8 @@ import { google } from 'googleapis';
 
 export default defineEventHandler((event) => {
   const config = useRuntimeConfig();
+  const query = getQuery(event);
+  const returnUrl = (query.returnUrl as string) || '/';
 
   const oauth2Client = new google.auth.OAuth2(
     config.googleClientId,
@@ -23,7 +25,8 @@ export default defineEventHandler((event) => {
       'https://www.googleapis.com/auth/userinfo.email'
     ],
     prompt: 'consent', // Force consent screen to always get refresh token
-    include_granted_scopes: true
+    include_granted_scopes: true,
+    state: returnUrl // Pass returnUrl through OAuth flow
   });
 
   return sendRedirect(event, authUrl);

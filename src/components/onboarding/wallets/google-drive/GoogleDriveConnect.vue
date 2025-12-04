@@ -125,8 +125,9 @@ const close = () => {
 };
 
 const openGoogleLogin = () => {
-  // Redirect to Google OAuth login endpoint
-  window.location.href = GoogleDriveProvider.getLoginUrl();
+  // Redirect to Google OAuth login endpoint with current path
+  const currentPath = window.location.pathname;
+  window.location.href = GoogleDriveProvider.getLoginUrl(currentPath);
 };
 
 const logoutFromGoogle = async () => {

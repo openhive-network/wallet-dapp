@@ -122,7 +122,7 @@ const mainGroups: { title: string; items: Array<{ title: string; url: string; ic
   title: 'Settings',
   items: [
     {
-      title: 'Settings',
+      title: 'Google Drive Wallet',
       url: '/settings',
       icon: mdiCog
     }

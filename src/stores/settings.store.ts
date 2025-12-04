@@ -118,8 +118,9 @@ export const useSettingsStore = defineStore('settings', {
       }
     },
 
-    loginWithGoogle () {
-      window.location.href = '/api/auth/google/login';
+    loginWithGoogle (returnUrl?: string) {
+      const currentUrl = returnUrl || window.location.pathname;
+      window.location.href = `/api/auth/google/login?returnUrl=${encodeURIComponent(currentUrl)}`;
     },
 
     async logoutFromGoogle () {

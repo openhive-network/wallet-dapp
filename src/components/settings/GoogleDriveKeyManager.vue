@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax';
-import { KeyRound, Plus, Trash2, AlertTriangle, Check, Loader2 } from 'lucide-vue-next';
+import { KeyRound, Plus, Trash2, AlertTriangle, Check, Loader2, Eye, EyeOff, Key } from 'lucide-vue-next';
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
 import { useSettingsStore } from '@/stores/settings.store';
 
@@ -23,24 +24,26 @@ const googleDrive = useGoogleDriveWallet();
 const settingsStore = useSettingsStore();
 
 // State
-const isLoading = ref(true);
-const isAuthenticated = ref(false);
-const walletExists = ref(false);
-const accountName = ref<string | undefined>();
-const configuredRoles = ref<TRole[]>([]);
+const isLoadingWalletInfo = ref(true);
+const isGoogleDriveConnected = ref(false);
+const hasGoogleDriveWallet = ref(false);
+const hiveAccountName = ref<string | undefined>();
+const availableKeyRoles = ref<TRole[]>([]);
+const rolePublicKeys = ref<Record<TRole, string>>({} as Record<TRole, string>);
 
 // Dialog state
 const showAddDialog = ref(false);
 const showDeleteWalletDialog = ref(false);
-const selectedRole = ref<TRole | null>(null);
+const roleToAdd = ref<TRole | null>(null);
 const newPrivateKey = ref('');
-const isProcessing = ref(false);
+const showPrivateKey = ref(false);
+const isSavingKey = ref(false);
 
 // Available roles
 const allRoles: TRole[] = ['posting', 'active', 'owner', 'memo'];
 
 const availableRolesToAdd = computed(() =>
-  allRoles.filter(role => !configuredRoles.value.includes(role))
+  allRoles.filter(role => !availableKeyRoles.value.includes(role))
 );
 
 const roleDescriptions: Record<TRole, string> = {
@@ -59,62 +62,79 @@ const roleColors: Record<TRole, string> = {
 
 // Load wallet info
 const loadWalletInfo = async () => {
-  isLoading.value = true;
+  isLoadingWalletInfo.value = true;
   try {
-    isAuthenticated.value = await googleDrive.checkAuth();
+    isGoogleDriveConnected.value = await googleDrive.checkAuth();
 
-    if (isAuthenticated.value) {
+    if (isGoogleDriveConnected.value) {
       const savedAccountName = settingsStore.settings.account;
       if (!savedAccountName) {
-        walletExists.value = false;
+        hasGoogleDriveWallet.value = false;
         return;
       }
 
       // First check if wallet exists by trying to load any role
       const info = await googleDrive.getWalletInfo(savedAccountName, 'posting');
-      walletExists.value = info.exists;
-      accountName.value = info.accountName;
+      hasGoogleDriveWallet.value = info.exists;
+      hiveAccountName.value = info.accountName;
 
-      if (walletExists.value)
+      if (hasGoogleDriveWallet.value) {
         // Get all configured roles by probing each one individually
-        configuredRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
-      else
-        configuredRoles.value = [];
+        availableKeyRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
+
+        // Get public keys for each configured role
+        const publicKeysMap: Record<TRole, string> = {} as Record<TRole, string>;
+        for (const role of availableKeyRoles.value) {
+          try {
+            const keyInfo = await googleDrive.getPublicKeyForRole(savedAccountName, role);
+            if (keyInfo?.publicKey)
+              publicKeysMap[role] = keyInfo.publicKey;
+          } catch (_error) {}
+        }
+        rolePublicKeys.value = publicKeysMap;
+      }
+      else {
+        availableKeyRoles.value = [];
+        rolePublicKeys.value = {} as Record<TRole, string>;
+      }
     }
-  } catch {
-    // User will see "not authenticated" state
+  } catch (_error) {
+    toast.error('Failed to load wallet information. Please try refreshing the page.');
+    isGoogleDriveConnected.value = false;
+    hasGoogleDriveWallet.value = false;
   } finally {
-    isLoading.value = false;
+    isLoadingWalletInfo.value = false;
   }
 };
 
 // Add key dialog
 const openAddDialog = (role: TRole) => {
-  selectedRole.value = role;
+  roleToAdd.value = role;
   newPrivateKey.value = '';
   showAddDialog.value = true;
 };
 
 const closeAddDialog = () => {
   showAddDialog.value = false;
-  selectedRole.value = null;
+  roleToAdd.value = null;
   newPrivateKey.value = '';
+  showPrivateKey.value = false;
 };
 
 const handleAddKey = async () => {
-  if (!selectedRole.value || !newPrivateKey.value.trim() || !accountName.value) return;
+  if (!roleToAdd.value || !newPrivateKey.value.trim() || !hiveAccountName.value) return;
 
-  isProcessing.value = true;
+  isSavingKey.value = true;
   try {
-    await googleDrive.addKey(accountName.value, selectedRole.value, newPrivateKey.value.trim());
-    toast.success(`${selectedRole.value} key added successfully`);
+    await googleDrive.addKey(hiveAccountName.value, roleToAdd.value, newPrivateKey.value.trim());
+    toast.success(`${roleToAdd.value} key added successfully`);
     closeAddDialog();
     await loadWalletInfo();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to add key';
     toast.error(message);
   } finally {
-    isProcessing.value = false;
+    isSavingKey.value = false;
   }
 };
 
@@ -128,7 +148,7 @@ const closeDeleteWalletDialog = () => {
 };
 
 const handleDeleteWallet = async () => {
-  isProcessing.value = true;
+  isSavingKey.value = true;
   try {
     // Clear localStorage encryption key
     googleDrive.clearEncryptionKey();
@@ -137,28 +157,24 @@ const handleDeleteWallet = async () => {
     settingsStore.settings.account = undefined;
 
     // If authenticated with Google, try to delete from Drive
-    if (isAuthenticated.value) {
+    if (isGoogleDriveConnected.value) {
       try {
         await $fetch('/api/google-drive/delete-wallet', { method: 'DELETE' });
-      } catch (error) {
-        // Ignore Drive deletion errors - local data is cleared anyway
-        // eslint-disable-next-line no-console
-        console.warn('Failed to delete from Google Drive:', error);
-      }
+      } catch (_error) {}
     }
 
     toast.success('Wallet data cleared successfully');
     closeDeleteWalletDialog();
 
     // Reset state
-    walletExists.value = false;
-    accountName.value = undefined;
-    configuredRoles.value = [];
+    hasGoogleDriveWallet.value = false;
+    hiveAccountName.value = undefined;
+    availableKeyRoles.value = [];
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete wallet';
     toast.error(message);
   } finally {
-    isProcessing.value = false;
+    isSavingKey.value = false;
   }
 };
 
@@ -187,28 +203,38 @@ onMounted(() => {
     </div>
 
     <!-- Loading state -->
-    <div
-      v-if="isLoading"
-      class="flex items-center justify-center py-8"
-    >
-      <Loader2 class="w-6 h-6 animate-spin text-gray-400" />
+    <div v-if="isLoadingWalletInfo" class="space-y-4">
+      <div class="flex items-center gap-3">
+        <Skeleton class="h-10 w-10 rounded-lg" />
+        <div class="space-y-2">
+          <Skeleton class="h-5 w-32" />
+          <Skeleton class="h-4 w-64" />
+        </div>
+      </div>
+      <Skeleton class="h-16 w-full rounded-lg" />
+      <div class="space-y-2">
+        <Skeleton class="h-4 w-40" />
+        <Skeleton class="h-14 w-full rounded-lg" />
+        <Skeleton class="h-14 w-full rounded-lg" />
+        <Skeleton class="h-14 w-full rounded-lg" />
+      </div>
     </div>
 
     <!-- Not authenticated -->
     <Alert
-      v-else-if="!isAuthenticated"
+      v-else-if="!isGoogleDriveConnected"
       variant="warning"
     >
       <AlertTriangle class="w-4 h-4" />
       <AlertTitle>Not Connected</AlertTitle>
       <AlertDescription>
-        Connect your Google account in the "Google Drive Sync" section above to manage wallet keys.
+        Google Drive connection lost. Please refresh the page or reconnect your Google account.
       </AlertDescription>
     </Alert>
 
     <!-- No wallet -->
     <Alert
-      v-else-if="!walletExists"
+      v-else-if="!hasGoogleDriveWallet"
       variant="info"
     >
       <AlertTriangle class="w-4 h-4" />
@@ -224,7 +250,7 @@ onMounted(() => {
       <div class="p-3 bg-muted rounded-lg">
         <div class="flex items-center gap-2">
           <span class="text-sm text-gray-600 dark:text-gray-400">Account:</span>
-          <span class="font-mono font-medium">@{{ accountName }}</span>
+          <span class="font-mono font-medium">@{{ hiveAccountName }}</span>
         </div>
       </div>
 
@@ -236,22 +262,36 @@ onMounted(() => {
 
         <!-- Configured roles -->
         <div
-          v-for="role in configuredRoles"
+          v-for="role in availableKeyRoles"
           :key="role"
-          class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
+          class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 bg-white dark:bg-gray-900/50"
         >
-          <div class="flex items-center gap-3">
-            <span
-              :class="[
-                'px-2.5 py-1 text-xs font-medium rounded-full capitalize',
-                roleColors[role]
-              ]"
-            >
-              {{ role }}
-            </span>
-            <div class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-              <Check class="w-4 h-4" />
-              <span class="text-sm">Configured</span>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span
+                :class="[
+                  'px-2.5 py-1 text-xs font-medium rounded-full capitalize',
+                  roleColors[role]
+                ]"
+              >
+                {{ role }}
+              </span>
+              <div class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <Check class="w-4 h-4" />
+                <span class="text-sm font-medium">Configured</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="rolePublicKeys[role]" class="space-y-2">
+            <div class="flex items-center gap-2">
+              <Key class="w-3.5 h-3.5 text-muted-foreground" />
+              <span class="text-xs font-medium text-muted-foreground">Public Key</span>
+            </div>
+            <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
+              <code class="font-mono text-xs break-all leading-relaxed text-foreground">
+                {{ rolePublicKeys[role] }}
+              </code>
             </div>
           </div>
         </div>
@@ -328,23 +368,42 @@ onMounted(() => {
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2">
             <Plus class="w-5 h-5" />
-            Add {{ selectedRole }} Key
+            Add {{ roleToAdd }} Key
           </DialogTitle>
           <DialogDescription>
-            {{ selectedRole ? roleDescriptions[selectedRole] : '' }}
+            {{ roleToAdd ? roleDescriptions[roleToAdd] : '' }}
           </DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4 py-4">
           <div class="space-y-2">
             <Label for="privateKey">Private Key</Label>
-            <Input
-              id="privateKey"
-              v-model="newPrivateKey"
-              type="password"
-              placeholder="Enter your private key"
-              autocomplete="off"
-            />
+            <div class="relative">
+              <Input
+                id="privateKey"
+                v-model="newPrivateKey"
+                :type="showPrivateKey ? 'text' : 'password'"
+                placeholder="Enter your private key"
+                autocomplete="off"
+                class="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                @click="showPrivateKey = !showPrivateKey"
+              >
+                <Eye
+                  v-if="!showPrivateKey"
+                  class="w-4 h-4 text-gray-500"
+                />
+                <EyeOff
+                  v-else
+                  class="w-4 h-4 text-gray-500"
+                />
+              </Button>
+            </div>
           </div>
 
           <Alert variant="warning">
@@ -358,20 +417,20 @@ onMounted(() => {
         <DialogFooter>
           <Button
             variant="outline"
-            :disabled="isProcessing"
+            :disabled="isSavingKey"
             @click="closeAddDialog"
           >
             Cancel
           </Button>
           <Button
-            :disabled="!newPrivateKey.trim() || isProcessing"
+            :disabled="!newPrivateKey.trim() || isSavingKey"
             @click="handleAddKey"
           >
             <Loader2
-              v-if="isProcessing"
+              v-if="isSavingKey"
               class="w-4 h-4 animate-spin"
             />
-            {{ isProcessing ? 'Adding...' : 'Add Key' }}
+            {{ isSavingKey ? 'Adding...' : 'Add Key' }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -389,7 +448,7 @@ onMounted(() => {
             Delete Wallet?
           </DialogTitle>
           <DialogDescription>
-            This will clear your local wallet data{{ isAuthenticated ? ' and delete the encrypted file from Google Drive' : '' }}.
+            This will clear your local wallet data{{ isGoogleDriveConnected ? ' and delete the encrypted file from Google Drive' : '' }}.
           </DialogDescription>
         </DialogHeader>
 
@@ -408,28 +467,28 @@ onMounted(() => {
           <ul class="list-disc list-inside space-y-1 ml-2">
             <li>Clear your locally stored recovery password</li>
             <li>Remove account information from settings</li>
-            <li v-if="isAuthenticated">Delete the encrypted wallet file from Google Drive</li>
+            <li v-if="isGoogleDriveConnected">Delete the encrypted wallet file from Google Drive</li>
           </ul>
         </div>
 
         <DialogFooter>
           <Button
             variant="outline"
-            :disabled="isProcessing"
+            :disabled="isSavingKey"
             @click="closeDeleteWalletDialog"
           >
             Cancel
           </Button>
           <Button
             variant="destructive"
-            :disabled="isProcessing"
+            :disabled="isSavingKey"
             @click="handleDeleteWallet"
           >
             <Loader2
-              v-if="isProcessing"
+              v-if="isSavingKey"
               class="w-4 h-4 animate-spin"
             />
-            {{ isProcessing ? 'Deleting...' : 'Delete Wallet' }}
+            {{ isSavingKey ? 'Deleting...' : 'Delete Wallet' }}
           </Button>
         </DialogFooter>
       </DialogContent>

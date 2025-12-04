@@ -38,6 +38,10 @@ export function useGoogleDriveWallet () {
     return await GoogleDriveWalletProvider.getAllConfiguredRoles(accountName);
   };
 
+  const getPublicKeyForRole = async (accountName: TAccountName, role: TRole): Promise<{ publicKey: TPublicKey } | null> => {
+    return await GoogleDriveWalletProvider.getPublicKeyForRole(accountName, role);
+  };
+
   const logout = async (): Promise<void> => {
     await GoogleDriveWalletProvider.logout();
   };
@@ -73,9 +77,7 @@ export function useGoogleDriveWallet () {
     get isAuthenticated () {
       return checkAuth();
     },
-    get loginUrl () {
-      return GoogleDriveWalletProvider.getLoginUrl();
-    },
+    getLoginUrl: (returnUrl?: string) => GoogleDriveWalletProvider.getLoginUrl(returnUrl),
 
     // Methods
     checkAuth,
@@ -83,6 +85,7 @@ export function useGoogleDriveWallet () {
     loadWallet,
     getWalletInfo,
     getAllConfiguredRoles,
+    getPublicKeyForRole,
     logout,
     addKey,
     setEncryptionKey,
