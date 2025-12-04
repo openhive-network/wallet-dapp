@@ -35,8 +35,8 @@ importers:
         specifier: ^9.32.0
         version: 9.32.0
       '@hiveio/beekeeper':
-        specifier: 1.28.4-rc0
-        version: 1.28.4-rc0
+        specifier: 1.28.4
+        version: 1.28.4
       '@hiveio/wax':
         specifier: 1.28.4-rc0-stable.251125135529
         version: 1.28.4-rc0-stable.251125135529
@@ -764,8 +764,8 @@ packages:
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
 
-  '@hiveio/beekeeper@1.28.4-rc0':
-    resolution: {integrity: sha1-qLgaAY/l+gXAdleuIeyaMAo6wxA=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4-rc0.tgz}
+  '@hiveio/beekeeper@1.28.4':
+    resolution: {integrity: sha1-X+2VqUKItQPk4Dr+t+/sfQ+84YY=, tarball: https://gitlab.syncad.com/api/v4/projects/198/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@hiveio/wax-signers-keychain@1.28.4-rc0-stable.251125135529':
@@ -6602,7 +6602,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@hiveio/beekeeper@1.28.4-rc0': {}
+  '@hiveio/beekeeper@1.28.4': {}
 
   '@hiveio/wax-signers-keychain@1.28.4-rc0-stable.251125135529':
     dependencies:
