@@ -15,8 +15,6 @@ const MANAGEMENT_WALLET_NAME_SUFFIX = 'management';
 
 const LOCAL_STORAGE_WALLET_INDEX_KEY = 'ctokens_wallet_index';
 const LOCAL_STORAGE_WALLET_INDEX_DEFAULT = 0;
-const LOCAL_STORAGE_OPERATIONAL_PUBLIC_KEY = 'ctokens_operational_public_key';
-const LOCAL_STORAGE_MANAGEMENT_PUBLIC_KEY = 'ctokens_management_public_key';
 
 export class CTokensProvider extends AEncryptionProvider {
   static #beekeeper: IBeekeeperInstance | undefined;
@@ -32,27 +30,18 @@ export class CTokensProvider extends AEncryptionProvider {
     return !!CTokensProvider.#operationalWallet;
   }
 
-  // TODO: Remove this code after @hiveio/beekeeper bugfix - bump deps
-  private static lastOperationalPk: string | undefined = undefined;
-
-  private static lastManagementPk: string | undefined = undefined;
-  // TODO: Remove this method !!!
   public static getOperationalPublicKey (): string | undefined {
-    CTokensProvider.ensurePublicKeysLoaded();
-    return CTokensProvider.lastOperationalPk;
+    if (CTokensProvider.#operationalWallet)
+      return CTokensProvider.#operationalWallet.getPublicKeys()[0];
+
+    return undefined;
   }
 
   public static getManagementPublicKey (): string | undefined {
-    CTokensProvider.ensurePublicKeysLoaded();
-    return CTokensProvider.lastManagementPk;
-  }
+    if (CTokensProvider.#managementWallet)
+      return CTokensProvider.#managementWallet.getPublicKeys()[0];
 
-  public static getOperationalWallet (): IBeekeeperUnlockedWallet | undefined {
-    return CTokensProvider.#operationalWallet;
-  }
-
-  public static getManagementWallet (): IBeekeeperUnlockedWallet | undefined {
-    return CTokensProvider.#managementWallet;
+    return undefined;
   }
 
   private constructor (
@@ -62,12 +51,10 @@ export class CTokensProvider extends AEncryptionProvider {
   ) {
     super();
 
-    CTokensProvider.ensurePublicKeysLoaded();
-
     this.extendedChain = chain.extendRest(RestApi);
     this.extendedChain.restApi.ctokensApi.endpointUrl = endpointUrl;
 
-    const publicKey = role === 'owner' ? CTokensProvider.lastManagementPk : CTokensProvider.lastOperationalPk;
+    const publicKey = role === 'owner' ? CTokensProvider.getManagementPublicKey() : CTokensProvider.getOperationalPublicKey();
 
     if (!publicKey)
       throw new WaxCTokensEncryptionProviderError('The requested wallet does not have a public key.');
@@ -124,8 +111,6 @@ export class CTokensProvider extends AEncryptionProvider {
   public static async login (password: string) {
     await CTokensProvider.prepareBeekeeper();
 
-    CTokensProvider.ensurePublicKeysLoaded();
-
     const session = CTokensProvider.#beekeeper!.createSession(Math.random().toString());
 
     try {
@@ -163,8 +148,6 @@ export class CTokensProvider extends AEncryptionProvider {
     const operational = await wallet.importKey(operationalPrivateKey);
     wallet.lock();
 
-    CTokensProvider.setOperationalPublicKey(operational);
-
     let management: TPublicKey | undefined;
 
     if (managementPrivateKey) {
@@ -173,14 +156,10 @@ export class CTokensProvider extends AEncryptionProvider {
       managementWallet.lock();
     }
 
-    CTokensProvider.setManagementPublicKey(management);
-
     return { management, operational };
   }
 
   public static async for (chain: IHiveChainInterface, role: TRole, onlineCheckKeys = true, ctokensUrl?: string): Promise<CTokensProvider> {
-    CTokensProvider.ensurePublicKeysLoaded();
-
     if (role === 'owner') {
       if (!CTokensProvider.#managementWallet)
         throw new WaxCTokensEncryptionProviderError('Owner wallet is not available. Make sure to login with the correct password and import the required key.');
@@ -223,38 +202,6 @@ export class CTokensProvider extends AEncryptionProvider {
     const signature = wallet.signDigest(this.publicKey, transaction.sigDigest);
 
     return [signature];
-  }
-
-  private static ensurePublicKeysLoaded () {
-    if (!CTokensProvider.lastOperationalPk) {
-      const storedOperational = localStorage.getItem(LOCAL_STORAGE_OPERATIONAL_PUBLIC_KEY);
-      if (storedOperational)
-        CTokensProvider.lastOperationalPk = storedOperational;
-    }
-
-    if (!CTokensProvider.lastManagementPk) {
-      const storedManagement = localStorage.getItem(LOCAL_STORAGE_MANAGEMENT_PUBLIC_KEY);
-      if (storedManagement)
-        CTokensProvider.lastManagementPk = storedManagement;
-    }
-  }
-
-  private static setOperationalPublicKey (publicKey: string | undefined) {
-    CTokensProvider.lastOperationalPk = publicKey;
-
-    if (!publicKey)
-      localStorage.removeItem(LOCAL_STORAGE_OPERATIONAL_PUBLIC_KEY);
-    else
-      localStorage.setItem(LOCAL_STORAGE_OPERATIONAL_PUBLIC_KEY, publicKey);
-  }
-
-  private static setManagementPublicKey (publicKey: string | undefined) {
-    CTokensProvider.lastManagementPk = publicKey;
-
-    if (!publicKey)
-      localStorage.removeItem(LOCAL_STORAGE_MANAGEMENT_PUBLIC_KEY);
-    else
-      localStorage.setItem(LOCAL_STORAGE_MANAGEMENT_PUBLIC_KEY, publicKey);
   }
 }
 
