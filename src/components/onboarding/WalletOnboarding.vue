@@ -21,7 +21,7 @@ const emit = defineEmits(['complete', 'close']);
 const selectedWallet = ref<UsedWallet | null>(null);
 const selectedAccount = ref<string | null>(null);
 
-const close = () => {
+const complete = () => {
   emit('complete', { wallet: selectedWallet.value!, account: selectedAccount.value! });
 };
 
@@ -101,7 +101,7 @@ onMounted(() => {
         v-if="stage_3_thank_you"
         :wallet="selectedWallet!"
         :account="selectedAccount!"
-        @close="close"
+        @close="complete"
       />
     </div>
   </div>

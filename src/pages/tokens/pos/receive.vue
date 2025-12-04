@@ -3,7 +3,6 @@ import { mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import HTMView from '@/components/htm/HTMView.vue';
 import QRCodeCard from '@/components/htm/tokens/QRCodeCard.vue';
 import SendTransferCard from '@/components/SendTransferCard.vue';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTokensStore, type CTokenDisplayBase } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
+
+definePageMeta({
+  layout: 'htm'
+});
 
 // Router
 const route = useRoute();
@@ -129,84 +132,82 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 </script>
 
 <template>
-  <HTMView>
-    <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
-      <!-- Header -->
-      <div class="flex items-center justify-between gap-4">
-        <NuxtLink v-if="token" :to="`/tokens/token?asset-num=${token!.assetNum}`" class="keychainify-checked">
-          <Button
-            variant="ghost"
-            size="sm"
-            class="gap-2 hover:bg-accent"
-            @click="goBack"
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-4">
+      <NuxtLink v-if="token" :to="`/tokens/token?asset-num=${token!.assetNum}`" class="keychainify-checked">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="gap-2 hover:bg-accent"
+          @click="goBack"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="flex-shrink-0"
           >
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="flex-shrink-0"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiArrowLeft"
-              />
-            </svg>
-            Back to Token
-          </Button>
-        </NuxtLink>
-      </div>
-
-      <!-- Loading State -->
-      <div
-        v-if="isLoading"
-        class="space-y-6"
-      >
-        <Card>
-          <CardHeader>
-            <Skeleton class="h-8 w-48" />
-            <Skeleton class="h-4 w-64" />
-          </CardHeader>
-          <CardContent class="space-y-4">
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-24 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-
-      <!-- Receive Form -->
-      <div
-        v-if="!isLoading"
-        class="space-y-6"
-      >
-        <!-- Page Title -->
-        <div>
-          <h1 class="text-3xl font-bold text-foreground mb-2">
-            Generate QR Code
-          </h1>
-          <p class="text-muted-foreground">
-            Generate a QR code for others to scan and send you tokens.
-          </p>
-        </div>
-
-        <!-- Send Transfer Card -->
-        <SendTransferCard
-          :token="token || undefined"
-          @update-token="handleTokenUpdate"
-          @update-amount="form.amount = $event"
-          @update-memo="form.memo = $event"
-        />
-
-        <!-- QR Code Card (visible when asset number is available) -->
-        <QRCodeCard
-          v-if="assetNum"
-          :key="assetNum"
-          :asset-num="assetNum"
-          :amount="form.amount"
-          :memo="form.memo"
-        />
-      </div>
+            <path
+              style="fill: currentColor"
+              :d="mdiArrowLeft"
+            />
+          </svg>
+          Back to Token
+        </Button>
+      </NuxtLink>
     </div>
-  </HTMView>
+
+    <!-- Loading State -->
+    <div
+      v-if="isLoading"
+      class="space-y-6"
+    >
+      <Card>
+        <CardHeader>
+          <Skeleton class="h-8 w-48" />
+          <Skeleton class="h-4 w-64" />
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <Skeleton class="h-10 w-full" />
+          <Skeleton class="h-10 w-full" />
+          <Skeleton class="h-24 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Receive Form -->
+    <div
+      v-if="!isLoading"
+      class="space-y-6"
+    >
+      <!-- Page Title -->
+      <div>
+        <h1 class="text-3xl font-bold text-foreground mb-2">
+          Generate QR Code
+        </h1>
+        <p class="text-muted-foreground">
+          Generate a QR code for others to scan and send you tokens.
+        </p>
+      </div>
+
+      <!-- Send Transfer Card -->
+      <SendTransferCard
+        :token="token || undefined"
+        @update-token="handleTokenUpdate"
+        @update-amount="form.amount = $event"
+        @update-memo="form.memo = $event"
+      />
+
+      <!-- QR Code Card (visible when asset number is available) -->
+      <QRCodeCard
+        v-if="assetNum"
+        :key="assetNum"
+        :asset-num="assetNum"
+        :amount="form.amount"
+        :memo="form.memo"
+      />
+    </div>
+  </div>
 </template>

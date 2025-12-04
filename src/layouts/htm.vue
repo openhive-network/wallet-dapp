@@ -1,23 +1,25 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
-
 import HTMLoginForm from '@/components/htm/HTMLoginForm.vue';
 import { HTMRegistrationForm } from '@/components/htm/HTMRegistrationForm';
 import HTMRegistrationOptions from '@/components/htm/HTMRegistrationOptions.vue';
+import CommonLayout from '@/layouts/common/CommonLayout.vue';
 import { useTokensStore } from '@/stores/tokens.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { canAutoLogin, performAutoLogin } from '@/utils/auto-login';
 import { toastError } from '@/utils/parse-error';
 
+const route = useRoute();
 const tokensStore = useTokensStore();
+const walletStore = useWalletStore();
 
-defineProps<{
-  isPublicPage?: boolean;
-}>();
+// Access meta
+const isPublicPage = computed(() => route.meta.isPublicPage ?? false); // Default to false
+const isAuthenticated = computed(() => !!tokensStore.wallet);
+
+const hasL1WalletConnected = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 
 const showRegistrationForm = ref(false);
 const showLoginForm = ref(false);
-
-const isAuthenticated = computed(() => tokensStore.wallet);
 
 const tryAutoLogin = async () => {
   if (!import.meta.client || isAuthenticated.value) return;
@@ -61,10 +63,10 @@ const goBack = () => {
 </script>
 
 <template>
-  <div class="p-8">
+  <CommonLayout>
     <!-- Show account overview component -->
     <div v-if="isAuthenticated || isPublicPage">
-      <slot />
+      <NuxtPage />
     </div>
     <!-- Show login/registration options when not authenticated -->
     <div
@@ -95,5 +97,14 @@ const goBack = () => {
         @show-login-form="handleShowLogin"
       />
     </div>
-  </div>
+    <div
+      v-if="!hasL1WalletConnected"
+      class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-800 bg-blue-600 px-4 h-[20px] w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center"
+      @click="walletStore.openWalletSelectModal()"
+    >
+      <span class="text-xs font-semibold text-white/90">
+        You are using L1 proxy account.
+      </span>
+    </div>
+  </CommonLayout>
 </template>
