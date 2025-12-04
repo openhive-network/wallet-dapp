@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 
 import HTMLoginContent from '@/components/htm/HTMLoginContent.vue';
@@ -11,6 +11,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
+import { canAutoLogin, performAutoLogin } from '@/utils/auto-login';
 import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
 
@@ -29,6 +30,7 @@ const settingsStore = useSettingsStore();
 const tokensStore = useTokensStore();
 
 const isLoading = ref(false);
+const isAutoLoginAvailable = ref(false);
 
 const password = ref('');
 const mode = ref<'login' | 'create'>('login');
@@ -40,6 +42,24 @@ const switchToCreateMode = () => {
 const switchToLoginMode = () => {
   mode.value = 'login';
 };
+
+// Check for auto-login on mount
+onMounted(async () => {
+  isAutoLoginAvailable.value = await canAutoLogin();
+
+  // If auto-login is available, try it automatically
+  if (isAutoLoginAvailable.value) {
+    isLoading.value = true;
+    const success = await performAutoLogin();
+    isLoading.value = false;
+
+    if (success) {
+      emit('success');
+      // Close the modal since auto-login succeeded
+      walletStore.isProvideWalletPasswordModalOpen = false;
+    }
+  }
+});
 
 const connect = async () => {
   try {
@@ -84,8 +104,19 @@ const handleCreateAccount = async () => {
 
 <template>
   <div class="space-y-4">
+    <!-- Auto-login in progress message -->
     <div
-      v-if="mode === 'login'"
+      v-if="isLoading && isAutoLoginAvailable"
+      class="text-center space-y-2 py-4"
+    >
+      <div class="animate-spin mx-auto h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      <p class="text-sm text-muted-foreground">
+        Automatically logging you in...
+      </p>
+    </div>
+
+    <div
+      v-else-if="mode === 'login'"
       class="space-y-4"
     >
       <p>Provide your HTM wallet password:</p>

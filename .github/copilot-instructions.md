@@ -27,10 +27,16 @@
 - Avoid excessive inline styles; prefer Tailwind CSS utility classes or component-scoped styles.
 - If required, install Shadcn UI components via `pnpm dlx shadcn-vue@latest add <component>` and import them properly.
 
+## Project Documentation
+- **Do not** create markdown files for documentation, architecture, reference, summary or instructions.
+- Write self-documenting code; add comments only where intent is not obvious.
+
+## Code formatting
+- Prefer arrow functions and concise syntax where applicable.
+
 ## General Guidelines
 - Prefer using `NuxtLink` for internal navigation over `<a>` tags. External links should use `<a>` with `target="_blank"` and `rel="noopener noreferrer"`.
-- Do not create markdown files for documentation and instructions.
+- Do not repeat the code. If you notice that it is the same in a multiple files - extract the code into a separate file/component, implementing common functionality
 - When using any component creating a link/navigation, ensure it has a class `keychainify-checked` to avoid hydration issues when keychain is installed.
-- Write self-documenting code; add comments only where intent is not obvious.
 - Prefer fallback-safe, defensive programming for external interactions (APIs, wallets, etc.).
 - Keep dependencies minimal and review them regularly.
