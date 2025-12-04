@@ -3,13 +3,17 @@ import { mdiArrowLeft } from '@mdi/js';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import HTMView from '@/components/htm/HTMView.vue';
 import ReceiveTransferCard from '@/components/ReceiveTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTokensStore, type CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
+
+definePageMeta({
+  layout: 'htm',
+  isPublicPage: true
+});
 
 // Router
 const route = useRoute();
@@ -70,76 +74,74 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 </script>
 
 <template>
-  <HTMView is-public-page>
-    <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
-      <!-- Header -->
-      <div class="flex items-center justify-between gap-4">
-        <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`" class="keychainify-checked">
-          <Button
-            v-if="assetNum"
-            variant="ghost"
-            size="sm"
-            class="gap-2 hover:bg-accent"
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-4">
+      <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`" class="keychainify-checked">
+        <Button
+          v-if="assetNum"
+          variant="ghost"
+          size="sm"
+          class="gap-2 hover:bg-accent"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="flex-shrink-0"
           >
-            <svg
-              width="16"
-              height="16"
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              class="flex-shrink-0"
-            >
-              <path
-                style="fill: currentColor"
-                :d="mdiArrowLeft"
-              />
-            </svg>
-            Back to Token
-          </Button>
-        </NuxtLink>
-      </div>
-
-      <!-- Loading State -->
-      <div
-        v-if="isLoading"
-        class="space-y-6"
-      >
-        <Card>
-          <CardHeader>
-            <Skeleton class="h-8 w-48" />
-            <Skeleton class="h-4 w-64" />
-          </CardHeader>
-          <CardContent class="space-y-4">
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-10 w-full" />
-            <Skeleton class="h-24 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-
-      <!-- Send Token Form (from QR scan) -->
-      <div
-        v-if="!isLoading"
-        class="space-y-6"
-      >
-        <!-- Page Title -->
-        <div>
-          <h1 class="text-3xl font-bold text-foreground mb-2">
-            Send Token
-          </h1>
-          <p class="text-muted-foreground">
-            Confirm and send the token transfer.
-          </p>
-        </div>
-
-        <!-- Receive Transfer Card -->
-        <ReceiveTransferCard
-          :receiver-key="receiverKey"
-          :token-data="token"
-          :query-amount="queryAmount"
-          :query-memo="queryMemo"
-          :asset-num="assetNum"
-        />
-      </div>
+            <path
+              style="fill: currentColor"
+              :d="mdiArrowLeft"
+            />
+          </svg>
+          Back to Token
+        </Button>
+      </NuxtLink>
     </div>
-  </HTMView>
+
+    <!-- Loading State -->
+    <div
+      v-if="isLoading"
+      class="space-y-6"
+    >
+      <Card>
+        <CardHeader>
+          <Skeleton class="h-8 w-48" />
+          <Skeleton class="h-4 w-64" />
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <Skeleton class="h-10 w-full" />
+          <Skeleton class="h-10 w-full" />
+          <Skeleton class="h-24 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Send Token Form (from QR scan) -->
+    <div
+      v-if="!isLoading"
+      class="space-y-6"
+    >
+      <!-- Page Title -->
+      <div>
+        <h1 class="text-3xl font-bold text-foreground mb-2">
+          Send Token
+        </h1>
+        <p class="text-muted-foreground">
+          Confirm and send the token transfer.
+        </p>
+      </div>
+
+      <!-- Receive Transfer Card -->
+      <ReceiveTransferCard
+        :receiver-key="receiverKey"
+        :token-data="token"
+        :query-amount="queryAmount"
+        :query-memo="queryMemo"
+        :asset-num="assetNum"
+      />
+    </div>
+  </div>
 </template>
