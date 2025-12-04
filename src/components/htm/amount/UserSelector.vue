@@ -411,7 +411,7 @@ const openQrScanner = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="h-full w-10 rounded-none"
+      class="w-10 rounded-none"
       @click="openQrScanner"
     >
       <QrCode class="h-6 w-6" />
