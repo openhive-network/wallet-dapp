@@ -119,7 +119,7 @@ const showEncryptionWarning = computed(() => !encryptKeys.value);
       <!-- Warning when encryption is disabled -->
       <Alert v-if="showEncryptionWarning" variant="warning">
         <AlertDescription>
-          <strong>Warning:</strong> Your keys will NOT be encrypted. A random password will be generated and stored in your browser's local storage. This is less secure than using a password you control.
+          <strong>Auto-Login Enabled:</strong> Your keys will be encrypted with a random password that's automatically stored in your browser. You'll be logged in automatically when you visit HTM pages. This is convenient but less secure than using a password you control.
         </AlertDescription>
       </Alert>
 

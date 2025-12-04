@@ -209,38 +209,8 @@ const connectToHTM = async () => {
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-6 flex-1">
-      <!-- No balance / token not owned state -->
-      <div
-        v-if="(props.isLoggedIn && !tempSigner) && (!props.userBalance || props.userBalance.balance === 0n)"
-        class="text-center py-12 space-y-4"
-      >
-        <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/20 rounded-full flex items-center justify-center">
-          <svg
-            width="24"
-            height="24"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="text-amber-600 dark:text-amber-400"
-          >
-            <path
-              style="fill: currentColor"
-              d="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
-            />
-          </svg>
-        </div>
-        <div>
-          <p class="text-foreground font-semibold mb-2">
-            You don't own this token
-          </p>
-          <p class="text-sm text-muted-foreground">
-            Your account doesn't have any {{ props.token.symbol || props.token.name }} tokens to transfer.
-          </p>
-        </div>
-      </div>
-
       <!-- Transfer form - shown when logged in OR has scanned QR code -->
       <div
-        v-else
         class="space-y-5"
       >
         <!-- QR Code Signing Section (for non-logged-in users) -->

@@ -137,12 +137,16 @@ const generateRandomPassword = (): string => {
 
 // Get the password to use (either user-provided or random)
 const getPasswordToUse = (): string => {
-  if (encryptKeys.value)
+  if (encryptKeys.value) {
+    localStorage.removeItem('htm_random_password');
+
     return registrationData.value.walletPassword;
+  }
 
-
-  // Generate random password and store in localStorage
+  // Generate random password and store in localStorage (client-side only)
   const randomPassword = generateRandomPassword();
+
+  // Safe localStorage access for SSR
   localStorage.setItem('htm_random_password', randomPassword);
 
   return randomPassword;
@@ -325,7 +329,6 @@ const registerHTMAccount = async () => {
     // Only handle login if auto-import is enabled
     if (autoImport.value)
       await handleConditionalSiteLogin(keys.operational!);
-
 
     // After successful registration, redirect to login
     successShow();

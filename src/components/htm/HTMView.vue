@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 import HTMLoginForm from '@/components/htm/HTMLoginForm.vue';
 import { HTMRegistrationForm } from '@/components/htm/HTMRegistrationForm';
 import HTMRegistrationOptions from '@/components/htm/HTMRegistrationOptions.vue';
 import { useTokensStore } from '@/stores/tokens.store';
-
+import { canAutoLogin, performAutoLogin } from '@/utils/auto-login';
+import { toastError } from '@/utils/parse-error';
 
 const tokensStore = useTokensStore();
 
@@ -16,8 +17,23 @@ const props = defineProps<{
 const showRegistrationForm = ref(false);
 const showLoginForm = ref(false);
 
-// Check if user is authenticated (has wallet connected)
 const isAuthenticated = computed(() => tokensStore.wallet || props.isPublicPage);
+
+const tryAutoLogin = async () => {
+  if (!import.meta.client || props.isPublicPage || isAuthenticated.value) return;
+
+  try {
+    const canLogin = await canAutoLogin();
+    if (canLogin)
+      await performAutoLogin();
+  } catch (error) {
+    toastError('Auto-login failed', error);
+  }
+};
+
+onMounted(() => {
+  void tryAutoLogin();
+});
 
 // Handle showing registration form
 const handleShowRegistration = () => {
@@ -48,7 +64,6 @@ const goBack = () => {
   <div class="p-8">
     <!-- Show account overview component -->
     <div v-if="isAuthenticated">
-      <!-- Show slot content when authenticated -->
       <slot />
     </div>
     <!-- Show login/registration options when not authenticated -->
