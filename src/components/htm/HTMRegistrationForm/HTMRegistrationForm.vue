@@ -8,6 +8,7 @@ import type { HTMRegistrationContext } from '@/components/htm/HTMRegistrationFor
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useHTMAutoLogin } from '@/composables/useHTMAutoLogin';
 import { UsedWallet, useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
 import { useUserStore } from '@/stores/user.store';
@@ -37,17 +38,25 @@ const successShow = () => {
 
 const hasConfirmedDownload = ref(false);
 const keysGenerated = ref(false);
-const encryptKeys = ref(true);
 const autoImport = ref(true);
+
+// Use auto-login composable
+const {
+  encryptKeys,
+  password,
+  repeatPassword,
+  showEncryptionWarning,
+  passwordsMatch,
+  isPasswordValid,
+  getPasswordToUse
+} = useHTMAutoLogin();
 
 // Registration form data - simplified to match standard account creation flow
 const registrationData = ref({
   name: '',                 // Account display name
   about: '',                // Description/bio (optional)
   website: '',              // Website URL (optional)
-  profile_image: '',        // Profile image URL (optional)
-  walletPassword: '',       // Password to encrypt the wallet
-  repeatPassword: ''        // Password confirmation
+  profile_image: ''         // Profile image URL (optional)
 });
 
 // Generated HTM keys (auto-generated, not manually entered)
@@ -114,43 +123,8 @@ const generateAndDownloadKeys = async () => {
 // Form validation - only basic info needed in step 1
 const isBasicInfoValid = computed(() => {
   const hasName = registrationData.value.name.trim().length > 0;
-
-  if (!encryptKeys.value) {
-    // If not encrypting, only name is required
-    return hasName;
-  }
-
-  // If encrypting, password is required and must match
-  return hasName &&
-         registrationData.value.walletPassword.trim().length > 0 &&
-         registrationData.value.repeatPassword.trim().length > 0 &&
-         registrationData.value.walletPassword === registrationData.value.repeatPassword;
+  return hasName && isPasswordValid.value;
 });
-
-// Generate a random password when encryption is disabled
-const generateRandomPassword = (): string => {
-  const randomPart1 = Math.random().toString(36).substring(2, 15);
-  const randomPart2 = Math.random().toString(36).substring(2, 15);
-  const randomPart3 = Date.now().toString(36);
-  return `${randomPart1}${randomPart2}${randomPart3}`;
-};
-
-// Get the password to use (either user-provided or random)
-const getPasswordToUse = (): string => {
-  if (encryptKeys.value) {
-    localStorage.removeItem('htm_random_password');
-
-    return registrationData.value.walletPassword;
-  }
-
-  // Generate random password and store in localStorage (client-side only)
-  const randomPassword = generateRandomPassword();
-
-  // Safe localStorage access for SSR
-  localStorage.setItem('htm_random_password', randomPassword);
-
-  return randomPassword;
-};
 
 // Download operational private key as QR code
 const downloadPrivateKeyQR = async () => {
@@ -261,7 +235,7 @@ const registerHTMAccount = async () => {
       throw new Error('Please confirm you have saved the keys file');
 
     // Validate passwords match (only if encrypting)
-    if (encryptKeys.value && registrationData.value.walletPassword !== registrationData.value.repeatPassword)
+    if (encryptKeys.value && !passwordsMatch.value)
       throw new Error('Passwords do not match');
 
     // Validate website URL if provided
@@ -346,6 +320,10 @@ provide<HTMRegistrationContext>(HTM_REGISTRATION_KEY, {
   keysGenerated,
   hasConfirmedDownload,
   encryptKeys,
+  password,
+  repeatPassword,
+  showEncryptionWarning,
+  passwordsMatch,
   autoImport,
   isLoading,
   isBasicInfoValid,
