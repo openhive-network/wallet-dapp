@@ -84,6 +84,8 @@ export class CTokensProvider extends AEncryptionProvider {
   public async destroy () {
     await CTokensProvider.#beekeeper?.delete();
     CTokensProvider.#beekeeper = undefined;
+    CTokensProvider.#operationalWallet = undefined;
+    CTokensProvider.#managementWallet = undefined;
   }
 
   private static async prepareBeekeeper () {

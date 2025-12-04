@@ -10,17 +10,17 @@ import { toastError } from '@/utils/parse-error';
 
 const tokensStore = useTokensStore();
 
-const props = defineProps<{
+defineProps<{
   isPublicPage?: boolean;
 }>();
 
 const showRegistrationForm = ref(false);
 const showLoginForm = ref(false);
 
-const isAuthenticated = computed(() => tokensStore.wallet || props.isPublicPage);
+const isAuthenticated = computed(() => tokensStore.wallet);
 
 const tryAutoLogin = async () => {
-  if (!import.meta.client || props.isPublicPage || isAuthenticated.value) return;
+  if (!import.meta.client || isAuthenticated.value) return;
 
   try {
     const canLogin = await canAutoLogin();
@@ -63,7 +63,7 @@ const goBack = () => {
 <template>
   <div class="p-8">
     <!-- Show account overview component -->
-    <div v-if="isAuthenticated">
+    <div v-if="isAuthenticated || isPublicPage">
       <slot />
     </div>
     <!-- Show login/registration options when not authenticated -->
