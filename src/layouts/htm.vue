@@ -65,7 +65,7 @@ const goBack = () => {
 <template>
   <CommonLayout>
     <!-- Show account overview component -->
-    <div v-if="isAuthenticated || isPublicPage">
+    <div class="p-8" v-if="isAuthenticated || isPublicPage">
       <NuxtPage />
     </div>
     <!-- Show login/registration options when not authenticated -->
