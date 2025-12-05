@@ -110,8 +110,7 @@ export const useSettingsStore = defineStore('settings', {
     // Google Drive integration
     async checkGoogleAuth () {
       try {
-        const { getAuthStatus } = useGoogleAuth();
-        const response = getAuthStatus();
+        const response = await $fetch<{ authenticated: boolean; user: GoogleUser | null }>('/api/auth/google/status');
         this.isGoogleAuthenticated = response.authenticated;
         this.googleUser = response.user;
       } catch (_error) {
