@@ -34,10 +34,13 @@ const rolePublicKeys = ref<Record<TRole, string>>({} as Record<TRole, string>);
 // Dialog state
 const showAddDialog = ref(false);
 const showDeleteWalletDialog = ref(false);
+const showDeleteKeyDialog = ref(false);
 const roleToAdd = ref<TRole | null>(null);
+const roleToDelete = ref<TRole | null>(null);
 const newPrivateKey = ref('');
 const showPrivateKey = ref(false);
 const isSavingKey = ref(false);
+const isDeletingKey = ref(false);
 
 // Available roles
 const allRoles: TRole[] = ['posting', 'active', 'owner', 'memo'];
@@ -178,6 +181,35 @@ const handleDeleteWallet = async () => {
   }
 };
 
+// Delete key dialog
+const openDeleteKeyDialog = (role: TRole) => {
+  roleToDelete.value = role;
+  showDeleteKeyDialog.value = true;
+};
+
+const closeDeleteKeyDialog = () => {
+  showDeleteKeyDialog.value = false;
+  roleToDelete.value = null;
+};
+
+const handleDeleteKey = async () => {
+  if (!roleToDelete.value || !hiveAccountName.value) return;
+
+  isDeletingKey.value = true;
+  try {
+    const publicKey = rolePublicKeys.value[roleToDelete.value];
+    await googleDrive.removeKey(hiveAccountName.value, publicKey, roleToDelete.value);
+    toast.success(`${roleToDelete.value} key removed successfully`);
+    closeDeleteKeyDialog();
+    await loadWalletInfo();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to remove key';
+    toast.error(message);
+  } finally {
+    isDeletingKey.value = false;
+  }
+};
+
 onMounted(() => {
   loadWalletInfo();
 });
@@ -281,6 +313,14 @@ onMounted(() => {
                 <span class="text-sm font-medium">Configured</span>
               </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-destructive hover:text-destructive hover:bg-destructive/10"
+              @click="openDeleteKeyDialog(role)"
+            >
+              <Trash2 class="w-4 h-4" />
+            </Button>
           </div>
 
           <div v-if="rolePublicKeys[role]" class="space-y-2">
@@ -489,6 +529,63 @@ onMounted(() => {
               class="w-4 h-4 animate-spin"
             />
             {{ isSavingKey ? 'Deleting...' : 'Delete Wallet' }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Delete Key Dialog -->
+    <Dialog
+      :open="showDeleteKeyDialog"
+      @update:open="(open: boolean) => !open && closeDeleteKeyDialog()"
+    >
+      <DialogContent class="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2 text-destructive">
+            <Trash2 class="w-5 h-5" />
+            Remove {{ roleToDelete }} Key?
+          </DialogTitle>
+          <DialogDescription>
+            This will remove the {{ roleToDelete }} key from your wallet.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Alert variant="warning" class="my-4">
+          <AlertDescription>
+            Make sure you have a backup of this key before removing it. Once removed, you'll need to add it again to use {{ roleToDelete }} permissions.
+          </AlertDescription>
+        </Alert>
+
+        <div v-if="roleToDelete && rolePublicKeys[roleToDelete]" class="space-y-2">
+          <div class="flex items-center gap-2">
+            <Key class="w-3.5 h-3.5 text-muted-foreground" />
+            <span class="text-xs font-medium text-muted-foreground">Public Key to Remove</span>
+          </div>
+          <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
+            <code class="font-mono text-xs break-all leading-relaxed text-foreground">
+              {{ rolePublicKeys[roleToDelete] }}
+            </code>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            :disabled="isDeletingKey"
+            @click="closeDeleteKeyDialog"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            :disabled="isDeletingKey"
+            @click="handleDeleteKey"
+          >
+            <Loader2
+              v-if="isDeletingKey"
+              class="w-4 h-4 animate-spin"
+            />
+            {{ isDeletingKey ? 'Removing...' : 'Remove Key' }}
           </Button>
         </DialogFooter>
       </DialogContent>

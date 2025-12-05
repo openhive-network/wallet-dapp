@@ -439,7 +439,49 @@ export class GoogleDriveWalletProvider {
     return { publicKey: keyInfo.publicKey };
   }
 
-  // TODO: Add Key removal once it is supported by the wax-signers-external library
+  /**
+   * Remove a key from the wallet
+   * Can remove by role or by public key
+   *
+   * @param accountName - The Hive account name
+   * @param roleOrPublicKey - Either a role (posting, active, owner, memo) or a public key string
+   * @throws Error if not authenticated or key not found
+   */
+  public static async removeKey (accountName: TAccountName, publicKey?: TPublicKey, role?: TRole): Promise<void> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      throw new Error('Not authenticated with Google');
+
+    const wallet = await getWallet();
+
+    if (role !== undefined) {
+      const content = await wallet.loadForHiveKey(accountName, role);
+      const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
+
+      if (!keyInfo)
+        throw new Error(`No key found for ${accountName}@${role}`);
+
+      if (publicKey !== undefined && keyInfo.publicKey !== publicKey)
+        throw new Error(`Public key mismatch for ${accountName}@${role}`);
+
+      await content.removeKey(keyInfo);
+      return;
+    }
+
+    if (publicKey !== undefined) {
+      // Remove by public key - try loading with any available role
+      const rolesToTry: TRole[] = ['posting', 'active', 'owner', 'memo'];
+
+      for (const role of rolesToTry) {
+        try {
+          const content = await wallet.loadForHiveKey(accountName, role);
+          await content.removeKey(publicKey);
+          return;
+        } catch {}
+      }
+
+      throw new Error(`Could not load wallet for account ${accountName} to remove key`);
+    }
+  }
 
   /**
    * Request account name from user via dialog

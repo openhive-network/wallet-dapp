@@ -50,7 +50,9 @@ export function useGoogleDriveWallet () {
     return await GoogleDriveWalletProvider.addKey(accountName, role, privateKey);
   };
 
-  // TODO: Add key removal once it is supported by the wax-signers-external library
+  const removeKey = async (accountName: TAccountName, publicKey?: TPublicKey, role?: TRole): Promise<void> => {
+    return await GoogleDriveWalletProvider.removeKey(accountName, publicKey, role);
+  };
 
   const setEncryptionKey = (keyWif: string): void => {
     GoogleDriveWalletProvider.setEncryptionKey(keyWif);
@@ -88,6 +90,7 @@ export function useGoogleDriveWallet () {
     getPublicKeyForRole,
     logout,
     addKey,
+    removeKey,
     setEncryptionKey,
     getEncryptionKey,
     clearEncryptionKey,
