@@ -15,6 +15,7 @@ import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
+import { generateQrCode } from '@/utils/qr/create-qr';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { isValidUrl } from '@/utils/validators';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
@@ -129,21 +130,14 @@ const isBasicInfoValid = computed(() => {
 // Download operational private key as QR code
 const downloadPrivateKeyQR = async () => {
   try {
-    /* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
-    const qrCode: typeof import('qrcode') = await import('qrcode');
+    // Prepare text
+    const description = `HTM Operational Private key: ${registrationData.value.name}`;
 
-    const qrDataUrl = await qrCode.toDataURL(generatedKeys.value.operationalPrivateKey, {
-      width: 512,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    const blob = await generateQrCode(
+      generatedKeys.value.operationalPrivateKey,
+      description
+    );
 
-    // Convert data URL to blob and download
-    const response = await fetch(qrDataUrl);
-    const blob = await response.blob();
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');
