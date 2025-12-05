@@ -62,10 +62,12 @@ const { keysGenerated, hasConfirmedDownload, autoImport } = inject<HTMRegistrati
             for="auto-import"
             class="text-sm text-blue-800 dark:text-blue-200 cursor-pointer font-semibold"
           >
-            Automatically import freshly created account
+            Store secret keys in this browser
           </Label>
           <p class="text-xs text-blue-700 dark:text-blue-300">
-            When enabled, your new HTM wallet will be created and imported immediately. When disabled, only the account will be registered without creating a local wallet.
+            When enabled, tka application will create a HTM wallet
+            for you and store there your private keys immediately.
+            Otherwise only account will be created.
           </p>
         </div>
       </div>
