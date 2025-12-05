@@ -95,8 +95,10 @@ export class GoogleDriveWalletProvider {
 
   public static async isAuthenticated (): Promise<boolean> {
     try {
-      const response = await $fetch<{ authenticated: boolean }>('/api/google-drive/oauth-status');
-      return response.authenticated;
+      const { getAuthStatus } = useGoogleAuth();
+      const { authenticated } = getAuthStatus();
+
+      return authenticated;
     } catch {
       return false;
     }

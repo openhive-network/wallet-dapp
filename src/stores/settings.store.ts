@@ -5,6 +5,7 @@ import googleDriveLogoUrl from '@/assets/icons/wallets/google-drive.svg';
 import keychainLogoUrl from '@/assets/icons/wallets/keychain.svg';
 import metamaskLogoUrl from '@/assets/icons/wallets/metamask.svg';
 import peakVaultLogoUrl from '@/assets/icons/wallets/peakvault.svg';
+import { toastError } from '@/utils/parse-error';
 
 export enum UsedWallet {
   METAMASK,
@@ -109,7 +110,8 @@ export const useSettingsStore = defineStore('settings', {
     // Google Drive integration
     async checkGoogleAuth () {
       try {
-        const response = await $fetch<{ authenticated: boolean; user: GoogleUser | null }>('/api/auth/google/status');
+        const { getAuthStatus } = useGoogleAuth();
+        const response = getAuthStatus();
         this.isGoogleAuthenticated = response.authenticated;
         this.googleUser = response.user;
       } catch (_error) {
@@ -131,7 +133,7 @@ export const useSettingsStore = defineStore('settings', {
         this.settings.googleDriveSync = false;
         this.saveSettings();
       } catch (error) {
-        console.error('Failed to logout from Google:', error);
+        toastError('Failed to logout from Google', error);
         throw error;
       }
     },
@@ -159,7 +161,7 @@ export const useSettingsStore = defineStore('settings', {
           ? ((error as { data?: { message?: string } }).data?.message || 'Failed to sync to Google Drive')
           : 'Failed to sync to Google Drive';
         this.lastSyncError = errorMessage;
-        console.error('Sync to Google Drive failed:', error);
+        toastError('Sync to Google Drive failed', error);
         throw error;
       } finally {
         this.isSyncing = false;
@@ -200,7 +202,7 @@ export const useSettingsStore = defineStore('settings', {
           ? ((error as { data?: { message?: string } }).data?.message || 'Failed to sync from Google Drive')
           : 'Failed to sync from Google Drive';
         this.lastSyncError = errorMessage;
-        console.error('Sync from Google Drive failed:', error);
+        toastError('Sync from Google Drive failed', error);
         throw error;
       } finally {
         this.isSyncing = false;

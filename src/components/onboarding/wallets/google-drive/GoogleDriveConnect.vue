@@ -164,12 +164,10 @@ async function checkWalletStatus () {
 
     // Fetch Google user info
     try {
-      const statusResponse = await fetch('/api/auth/google/status');
-      if (statusResponse.ok) {
-        const statusData = await statusResponse.json();
-        if (statusData.authenticated && statusData.user)
-          googleUser.value = statusData.user;
-      }
+      const { getAuthStatus } = useGoogleAuth();
+      const statusData = getAuthStatus();
+      if (statusData.authenticated && statusData.user)
+        googleUser.value = statusData.user;
     } catch (_e) {}
 
     // Get saved account name from multiple sources
