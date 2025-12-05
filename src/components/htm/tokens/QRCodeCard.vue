@@ -4,6 +4,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
+import { generateQrCodeDataUrl } from '@/utils/qr/create-qr';
 
 const props = defineProps<{
   assetNum: number | string;
@@ -16,9 +17,6 @@ const tokensStore = useTokensStore();
 const qrCodeDataUrl = ref<string>('');
 
 const userOperationalKey = computed(() => tokensStore.getUserPublicKey());
-
-/* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
-let qrCode: undefined | typeof import('qrcode') = undefined;
 
 const generateQRCode = async () => {
   // Generate QR code even without amount (amount is optional)
@@ -39,16 +37,8 @@ const generateQRCode = async () => {
 
     const url = `${baseUrl}/tokens/pos/send?${params.toString()}`;
 
-    if (!qrCode)
-      qrCode = await import('qrcode');
-
-    const dataUrl = await qrCode.toDataURL(url, {
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
+    const dataUrl = await generateQrCodeDataUrl(url, undefined, {
+      width: 300
     });
     qrCodeDataUrl.value = dataUrl;
     /* eslint-disable-next-line no-console */

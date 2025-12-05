@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog, mdiAccountMultiple, mdiStar } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
