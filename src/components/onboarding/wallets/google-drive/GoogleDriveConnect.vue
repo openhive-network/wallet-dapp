@@ -164,8 +164,7 @@ async function checkWalletStatus () {
 
     // Fetch Google user info
     try {
-      const { getAuthStatus } = useGoogleAuth();
-      const statusData = getAuthStatus();
+      const statusData = await $fetch<{ authenticated: boolean; user?: GoogleUser | null }>('/api/auth/google/status');
       if (statusData.authenticated && statusData.user)
         googleUser.value = statusData.user;
     } catch (_e) {}

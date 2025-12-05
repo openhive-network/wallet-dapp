@@ -58,8 +58,7 @@ export const useWalletStore = defineStore('wallet', {
           if (shouldCheckGoogleDrive) {
             state._lastGoogleDriveCheck = now;
             try {
-              const { getAuthStatus } = useGoogleAuth();
-              const data = getAuthStatus();
+              const data = await $fetch('/api/auth/google/status');
               state._walletsStatus.googleDrive = data.authenticated || false;
             }
             catch {
@@ -82,8 +81,7 @@ export const useWalletStore = defineStore('wallet', {
       // Force recheck by resetting the timer
       this._lastGoogleDriveCheck = 0;
       try {
-        const { getAuthStatus } = useGoogleAuth();
-        const data = getAuthStatus();
+        const data = await $fetch('/api/auth/google/status');
         this._walletsStatus.googleDrive = data.authenticated || false;
       }
       catch {
