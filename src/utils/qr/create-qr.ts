@@ -1,17 +1,39 @@
-export const generateQrCode = async (qrContent: string, description: string): Promise<Blob> => {
-  /* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
-  const qrCode: typeof import('qrcode') = await import('qrcode');
+import type { QRCodeToDataURLOptions } from 'qrcode';
+
+/* eslint-disable-next-line @typescript-eslint/consistent-type-imports */
+let qrCodeModule: Promise<typeof import('qrcode')> | undefined = undefined;
+
+const generateQr = async (
+  returnType: 'blob' | 'dataUrl', qrContent: string, description?: string, qrCodeOptions?: QRCodeToDataURLOptions
+): Promise<Blob | string> => {
+  if (!qrCodeModule)
+
+    qrCodeModule = import('qrcode');
+
+
+  const qrCode = await qrCodeModule;
 
   const qrDataUrl = await qrCode.toDataURL(qrContent, {
     width: 512,
     margin: 2,
+    ...qrCodeOptions,
     color: {
       dark: '#000000',
-      light: '#FFFFFF'
+      light: '#FFFFFF',
+      ...(qrCodeOptions?.color || {})
     }
   });
 
-  // Create canvas to add text at the bottom
+  // If no description, just return the QR code blob without text
+  if (!description) {
+    if (returnType === 'dataUrl')
+      return qrDataUrl;
+
+    const response = await fetch(qrDataUrl);
+    return await response.blob();
+  }
+
+  // Create canvas to add text at the bottom of dynamic size
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('Could not get canvas context');
@@ -61,6 +83,9 @@ export const generateQrCode = async (qrContent: string, description: string): Pr
   ctx.textAlign = 'center';
   ctx.fillText(description, canvas.width / 2, qrImage.height + (textHeight / 2) + (fontSize / 3));
 
+  if (returnType === 'dataUrl')
+    return canvas.toDataURL('image/png');
+
   // Convert canvas to blob and download
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((b) => {
@@ -70,4 +95,16 @@ export const generateQrCode = async (qrContent: string, description: string): Pr
   });
 
   return blob;
+};
+
+export const generateQrCode = async (
+  qrContent: string, description?: string, qrCodeOptions?: QRCodeToDataURLOptions
+): Promise<Blob> => {
+  return generateQr('blob', qrContent, description, qrCodeOptions) as Promise<Blob>;
+};
+
+export const generateQrCodeDataUrl = async (
+  qrContent: string, description?: string, qrCodeOptions?: QRCodeToDataURLOptions
+): Promise<string> => {
+  return generateQr('dataUrl', qrContent, description, qrCodeOptions) as Promise<string>;
 };
