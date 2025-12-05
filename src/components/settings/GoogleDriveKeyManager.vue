@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
 import { useSettingsStore } from '@/stores/settings.store';
+import { toastError } from '@/utils/parse-error';
 
 const googleDrive = useGoogleDriveWallet();
 const settingsStore = useSettingsStore();
@@ -101,8 +102,8 @@ const loadWalletInfo = async () => {
         rolePublicKeys.value = {} as Record<TRole, string>;
       }
     }
-  } catch (_error) {
-    toast.error('Failed to load wallet information. Please try refreshing the page.');
+  } catch (error) {
+    toastError('Failed to load wallet information. Please try refreshing the page.', error);
     isGoogleDriveConnected.value = false;
     hasGoogleDriveWallet.value = false;
   } finally {
@@ -135,7 +136,7 @@ const handleAddKey = async () => {
     await loadWalletInfo();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to add key';
-    toast.error(message);
+    toastError(message, error);
   } finally {
     isSavingKey.value = false;
   }
@@ -175,7 +176,7 @@ const handleDeleteWallet = async () => {
     availableKeyRoles.value = [];
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to delete wallet';
-    toast.error(message);
+    toastError(message, error);
   } finally {
     isSavingKey.value = false;
   }
@@ -204,7 +205,7 @@ const handleDeleteKey = async () => {
     await loadWalletInfo();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to remove key';
-    toast.error(message);
+    toastError(message, error);
   } finally {
     isDeletingKey.value = false;
   }
