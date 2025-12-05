@@ -14,9 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRecoveryPasswordStore } from '@/stores/recovery-password.store';
+import { useRecoveryPasswordDialog } from '@/composables/usePromptDialog';
 
-const recoveryPasswordStore = useRecoveryPasswordStore();
+const recoveryPasswordDialog = useRecoveryPasswordDialog();
 
 const password = ref('');
 const showPassword = ref(false);
@@ -30,7 +30,7 @@ const handleSubmit = () => {
   if (!password.value.trim()) return;
 
   isSubmitting.value = true;
-  recoveryPasswordStore.submitPassword(password.value);
+  recoveryPasswordDialog.submit(password.value);
   password.value = '';
   showPassword.value = false;
   isSubmitting.value = false;
@@ -39,7 +39,7 @@ const handleSubmit = () => {
 const handleCancel = () => {
   password.value = '';
   showPassword.value = false;
-  recoveryPasswordStore.cancel();
+  recoveryPasswordDialog.cancel();
 };
 
 const handleOpenChange = (open: boolean) => {
@@ -55,7 +55,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 <template>
   <Dialog
-    :open="recoveryPasswordStore.isOpen"
+    :open="recoveryPasswordDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
     <DialogContent class="sm:max-w-md">

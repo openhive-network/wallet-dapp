@@ -1,8 +1,7 @@
 import type { TPublicKey, TRole, TAccountName, AEncryptionProvider } from '@hiveio/wax';
 import { createExternalWallet, type IExternalWalletContent, type IExternalWallet, type TStorageEncryptionCredentials } from '@hiveio/wax-signers-external';
 
-import { useAccountNamePromptStore } from '@/stores/account-name-prompt.store';
-import { useRecoveryPasswordStore, PasswordEntryCancelledError } from '@/stores/recovery-password.store';
+import { useAccountNamePromptDialog, useRecoveryPasswordDialog, PasswordEntryCancelledError } from '@/composables/usePromptDialog';
 
 const WALLET_FILE_NAME = 'hivebridge_wallet.json';
 const LOCAL_ENCRYPTION_KEY_STORAGE = 'hivebridge_encryption_key_wif';
@@ -16,8 +15,6 @@ export class RecoveryPasswordRequiredError extends Error {
     this.name = 'RecoveryPasswordRequiredError';
   }
 }
-
-export { AccountNameEntryCancelledError } from '@/stores/account-name-prompt.store';
 
 const tokenProvider = async (): Promise<string> => {
   const response = await $fetch<{ success: boolean; token: string }>('/api/google-drive/token');
@@ -63,8 +60,8 @@ const storagePasswordProvider = async (missingStorageFile: boolean): Promise<TSt
   // No key cached - prompt user via dialog
   if (!missingStorageFile) {
     // Wallet file exists but we don't have the encryption key cached
-    const recoveryPasswordStore = useRecoveryPasswordStore();
-    const password = await recoveryPasswordStore.requestPassword();
+    const recoveryPasswordDialog = useRecoveryPasswordDialog();
+    const password = await recoveryPasswordDialog.request();
 
     // Don't store yet - we'll derive and store the key after wallet is loaded
     return { password };
@@ -491,8 +488,8 @@ export class GoogleDriveWalletProvider {
    * @throws AccountNameEntryCancelledError if user cancels
    */
   public static async requestAccountName (): Promise<string> {
-    const accountNamePromptStore = useAccountNamePromptStore();
-    return await accountNamePromptStore.requestAccountName();
+    const accountNamePromptDialog = useAccountNamePromptDialog();
+    return await accountNamePromptDialog.request();
   }
 }
 

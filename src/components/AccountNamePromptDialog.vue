@@ -13,9 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAccountNamePromptStore } from '@/stores/account-name-prompt.store';
+import { useAccountNamePromptDialog } from '@/composables/usePromptDialog';
 
-const accountNamePromptStore = useAccountNamePromptStore();
+const accountNamePromptDialog = useAccountNamePromptDialog();
 
 const accountName = ref('');
 const isSubmitting = ref(false);
@@ -24,14 +24,14 @@ const handleSubmit = () => {
   if (!accountName.value.trim()) return;
 
   isSubmitting.value = true;
-  accountNamePromptStore.submitAccountName(accountName.value.trim().toLowerCase());
+  accountNamePromptDialog.submit(accountName.value.trim().toLowerCase());
   accountName.value = '';
   isSubmitting.value = false;
 };
 
 const handleCancel = () => {
   accountName.value = '';
-  accountNamePromptStore.cancel();
+  accountNamePromptDialog.cancel();
 };
 
 const handleOpenChange = (open: boolean) => {
@@ -47,7 +47,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 <template>
   <Dialog
-    :open="accountNamePromptStore.isOpen"
+    :open="accountNamePromptDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
     <DialogContent class="sm:max-w-md">

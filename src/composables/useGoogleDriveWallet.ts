@@ -1,7 +1,7 @@
 import type { TAccountName, TPublicKey, TRole } from '@hiveio/wax';
 import type { IExternalWalletContent } from '@hiveio/wax-signers-external';
 
-import { AccountNameEntryCancelledError } from '@/stores/account-name-prompt.store';
+import { AccountNameEntryCancelledError } from '@/composables/usePromptDialog';
 import GoogleDriveWalletProvider, { RecoveryPasswordRequiredError } from '@/utils/wallet/google-drive/provider';
 
 /**

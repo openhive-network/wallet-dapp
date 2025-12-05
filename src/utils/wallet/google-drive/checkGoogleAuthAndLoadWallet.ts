@@ -1,11 +1,11 @@
 import { toast } from 'vue-sonner';
 
-import { PasswordEntryCancelledError } from '@/stores/recovery-password.store';
+import { PasswordEntryCancelledError, AccountNameEntryCancelledError } from '@/composables/usePromptDialog';
 import { useSettingsStore, UsedWallet as UsedWalletEnum } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
-import GoogleDriveWalletProvider, { AccountNameEntryCancelledError } from '@/utils/wallet/google-drive/provider';
+import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
 
 const userStore = useUserStore();
 const settingsStore = useSettingsStore();
