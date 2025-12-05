@@ -93,6 +93,19 @@ deploy_dev_environment:
     url: https://auth.dev.openhive.network
     on_stop: stop_dev_environment
 
+  script:
+    # Avoid performing source ${!DEPLOYMENT_ENV_FILE} to prevent errors on exec. of complex var. values
+    - |
+      # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
+      export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+      ./scripts/run_instance.sh \
+        --image="$IMAGE_NAME" \
+        --name="$CONTAINER_NAME" \
+        --port=$PORT \
+        --env-file="${DEPLOYMENT_ENV_FILE}" \
+        --detach
+  
+
   rules:
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
       when: on_success
