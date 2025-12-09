@@ -87,10 +87,7 @@ export const useSettingsStore = defineStore('settings', {
 
       this.isLoaded = true;
 
-      // Check Google auth status
-      await this.checkGoogleAuth();
-
-      // Auto-sync if enabled
+      // Auto-sync if enabled and authenticated
       if (this.settings.googleDriveSync && this.isGoogleAuthenticated)
         await this.syncFromGoogleDrive();
     },
