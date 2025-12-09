@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax';
 import { mdiClose, mdiEye, mdiEyeOff } from '@mdi/js';
-import { AlertTriangle, Plus } from 'lucide-vue-next';
+import { Plus } from 'lucide-vue-next';
 import { ref, onMounted, computed } from 'vue';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -375,7 +375,6 @@ onMounted(() => {
     <CardContent class="space-y-5">
       <!-- Error display (global) -->
       <Alert v-if="error && !isLoading" variant="destructive">
-        <AlertTriangle class="h-4 w-4" />
         <AlertDescription>{{ error }}</AlertDescription>
       </Alert>
 

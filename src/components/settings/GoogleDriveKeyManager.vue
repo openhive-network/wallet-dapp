@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax';
-import { KeyRound, Plus, Trash2, AlertTriangle, Check, Loader2, Eye, EyeOff, Key } from 'lucide-vue-next';
+import { KeyRound, Plus, Trash2, Check, Loader2, Eye, EyeOff, Key } from 'lucide-vue-next';
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 
@@ -258,7 +258,6 @@ onMounted(() => {
       v-else-if="!isGoogleDriveConnected"
       variant="warning"
     >
-      <AlertTriangle class="w-4 h-4" />
       <AlertTitle>Not Connected</AlertTitle>
       <AlertDescription>
         Google Drive connection lost. Please refresh the page or reconnect your Google account.
@@ -270,7 +269,6 @@ onMounted(() => {
       v-else-if="!hasGoogleDriveWallet"
       variant="info"
     >
-      <AlertTriangle class="w-4 h-4" />
       <AlertTitle>No Wallet Found</AlertTitle>
       <AlertDescription>
         You don't have a Google Drive wallet yet. Create one from the wallet selection screen when logging in.
@@ -497,7 +495,6 @@ onMounted(() => {
           variant="destructive"
           class="my-4"
         >
-          <AlertTriangle class="w-4 h-4" />
           <AlertDescription>
             <strong>Warning:</strong> This action cannot be undone. Make sure you have backups of all your private keys before proceeding.
           </AlertDescription>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { AlertTriangle, Eye, EyeOff, KeyRound, Loader2 } from 'lucide-vue-next';
+import { Eye, EyeOff, KeyRound, Loader2 } from 'lucide-vue-next';
 import { ref } from 'vue';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -102,7 +102,6 @@ const handleKeydown = (event: KeyboardEvent) => {
         </div>
 
         <Alert variant="warning">
-          <AlertTriangle class="w-4 h-4" />
           <AlertDescription>
             <strong>Important:</strong> If you forget this password, your wallet cannot be recovered. There is no password reset option.
           </AlertDescription>
