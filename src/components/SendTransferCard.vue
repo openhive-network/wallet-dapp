@@ -57,11 +57,11 @@ watch(() => form.value.memo, (newValue) => {
     </CardHeader>
     <CardContent class="space-y-4">
       <!-- Display receiver (you) -->
-      <div class="flex items-center gap-3 p-3 bg-muted rounded-lg">
-        <div class="flex-1">
+      <div class="flex items-center gap-3 p-3 bg-muted rounded-lg min-w-0">
+        <div class="flex-1 min-w-0">
           <div class="text-xs text-muted-foreground mb-1">Receiver</div>
           <div class="font-medium">You</div>
-          <div class="text-xs text-muted-foreground font-mono mt-1">
+          <div class="text-xs text-muted-foreground font-mono mt-1 truncate">
             {{ userOperationalKey }}
           </div>
         </div>

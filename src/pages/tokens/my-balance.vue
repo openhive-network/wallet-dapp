@@ -17,6 +17,7 @@ import HTMTokenBalancesTable from '@/components/htm/HTMTokenBalancesTable.vue';
 import TokenTransferCard from '@/components/htm/tokens/TokenTransferCard.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button as CopyButton } from '@/components/ui/copybutton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
@@ -188,11 +189,26 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-6 space-y-6">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4">
+    <!-- Public Key Card -->
+    <Card v-if="tokensStore.wallet" class="bg-muted/30">
+      <CardContent class="py-3 px-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+          <span class="text-sm font-medium text-muted-foreground whitespace-nowrap">Your Public Key:</span>
+          <div class="flex items-center gap-2 min-w-0 flex-1">
+            <code class="text-xs sm:text-sm font-mono truncate flex-1 bg-background/50 px-2 py-1 rounded">
+              {{ tokensStore.getUserPublicKey() }}
+            </code>
+            <CopyButton :value="tokensStore.getUserPublicKey() || ''" class="flex-shrink-0" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
     <!-- Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
           Account Balances
         </h1>
         <p class="text-muted-foreground">
@@ -225,7 +241,7 @@ onMounted(() => {
     </div>
 
     <!-- Summary Cards -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       <NuxtLink
         to="/tokens/list?mytokens=1"
         class="keychainify-checked"

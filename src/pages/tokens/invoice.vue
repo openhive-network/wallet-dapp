@@ -105,13 +105,13 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-2xl">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4 max-w-2xl">
     <!-- Header -->
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <Button
         variant="ghost"
         size="sm"
-        class="gap-2 hover:bg-accent"
+        class="gap-2 hover:bg-accent w-fit"
         @click="goBack"
       >
         <svg
@@ -128,6 +128,20 @@ onMounted(async () => {
         </svg>
         Back
       </Button>
+      <NuxtLink
+        v-if="assetNum"
+        :to="`/tokens/token?asset-num=${assetNum}`"
+        class="keychainify-checked"
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          class="gap-2"
+        >
+          <span class="hidden sm:inline">Back to Token</span>
+          <span class="sm:hidden">Token</span>
+        </Button>
+      </NuxtLink>
     </div>
 
     <!-- Loading State -->
@@ -149,7 +163,7 @@ onMounted(async () => {
     >
       <!-- Invoice Card -->
       <Card class="border-2">
-        <CardContent class="p-8 sm:p-12">
+        <CardContent class="p-4 sm:p-8 md:p-12">
           <div class="space-y-8">
             <!-- Header Section -->
             <div class="text-center border-b pb-6">
@@ -158,7 +172,7 @@ onMounted(async () => {
               </div>
               <div
                 v-if="fromPk"
-                class="text-xs text-muted-foreground font-mono mb-4"
+                class="text-xs text-muted-foreground font-mono mb-4 break-all"
               >
                 {{ fromPk }}
               </div>

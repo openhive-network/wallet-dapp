@@ -91,28 +91,36 @@ const {
       <span v-else>Generate & Download HTM Keys</span>
     </Button>
 
-    <!-- Download QR Code button -->
-    <Button
-      v-if="keysGenerated"
-      type="button"
-      variant="outline"
-      class="w-full"
-      @click="downloadPrivateKeyQR"
-    >
-      <svg
-        width="16"
-        height="16"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        class="mr-2"
+    <!-- Download QR Code button with warning -->
+    <div v-if="keysGenerated" class="space-y-2">
+      <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+        <p class="text-xs text-yellow-800 dark:text-yellow-200">
+          <strong>Warning:</strong> The QR code contains your PRIVATE KEY. Keep it secure and never share it with anyone.
+        </p>
+      </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        class="w-full sm:w-auto"
+        @click="downloadPrivateKeyQR"
       >
-        <path
-          style="fill: currentColor"
-          :d="mdiQrcode"
-        />
-      </svg>
-      Download Operational Key as QR Code
-    </Button>
+        <svg
+          width="16"
+          height="16"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          class="mr-2"
+        >
+          <path
+            style="fill: currentColor"
+            :d="mdiQrcode"
+          />
+        </svg>
+        <span class="hidden sm:inline">Download Operational Key as QR Code</span>
+        <span class="sm:hidden">Download QR Code</span>
+      </Button>
+    </div>
 
     <!-- Show generated public keys (read-only) -->
     <div

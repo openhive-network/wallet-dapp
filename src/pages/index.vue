@@ -13,17 +13,17 @@ const hasUser = computed(() => settingsStore.settings.account !== undefined && u
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-6 lg:p-8">
     <div
       v-if="hasUser"
-      class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4"
+      class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4"
     >
       <AccountDetails />
       <AccountBalanceCard />
     </div>
     <div
       v-else
-      class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-4"
+      class="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-4"
     >
       <ConnectWalletCard />
     </div>

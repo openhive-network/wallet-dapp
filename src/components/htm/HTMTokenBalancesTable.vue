@@ -45,16 +45,16 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
         <table class="w-full">
           <thead class="border-b">
             <tr class="hover:bg-muted/50">
-              <th class="text-left p-4 font-medium text-muted-foreground">
+              <th class="text-left p-3 sm:p-4 font-medium text-muted-foreground">
                 Asset
               </th>
-              <th class="text-right p-4 font-medium text-muted-foreground">
+              <th class="text-right p-3 sm:p-4 font-medium text-muted-foreground">
                 Balances
               </th>
-              <th class="text-right p-4 font-medium text-muted-foreground">
+              <th class="text-right p-3 sm:p-4 font-medium text-muted-foreground">
                 Total
               </th>
-              <th v-if="showActions" class="text-right p-4 font-medium text-muted-foreground">
+              <th v-if="showActions" class="text-right p-3 sm:p-4 font-medium text-muted-foreground">
                 Actions
               </th>
             </tr>
@@ -70,7 +70,7 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
                 class="contents keychainify-checked"
               >
                 <!-- Asset Info -->
-                <td class="p-4">
+                <td class="p-3 sm:p-4">
                   <div class="flex items-center gap-3">
                     <div class="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                       <img
@@ -120,7 +120,7 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
                 </td>
 
                 <!-- Combined Balances -->
-                <td class="p-4 align-middle">
+                <td class="p-3 sm:p-4 align-middle">
                   <div class="ml-auto flex w-full max-w-[260px] flex-col gap-3 text-sm">
                     <div class="flex items-center justify-between gap-3">
                       <span
@@ -194,14 +194,14 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
                 </td>
 
                 <!-- Total Balance -->
-                <td class="p-4 text-right">
+                <td class="p-3 sm:p-4 text-right">
                   <div class="font-semibold tabular-nums">
                     {{ balance.displayTotal }}
                   </div>
                 </td>
 
                 <!-- Actions -->
-                <td v-if="showActions" class="p-4">
+                <td v-if="showActions" class="p-3 sm:p-4">
                   <div class="flex justify-end gap-1">
                     <TextTooltip
                       content="Transfer tokens"

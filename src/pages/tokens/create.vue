@@ -10,7 +10,7 @@ definePageMeta({
 </script>
 
 <template>
-  <div class="container mx-auto p-6 max-w-4xl">
+  <div class="container mx-auto py-4 sm:py-6 px-2 sm:px-4 max-w-4xl">
     <div class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between gap-4">
@@ -38,7 +38,7 @@ definePageMeta({
       </div>
 
       <div class="text-center space-y-2">
-        <h1 class="text-3xl font-bold tracking-tight">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
           Create Custom Token
         </h1>
         <p class="text-muted-foreground">

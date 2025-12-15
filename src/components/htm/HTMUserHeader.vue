@@ -29,13 +29,13 @@ const getAvatarFallback = (user: CTokenUser): string => {
 <template>
   <div class="flex flex-col md:flex-row items-start gap-6">
     <!-- Avatar -->
-    <Avatar class="h-32 w-32 flex-shrink-0 border-4 border-background shadow-xl">
+    <Avatar class="h-20 w-20 sm:h-24 sm:w-24 md:h-32 md:w-32 flex-shrink-0 border-4 border-background shadow-xl">
       <AvatarImage
         v-if="user.profileImage"
         :src="user.profileImage"
         :alt="user.displayName || 'User'"
       />
-      <AvatarFallback class="text-4xl font-bold">
+      <AvatarFallback class="text-2xl sm:text-3xl md:text-4xl font-bold">
         <svg
           v-if="!user.profileImage"
           width="64"
@@ -58,7 +58,7 @@ const getAvatarFallback = (user: CTokenUser): string => {
     <!-- User Info -->
     <div class="flex-1 space-y-4">
       <div>
-        <h1 class="text-4xl font-bold mb-2 text-foreground">
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 text-foreground">
           {{ user.displayName || 'Unknown User' }}
         </h1>
         <p v-if="user.name && user.name !== user.displayName" class="text-lg text-muted-foreground mb-3">

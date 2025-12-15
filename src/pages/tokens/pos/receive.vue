@@ -132,7 +132,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
 </script>
 
 <template>
-  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4 max-w-4xl">
     <!-- Header -->
     <div class="flex items-center justify-between gap-4">
       <NuxtLink v-if="token" :to="`/tokens/token?asset-num=${token!.assetNum}`" class="keychainify-checked">
@@ -184,7 +184,7 @@ watch(() => tokensStore.wallet, async (newWallet, oldWallet) => {
     >
       <!-- Page Title -->
       <div>
-        <h1 class="text-3xl font-bold text-foreground mb-2">
+        <h1 class="text-2xl sm:text-3xl font-bold text-foreground mb-2">
           Generate QR Code
         </h1>
         <p class="text-muted-foreground">

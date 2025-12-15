@@ -5,7 +5,7 @@ import { useRouter } from 'vue-router';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { TextTooltip } from '@/components/ui/texttooltip';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
@@ -23,6 +23,13 @@ const props = defineProps({
 const router = useRouter();
 
 const walletStore = useWalletStore();
+const { isMobile, setOpenMobile } = useSidebar();
+
+// Close mobile sidebar after menu item click
+const handleMenuClick = () => {
+  if (isMobile.value)
+    setOpenMobile(false);
+};
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 
@@ -200,6 +207,7 @@ onMounted(async () => {
               <NuxtLink
                 :to="item.url"
                 class="w-full keychainify-checked"
+                @click="handleMenuClick"
               >
                 <SidebarMenuButton
                   v-if="item.visible === undefined || item.visible?.value"

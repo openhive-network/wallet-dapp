@@ -102,7 +102,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4">
     <!-- Header with back button and favorite toggle -->
     <div class="flex items-center justify-between gap-4">
       <NuxtLink to="/tokens/users/favorites" class="keychainify-checked">

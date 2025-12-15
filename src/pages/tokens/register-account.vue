@@ -31,7 +31,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-12 px-4 max-w-2xl">
+  <div class="container mx-auto py-6 sm:py-12 px-4 max-w-2xl">
     <!-- Show HTM Login Success -->
     <HTMLoginSuccessCard v-if="showLoginSuccess" />
 

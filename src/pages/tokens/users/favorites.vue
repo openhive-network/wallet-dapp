@@ -129,11 +129,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-6 space-y-6">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
           Favorite Accounts
         </h1>
         <p class="text-muted-foreground">

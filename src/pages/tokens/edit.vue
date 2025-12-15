@@ -213,7 +213,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4 max-w-4xl">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4 max-w-4xl">
     <!-- Header -->
     <div class="flex items-center justify-between gap-4">
       <NuxtLink :to="`/tokens/token?asset-num=${assetNum}`" class="keychainify-checked">

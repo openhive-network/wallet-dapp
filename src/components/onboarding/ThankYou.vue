@@ -27,7 +27,7 @@ const close = () => {
 </script>
 
 <template>
-  <Card class="w-[350px]">
+  <Card class="w-full max-w-[350px]">
     <CardHeader>
       <CardTitle class="inline-flex space-x-1">
         Wallet selected!

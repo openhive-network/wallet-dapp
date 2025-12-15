@@ -129,8 +129,8 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
               <div class="flex items-center gap-1">
                 <TooltipProvider>
                   <Tooltip>
-                    <TooltipTrigger>
-                      <CopyButton :value="holder.operationalKey" />
+                    <TooltipTrigger @click.stop.prevent>
+                      <CopyButton :value="holder.operationalKey" @click.stop.prevent />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p>Copy holder address</p>

@@ -210,21 +210,19 @@ const connectToHTM = async () => {
     </CardHeader>
     <CardContent class="space-y-6 flex-1">
       <!-- Transfer form - shown when logged in OR has scanned QR code -->
-      <div
-        class="space-y-5"
-      >
-        <!-- QR Code Signing Section (for non-logged-in users) -->
+      <div class="flex flex-col space-y-5">
+        <!-- QR Code Signing Section (for non-logged-in users) - moves to bottom on mobile -->
         <div
-          class="p-4 border rounded-lg bg-muted/50 space-y-3"
+          class="order-last sm:order-first p-4 border rounded-lg bg-muted/50 space-y-3"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div class="flex items-center gap-2">
               <svg
                 width="20"
                 height="20"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
-                class="text-primary"
+                class="text-primary flex-shrink-0"
               >
                 <path
                   style="fill: currentColor"
@@ -237,6 +235,7 @@ const connectToHTM = async () => {
               v-if="!tempSigner"
               size="sm"
               variant="outline"
+              class="w-full sm:w-auto"
               @click="showQrScanner = true"
             >
               <svg

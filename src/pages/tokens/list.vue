@@ -154,64 +154,69 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="container mx-auto py-6 space-y-6">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">
-          Tokens List
-        </h1>
-        <p class="text-muted-foreground">
-          Browse all registered tokens on Hive Token Machine
-        </p>
-      </div>
+    <div class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
+            Tokens List
+          </h1>
+          <p class="text-muted-foreground text-sm sm:text-base">
+            Browse all registered tokens on Hive Token Machine
+          </p>
+        </div>
 
-      <div class="flex gap-2">
-        <Button
-          variant="outline"
-          :disabled="tokensStore.isLoading"
-          @click="refresh"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            :class="{ 'animate-spin': tokensStore.isLoading }"
-            class="mr-2"
+        <div class="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="tokensStore.isLoading"
+            @click="refresh"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiRefresh"
-            />
-          </svg>
-          Refresh
-        </Button>
-
-        <TextTooltip
-          content="You need to be logged in to create a new token."
-          :ignore="!!settingsStore.account"
-        >
-          <NuxtLink :to="!!settingsStore.account ? '/tokens/create' : ''" class="keychainify-checked">
-            <Button
-              :disabled="!settingsStore.account"
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              :class="{ 'animate-spin': tokensStore.isLoading }"
+              class="sm:mr-2"
             >
-              <svg
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="mr-2"
+              <path
+                style="fill: currentColor"
+                :d="mdiRefresh"
+              />
+            </svg>
+            <span class="hidden sm:inline">Refresh</span>
+          </Button>
+
+          <TextTooltip
+            content="You need to be logged in to create a new token."
+            :ignore="!!settingsStore.account"
+          >
+            <NuxtLink :to="!!settingsStore.account ? '/tokens/create' : ''" class="keychainify-checked">
+              <Button
+                size="sm"
+                :disabled="!settingsStore.account"
               >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiPlus"
-                />
-              </svg>
-              Create Token
-            </Button>
-          </NuxtLink>
-        </TextTooltip>
+                <svg
+                  width="16"
+                  height="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  class="sm:mr-2"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiPlus"
+                  />
+                </svg>
+                <span class="hidden sm:inline">Create Token</span>
+                <span class="sm:hidden">Create</span>
+              </Button>
+            </NuxtLink>
+          </TextTooltip>
+        </div>
       </div>
     </div>
 
@@ -263,7 +268,7 @@ onUnmounted(() => {
     <!-- Loading Skeletons -->
     <div
       v-if="isFirstLoad || tokensStore.isLoading && tokensList.total === 0"
-      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6"
     >
       <Card
         v-for="i in 12"
@@ -294,7 +299,7 @@ onUnmounted(() => {
     <div v-else-if="!tokensStore.isLoading" class="flex flex-col gap-4">
 
       <!-- Tokens Grid -->
-      <div v-if="tokensList.items.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div v-if="tokensList.items.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         <template
           v-for="token in tokensList.items"
           :key="token.liquid?.assetNum || token.vesting?.assetNum"

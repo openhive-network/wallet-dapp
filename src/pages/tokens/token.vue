@@ -124,9 +124,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-4">
+  <div class="container mx-auto py-4 sm:py-6 space-y-6 px-2 sm:px-4">
     <!-- Header with back button -->
-    <div class="flex items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <NuxtLink to="/tokens/list" class="keychainify-checked">
         <Button
           variant="ghost"
@@ -145,12 +145,11 @@ onMounted(async () => {
               d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z"
             />
           </svg>
-          Back to Tokens
+          <span class="hidden xs:inline">Back to Tokens</span>
+          <span class="xs:hidden">Back</span>
         </Button>
       </NuxtLink>
-      <div
-        class="flex gap-3"
-      >
+      <div class="flex flex-wrap gap-2">
         <NuxtLink :to="`/tokens/pos/receive?asset-num=${assetNum}`" class="keychainify-checked">
           <Button
             variant="outline"
@@ -170,29 +169,31 @@ onMounted(async () => {
                 :d="mdiQrcodeScan"
               />
             </svg>
-            Show QR Code
+            <span class="hidden sm:inline">Show QR Code</span>
+            <span class="sm:hidden">QR</span>
           </Button>
         </NuxtLink>
         <NuxtLink v-if="isTokenOwner" :to="`/tokens/edit?asset-num=${assetNum}`" class="keychainify-checked">
-        <Button
-          variant="default"
-          size="sm"
-          class="gap-2"
-        >
-          <svg
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            class="flex-shrink-0"
+          <Button
+            variant="default"
+            size="sm"
+            class="gap-2"
           >
-            <path
-              style="fill: currentColor"
-              :d="mdiPencilOutline"
-            />
-          </svg>
-          Edit Token Definition
-        </Button>
+            <svg
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              class="flex-shrink-0"
+            >
+              <path
+                style="fill: currentColor"
+                :d="mdiPencilOutline"
+              />
+            </svg>
+            <span class="hidden sm:inline">Edit Token</span>
+            <span class="sm:hidden">Edit</span>
+          </Button>
         </NuxtLink>
       </div>
     </div>
@@ -238,7 +239,7 @@ onMounted(async () => {
       />
 
       <!-- Actions Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Transfer Section -->
         <TokenTransferCard
           :token="token"

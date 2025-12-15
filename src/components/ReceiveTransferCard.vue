@@ -255,13 +255,11 @@ onMounted(() => {
       </CardDescription>
     </CardHeader>
     <CardContent class="space-y-4">
-      <!-- QR Code Signing Section (for non-logged-in users) -->
-      <div
-        class="space-y-5"
-      >
-        <!-- QR Code Signing Section (for non-logged-in users) -->
+      <!-- QR Code Signing Section (for non-logged-in users) - moves to bottom on mobile -->
+      <div class="flex flex-col space-y-5">
+        <!-- QR Code Signing Section - order last on mobile -->
         <div
-          class="p-4 border rounded-lg bg-muted/50 space-y-3"
+          class="order-last sm:order-first p-4 border rounded-lg bg-muted/50 space-y-3"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
