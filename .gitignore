@@ -82,3 +82,9 @@ node_modules/
 
 # Claude Code local state
 CLAUDE.md
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+.playwright-artifacts/
+blob-report/

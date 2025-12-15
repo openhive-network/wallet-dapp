@@ -86,7 +86,7 @@ export default withNuxt(
     'vue/no-required-prop-with-default': 'off'
   }
 }).override('nuxt/typescript/rules', {
-  ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**'],
+  ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**', '__tests__/**'],
   rules: {
     // TypeScript rules
     '@typescript-eslint/no-extra-semi': 'off',
@@ -144,5 +144,16 @@ export default withNuxt(
       selector: 'classProperty',
       format: null
     }]
+  }
+},
+
+// Test files - relaxed rules
+{
+  files: ['**/__tests__/**/*.ts', '**/__tests__/**/*.js'],
+  rules: {
+    '@typescript-eslint/explicit-member-accessibility': 'off',
+    '@typescript-eslint/no-unsafe-function-type': 'off',
+    '@typescript-eslint/no-explicit-any': 'off',
+    'no-case-declarations': 'off'
   }
 });
