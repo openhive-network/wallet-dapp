@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '---' && echo 'Branch:' $(git branch --show-current) && echo 'Status:' $(git status --short | wc -l) 'files changed' && echo 'Last commit:' $(git log -1 --oneline)"
+          }
+        ]
+      }
+    ]
+  }
+}
