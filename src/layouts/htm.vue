@@ -101,12 +101,14 @@ const goBack = () => {
     </div>
     <div
       v-if="enableL1Proxy && !hasL1WalletConnected"
-      class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-800 bg-blue-600 px-4 h-11 min-h-[44px] w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center"
+      class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-700/90 bg-blue-500/90 backdrop-blur-sm px-3 py-1.5 w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center gap-1.5"
       @click="walletStore.openWalletSelectModal()"
     >
-      <span class="text-sm sm:text-xs font-semibold text-white/90">
-        You are using L1 proxy account.
+      <Icon name="heroicons:link" class="w-3.5 h-3.5 text-white/80" />
+      <span class="text-xs font-medium text-white/90">
+        Using L1 proxy account
       </span>
+      <span class="text-xs text-white/60">— click to connect wallet</span>
     </div>
   </CommonLayout>
 </template>

@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { mdiArrowDown, mdiStar } from '@mdi/js';
 import { Check, QrCode, Search } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 import QrScanner from '@/components/QrScanner.vue';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useFavoritesStore } from '@/stores/favorites.store';
 import { useTokensStore, type CTokenUser } from '@/stores/tokens.store';
 import { debounce } from '@/utils/debouncers';
 import { toastError } from '@/utils/parse-error';
+
+// Ref for search input focus
+const searchInputRef = ref<HTMLInputElement | null>(null);
 
 interface UserOption {
   operationalKey: string;
@@ -231,19 +233,33 @@ const openQrScanner = () => {
   isOpen.value = false; // Close the popover
   showQrScanner.value = true;
 };
+
+// Focus search input when popover opens
+watch(isOpen, async (open) => {
+  if (open) {
+    await nextTick();
+    // Small delay to ensure popover animation completes on mobile
+    setTimeout(() => {
+      searchInputRef.value?.focus();
+    }, 150);
+  }
+});
 </script>
 
 <template>
-  <div class="border border-input rounded-md flex flex-row items-center">
-    <Popover v-model:open="isOpen">
-      <PopoverTrigger as-child class="border-l-0 border-t-0 border-b-0 border-r rounded-r-none">
+  <!-- Mobile: stacked, Desktop: inline -->
+  <div class="flex flex-col gap-2 sm:gap-0 sm:flex-row">
+    <!-- Selector with border -->
+    <div class="border border-input rounded-md sm:rounded-r-none sm:border-r-0 flex-1 flex items-center">
+      <Popover v-model:open="isOpen">
+        <PopoverTrigger as-child class="flex-1">
         <Button
-          variant="outline"
+          variant="ghost"
           role="combobox"
           :aria-expanded="isOpen"
           :disabled="disabled"
           as-child
-          class="w-full justify-between flex h-9 py-1 cursor-pointer font-normal"
+          class="w-full justify-between flex h-10 sm:h-9 py-1 cursor-pointer font-normal hover:bg-transparent touch-manipulation"
         >
           <div
             v-if="selectedValue"
@@ -296,24 +312,31 @@ const openQrScanner = () => {
           </svg>
         </Button>
       </PopoverTrigger>
-      <PopoverContent class="w-full sm:w-[400px] max-w-[calc(100vw-2rem)] p-0" align="start">
-        <div class="flex items-center border-b px-3 py-2">
+      <PopoverContent class="w-[var(--reka-popover-trigger-width)] p-0" :collision-padding="8">
+        <div class="flex items-center border-b px-3 py-2.5 sm:py-2">
           <Search class="mr-2 h-4 w-4 shrink-0 opacity-50" />
-          <Input
+          <input
+            ref="searchInputRef"
             v-model="searchQuery"
-            placeholder="Search by name, address, or STM public key..."
-            class="h-8 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-          />
+            type="text"
+            placeholder="Search name or STM key..."
+            class="flex-1 h-9 sm:h-8 bg-transparent text-base sm:text-sm outline-none placeholder:text-muted-foreground"
+            inputmode="text"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+            spellcheck="false"
+          >
         </div>
         <div class="max-h-[300px] overflow-y-auto">
           <div v-if="isSearching" class="flex flex-col items-center gap-2 py-8">
             <div class="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
             <span class="text-sm text-muted-foreground">Searching...</span>
           </div>
-          <div v-else-if="filteredUsers.length === 0" class="flex flex-col items-center gap-2 py-8">
+          <div v-else-if="filteredUsers.length === 0" class="flex flex-col items-center gap-2 py-8 px-4">
             <Search class="h-8 w-8 opacity-40 text-muted-foreground" />
-            <span class="text-sm text-muted-foreground">
-              {{ !searchQuery.trim() ? 'Start typing to search users or enter STM public key' : 'No users found' }}
+            <span class="text-sm text-muted-foreground text-center">
+              {{ !searchQuery.trim() ? 'Search users or enter STM key' : 'No users found' }}
             </span>
           </div>
           <div v-else class="p-1">
@@ -325,7 +348,7 @@ const openQrScanner = () => {
               <button
                 v-for="user in filteredUsers.filter(u => u.isFavorite)"
                 :key="user.operationalKey"
-                class="w-full flex items-center gap-3 px-2 py-2 rounded-sm hover:bg-accent transition-colors text-left"
+                class="w-full flex items-center gap-3 px-2 py-3 sm:py-2 rounded-sm hover:bg-accent active:bg-accent/80 transition-colors text-left touch-manipulation"
                 :class="{ 'bg-accent': selectedValue === user.operationalKey }"
                 @click="selectUser(user)"
               >
@@ -377,7 +400,7 @@ const openQrScanner = () => {
               <button
                 v-for="user in filteredUsers.filter(u => !u.isFavorite)"
                 :key="user.operationalKey"
-                class="w-full flex items-center gap-3 px-2 py-2 rounded-sm hover:bg-accent transition-colors text-left"
+                class="w-full flex items-center gap-3 px-2 py-3 sm:py-2 rounded-sm hover:bg-accent active:bg-accent/80 transition-colors text-left touch-manipulation"
                 :class="{ 'bg-accent': selectedValue === user.operationalKey }"
                 @click="selectUser(user)"
               >
@@ -406,16 +429,19 @@ const openQrScanner = () => {
           </div>
         </div>
       </PopoverContent>
-    </Popover>
+      </Popover>
+    </div>
 
-    <Button
-      variant="ghost"
-      size="icon"
-      class="h-11 w-11 rounded-none"
+    <!-- QR Scanner Button: full width on mobile, icon-only on desktop -->
+    <button
+      type="button"
+      class="h-10 sm:h-[38px] px-3 sm:px-2.5 border border-input rounded-md sm:rounded-l-none bg-background flex items-center justify-center gap-2 hover:bg-primary/10 hover:text-primary hover:border-primary active:scale-[0.98] active:bg-primary/10 transition-all touch-manipulation"
+      title="Scan QR code"
       @click="openQrScanner"
     >
-      <QrCode class="h-6 w-6" />
-    </Button>
+      <QrCode class="h-4 w-4" />
+      <span class="text-sm sm:hidden">Scan QR Code</span>
+    </button>
 
     <!-- QR Scanner Component -->
     <QrScanner

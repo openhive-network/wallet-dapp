@@ -102,7 +102,7 @@ const {
         type="button"
         variant="outline"
         size="sm"
-        class="w-full sm:w-auto"
+        class="sm:w-full w-auto"
         @click="downloadPrivateKeyQR"
       >
         <svg
