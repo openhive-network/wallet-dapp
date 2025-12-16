@@ -63,7 +63,7 @@ onMounted(() => {
 
 <template>
   <div class="bg-black/30 backdrop-blur-sm h-full w-full z-50 flex items-center justify-center">
-    <div class="onboarding-container">
+    <div class="max-h-[90dvh] overflow-y-auto overflow-x-hidden">
       <SelectWallet
         v-if="stage_1_select_wallet"
         @close="emit('close')"
@@ -106,11 +106,3 @@ onMounted(() => {
     </div>
   </div>
 </template>
-
-<style scoped>
-.onboarding-container {
-  max-height: 90vh;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-</style>

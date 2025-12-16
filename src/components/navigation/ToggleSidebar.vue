@@ -11,8 +11,8 @@ const { toggleSidebar, open, isMobile } = useSidebar();
   <Button
     v-if="isMobile"
     variant="ghost"
-    size="xs"
-    class="[&_svg]:size-6"
+    size="default"
+    class="min-h-[44px] min-w-[44px] [&_svg]:size-6"
     @click="toggleSidebar"
   >
     <svg

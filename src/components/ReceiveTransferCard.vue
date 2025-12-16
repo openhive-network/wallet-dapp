@@ -389,7 +389,12 @@ onMounted(() => {
           :disabled="isSending || !isFormValid || (!isLoggedIn && !tempSigner)"
           @click="handleSend"
         >
-          {{ isSending ? 'Sending...' : (isLoggedIn || tempSigner ? 'Send Token' : 'Scan QR Code or Log in to Send Token') }}
+          <template v-if="isSending">Sending...</template>
+          <template v-else-if="isLoggedIn || tempSigner">Send Token</template>
+          <template v-else>
+            <span class="sm:hidden">Scan QR</span>
+            <span class="hidden sm:inline">Scan QR Code or Log in to Send Token</span>
+          </template>
         </Button>
 
         <!-- Bank-style confirmation summary shown after a successful transfer -->

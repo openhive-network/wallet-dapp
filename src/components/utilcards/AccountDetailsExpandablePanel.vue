@@ -66,7 +66,7 @@ const showDetailsPanel = ref(false);
                 Account Authorities
               </h4>
             </div>
-            <div class="flex items-center gap-16 text-xs font-medium text-gray-400 ml-2">
+            <div class="flex items-center gap-4 sm:gap-16 text-xs font-medium text-gray-400 ml-2">
               <span>Role</span>
               <span>Public key</span>
             </div>

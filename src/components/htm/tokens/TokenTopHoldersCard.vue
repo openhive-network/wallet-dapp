@@ -95,7 +95,7 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
           v-for="(holder, index) in props.topHolders.slice(0, 10)"
           :key="holder.operationalKey"
           :to="`/tokens/users/${holder.operationalKey}`"
-          class="flex items-center gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors group"
+          class="flex items-center gap-2 sm:gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors group"
         >
           <div class="relative flex-shrink-0">
             <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-bold text-primary border-2 border-primary/20">
@@ -141,7 +141,7 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <button
-                        class="inline-flex items-center justify-center p-1.5 rounded-md transition-colors hover:bg-accent opacity-0 group-hover:opacity-100"
+                        class="inline-flex items-center justify-center p-2 rounded-md transition-colors hover:bg-accent"
                         @click="(e) => toggleFavorite(holder, e)"
                       >
                         <svg

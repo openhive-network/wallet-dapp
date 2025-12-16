@@ -3,7 +3,7 @@ import ConfirmCreateAccountCard from '@/components/utilcards/ConfirmCreateAccoun
 </script>
 
 <template>
-  <div class="flex p-8">
+  <div class="flex p-4 sm:p-8">
     <ConfirmCreateAccountCard />
   </div>
 </template>

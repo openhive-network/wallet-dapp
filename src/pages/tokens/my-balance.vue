@@ -227,14 +227,14 @@ onMounted(() => {
             height="16"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            class="mr-2"
+            class="sm:mr-2"
           >
             <path
               style="fill: currentColor"
               :d="mdiRefresh"
             />
           </svg>
-          Refresh
+          <span class="hidden sm:inline">Refresh</span>
         </Button>
         <AddToGoogleWallet />
       </div>
@@ -373,7 +373,7 @@ onMounted(() => {
           disable-hoverable-content
         >
           <Tooltip>
-            <TooltipTrigger class="max-w-sm w-full">
+            <TooltipTrigger class="w-full sm:max-w-sm">
               <Input
                 v-model="searchQuery"
                 placeholder="Search tokens by symbol, name, or Asset num..."

@@ -296,7 +296,7 @@ const openQrScanner = () => {
           </svg>
         </Button>
       </PopoverTrigger>
-      <PopoverContent class="w-[400px] p-0" align="start">
+      <PopoverContent class="w-full sm:w-[400px] max-w-[calc(100vw-2rem)] p-0" align="start">
         <div class="flex items-center border-b px-3 py-2">
           <Search class="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Input
@@ -411,7 +411,7 @@ const openQrScanner = () => {
     <Button
       variant="ghost"
       size="icon"
-      class="w-10 rounded-none"
+      class="h-11 w-11 rounded-none"
       @click="openQrScanner"
     >
       <QrCode class="h-6 w-6" />

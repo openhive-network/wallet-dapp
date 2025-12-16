@@ -41,7 +41,8 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
 <template>
   <Card>
     <CardContent class="p-0">
-      <div class="overflow-x-auto">
+      <!-- Desktop Table View -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="w-full">
           <thead class="border-b">
             <tr class="hover:bg-muted/50">
@@ -277,6 +278,216 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile Card View -->
+      <div class="md:hidden divide-y">
+        <NuxtLink
+          v-for="balance in balances"
+          :key="balance.liquid.assetNum"
+          :to="`/tokens/token?asset-num=${balance.liquid.assetNum}`"
+          class="block p-4 hover:bg-muted/50 transition-colors keychainify-checked"
+        >
+          <!-- Asset Header -->
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+              <img
+                v-if="balance.liquid.image"
+                :src="balance.liquid.image"
+                :alt="balance.liquid.symbol"
+                class="h-full w-full object-cover"
+              >
+              <span
+                v-else
+                class="text-sm font-medium text-primary"
+              >
+                {{ balance.liquid.symbol?.charAt(0).toUpperCase() || '' }}
+              </span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-semibold">
+                  {{ balance.liquid.name }}
+                </span>
+                <span
+                  v-if="balance.vesting.balance > 0n"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      style="fill: currentColor"
+                      :d="mdiArrowUp"
+                    />
+                  </svg>
+                  STAKED
+                </span>
+              </div>
+              <div class="text-sm text-muted-foreground">
+                {{ balance.liquid.symbol }}
+              </div>
+              <div class="text-xs text-muted-foreground font-mono">
+                {{ balance.liquid.assetNum }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Balances Section -->
+          <div class="space-y-3 mb-4">
+            <div class="flex items-center justify-between gap-3">
+              <span
+                :class="[
+                  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
+                  balance.liquid.balance === 0n
+                    ? 'bg-muted text-muted-foreground border-transparent'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ]"
+              >
+                Liquid
+              </span>
+              <span
+                :class="[
+                  'font-medium tabular-nums',
+                  balance.liquid.balance === 0n ? 'text-muted-foreground' : 'text-foreground'
+                ]"
+              >
+                {{ balance.liquid.displayBalance }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between gap-3">
+              <span
+                :class="[
+                  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold uppercase tracking-wide',
+                  balance.vesting.balance === 0n
+                    ? 'bg-muted text-muted-foreground border-transparent'
+                    : 'bg-sky-50 text-sky-700 border-sky-200'
+                ]"
+              >
+                Staked
+              </span>
+              <span
+                :class="[
+                  'font-medium tabular-nums',
+                  balance.vesting.balance === 0n ? 'text-muted-foreground' : 'text-foreground'
+                ]"
+              >
+                {{ balance.vesting.displayBalance }}
+              </span>
+            </div>
+
+            <template v-if="balance.liquid.balance > 0n || balance.vesting.balance > 0n">
+              <div class="flex h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  class="h-full bg-emerald-500 transition-all"
+                  :style="{ width: `${(balance.liquid.balance * 100n / (balance.liquid.balance + balance.vesting.balance))}%` }"
+                />
+                <div
+                  class="h-full bg-sky-500 transition-all"
+                  :style="{ width: `${(balance.vesting.balance * 100n / (balance.liquid.balance + balance.vesting.balance))}%` }"
+                />
+              </div>
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Distribution</span>
+                <span class="tabular-nums">
+                  {{ (Number((balance.liquid.balance * 10000n / (balance.liquid.balance + balance.vesting.balance))) / 100).toFixed(1) }}% liquid ·
+                  {{ (Number((balance.vesting.balance * 10000n / (balance.liquid.balance + balance.vesting.balance))) / 100).toFixed(1) }}% staked
+                </span>
+              </div>
+            </template>
+
+            <div
+              v-else
+              class="text-xs text-muted-foreground text-right"
+            >
+              No balance yet
+            </div>
+          </div>
+
+          <!-- Total Section -->
+          <div class="flex items-center justify-between py-2 border-t border-b mb-4">
+            <span class="text-sm text-muted-foreground font-medium">Total</span>
+            <span class="font-semibold tabular-nums">
+              {{ balance.displayTotal }}
+            </span>
+          </div>
+
+          <!-- Actions Section -->
+          <div
+            v-if="showActions"
+            class="flex justify-end gap-2"
+          >
+            <TextTooltip content="Transfer tokens">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-10 w-10 sm:h-8 sm:w-8"
+                :disabled="balance.liquid.balance === 0n"
+                @click.prevent="handleTransfer(balance.liquid)"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiSend"
+                  />
+                </svg>
+              </Button>
+            </TextTooltip>
+
+            <TextTooltip content="Stake tokens">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-10 w-10 sm:h-8 sm:w-8"
+                :disabled="balance.liquid.balance === 0n"
+                @click.prevent="handleStake(balance.liquid)"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiArrowUp"
+                  />
+                </svg>
+              </Button>
+            </TextTooltip>
+
+            <TextTooltip content="Unstake tokens">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-10 w-10 sm:h-8 sm:w-8"
+                :disabled="balance.vesting.balance === 0n"
+                @click.prevent="handleUnstake(balance.vesting)"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiArrowDown"
+                  />
+                </svg>
+              </Button>
+            </TextTooltip>
+          </div>
+        </NuxtLink>
       </div>
     </CardContent>
   </Card>

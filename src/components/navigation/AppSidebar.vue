@@ -232,7 +232,7 @@ onMounted(async () => {
                       {{ item.title }}
                       <span
                         v-if="item.badge"
-                        class="ml-[6px] px-1 rounded-md bg-primary/5 text-[11px]/[14px] text-gray-600 border border-primary/20"
+                        class="ml-[6px] px-1 rounded-md bg-primary/5 text-xs sm:text-[11px] leading-[14px] text-gray-600 border border-primary/20"
                       >
                         {{ item.badge }}
                       </span>

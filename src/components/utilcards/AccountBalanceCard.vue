@@ -46,7 +46,7 @@ const totalBalanceUSD = computed(() => {
     <CardContent>
       <div
         v-if="!userStore.isReady || !userStore.balances"
-        class="grid grid-cols-2 gap-x-8 gap-y-6"
+        class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6"
       >
         <div
           v-for="i in 2"
@@ -83,9 +83,9 @@ const totalBalanceUSD = computed(() => {
         v-else-if="userStore.balances"
         class="flex flex-col gap-y-4"
       >
-        <div class="flex items-stretch">
+        <div class="flex flex-col sm:flex-row sm:items-stretch">
           <!-- HIVE Balances -->
-          <div class="flex-1 pr-4">
+          <div class="flex-1 sm:pr-4 pb-4 sm:pb-0">
             <h3 class="text-md font-semibold flex items-center">
               <div class="w-3 h-3 rounded-full bg-primary mr-2" />
               HIVE
@@ -110,10 +110,14 @@ const totalBalanceUSD = computed(() => {
           </div>
           <Separator
             orientation="vertical"
-            class="h-auto"
+            class="hidden sm:block h-auto"
+          />
+          <Separator
+            orientation="horizontal"
+            class="sm:hidden"
           />
           <!-- HBD Balances -->
-          <div class="flex-1 pl-4">
+          <div class="flex-1 sm:pl-4 pt-4 sm:pt-0">
             <h3 class="text-md font-semibold flex items-center">
               <div class="w-3 h-3 rounded-full bg-green-500 mr-2" />
               HBD

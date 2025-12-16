@@ -108,7 +108,7 @@ const authorize = async () => {
   <div>
     <div
       v-if="failed"
-      class="rounded-lg shadow border w-full max-w-[500px] p-8"
+      class="rounded-lg shadow border w-full max-w-[500px] p-4 sm:p-8"
     >
       <Alert variant="destructive">
         <AlertTitle>Error</AlertTitle>
@@ -120,7 +120,7 @@ const authorize = async () => {
     </div>
     <div
       v-else
-      class="rounded-lg shadow border w-full max-w-[500px] p-8"
+      class="rounded-lg shadow border w-full max-w-[500px] p-4 sm:p-8"
     >
       <!-- Header Section -->
       <div class="text-center mb-8">
@@ -141,7 +141,7 @@ const authorize = async () => {
             </div>
 
             <!-- Dashed connecting line -->
-            <div class="mx-0 flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-600 relative w-[100px]">
+            <div class="mx-0 flex-1 border-t-2 border-dashed border-gray-300 dark:border-gray-600 relative w-[60px] sm:w-[100px]">
               <!-- Connection indicator -->
               <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                 <Check class="w-4 h-4 text-white" />

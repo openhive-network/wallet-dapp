@@ -64,9 +64,9 @@ watch([() => props.assetNum, () => props.amount, () => props.memo, userOperation
     <Card>
       <CardContent class="flex flex-col items-center">
         <div v-if="qrCodeDataUrl" class="bg-white p-3 rounded-lg my-3">
-          <img :src="qrCodeDataUrl" alt="QR Code for token transfer" class="w-48 h-48 object-contain">
+          <img :src="qrCodeDataUrl" alt="QR Code for token transfer" class="w-48 h-48 sm:w-56 sm:h-56 object-contain">
         </div>
-        <div v-else class="bg-white p-3 rounded-lg my-3 flex items-center justify-center" style="width:200px; height:200px;">
+        <div v-else class="bg-white p-3 rounded-lg my-3 flex items-center justify-center w-48 h-48 sm:w-56 sm:h-56">
           <p class="text-muted-foreground text-center">Generating QR code...</p>
         </div>
         <p class="text-xs text-muted-foreground text-center max-w-md">

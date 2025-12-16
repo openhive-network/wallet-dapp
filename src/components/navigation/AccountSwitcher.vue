@@ -232,11 +232,11 @@ const otherAccount = computed(() => {
             <Button
               variant="ghost"
               size="icon"
-              class="h-6 w-6 ml-1"
+              class="h-10 w-10 sm:h-6 sm:w-6 ml-1"
               @click="displayedAccount.type === 'hive' ? disconnectFromHive() : disconnectFromHTM()"
             >
               <svg
-                class="w-3 h-3"
+                class="w-4 h-4"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
               >
@@ -263,7 +263,7 @@ const otherAccount = computed(() => {
             <Button
               variant="outline"
               size="icon"
-              class="h-8 w-8 rounded-full"
+              class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"
               @click="switchAccount(otherAccount.type)"
             >
               <svg
@@ -309,7 +309,7 @@ const otherAccount = computed(() => {
             <Button
               variant="outline"
               size="icon"
-              class="h-8 w-8 rounded-full"
+              class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"
               @click="connectToHTM"
             >
               <img
@@ -331,7 +331,7 @@ const otherAccount = computed(() => {
             <Button
               variant="outline"
               size="icon"
-              class="h-8 w-8 rounded-full"
+              class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"
               @click="connectToHive"
             >
               <img

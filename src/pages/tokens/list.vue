@@ -222,27 +222,31 @@ onUnmounted(() => {
 
     <!-- Search -->
     <div class="flex flex-col sm:flex-row gap-4">
-      <div class="max-w-[350px] flex-1 relative">
+      <div class="w-full sm:max-w-[350px] flex-1 relative">
         <Input
           v-model="searchQuery"
           placeholder="Search tokens by symbol, name, or Asset num..."
           class="w-full"
           @input="debouncedSearch(searchQuery)"
         />
-        <svg
+        <button
           v-if="searchQuery.length > 0"
-          width="16"
-          height="16"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer"
+          type="button"
+          class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground cursor-pointer min-w-[44px] min-h-[44px] flex items-center justify-center -mr-3"
           @click="clearSearch"
         >
-          <path
-            style="fill: currentColor"
-            :d="mdiCloseCircle"
-          />
-        </svg>
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiCloseCircle"
+            />
+          </svg>
+        </button>
       </div>
       <div class="inline-flex items-center gap-2">
         <TextTooltip

@@ -12,7 +12,7 @@ const code = computed(() => route.query.code as string);
 </script>
 
 <template>
-  <div class="p-8 flex justify-center">
+  <div class="p-4 sm:p-8 flex justify-center">
     <AuthorizeDappCard
       v-if="typeof app === 'string' && typeof code === 'string'"
       :app="app"

@@ -257,7 +257,7 @@ onMounted(async () => {
 
               <!-- Subtotal -->
               <div class="flex justify-end">
-                <div class="w-64 space-y-2">
+                <div class="w-full sm:w-64 space-y-2">
                   <div class="flex justify-between text-sm">
                     <span class="text-muted-foreground">Sub Total</span>
                     <span class="font-medium">{{ formattedAmount }}</span>

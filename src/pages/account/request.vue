@@ -17,7 +17,7 @@ const isManualMethod = computed(() => method.value === 'regular');
 </script>
 
 <template>
-  <div class="p-8">
+  <div class="p-4 sm:p-8">
     <div class="container mx-auto flex flex-col items-center pt-8">
       <div
         v-if="isWalletMethod || isManualMethod"

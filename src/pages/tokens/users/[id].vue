@@ -138,7 +138,7 @@ onMounted(async () => {
           height="16"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          class="mr-2"
+          class="sm:mr-2"
           :class="{ 'text-yellow-500': isFavorited }"
         >
           <path
@@ -146,7 +146,7 @@ onMounted(async () => {
             :d="isFavorited ? mdiStar : mdiStarOutline"
           />
         </svg>
-        {{ isFavorited ? 'Unfavorite' : 'Add to Favorites' }}
+        <span class="hidden sm:inline">{{ isFavorited ? 'Unfavorite' : 'Add to Favorites' }}</span>
       </Button>
     </div>
 
