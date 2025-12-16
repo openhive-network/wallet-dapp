@@ -113,6 +113,8 @@ export const useWalletStore = defineStore('wallet', {
       this.isWalletSelectModalOpen = false;
     },
     async createWalletFor (settings: Settings, role: TRole) {
+      const isL1ProxyDisabled = !useRuntimeConfig().public.enableL1Proxy;
+
       switch(settings.wallet) {
       case UsedWallet.METAMASK: {
         const metamaskStore = useMetamaskStore();
@@ -120,25 +122,25 @@ export const useWalletStore = defineStore('wallet', {
         await metamaskStore.connect(0, role);
 
         currentWallet.value = metamaskStore.metamask;
-        this.isL2Wallet = false;
+        this.isL2Wallet = isL1ProxyDisabled;
 
         break;
       }
       case UsedWallet.KEYCHAIN: {
         currentWallet.value = KeychainProvider.for(settings.account!, role);
-        this.isL2Wallet = false;
+        this.isL2Wallet = isL1ProxyDisabled;
 
         break;
       }
       case UsedWallet.PEAKVAULT: {
         currentWallet.value = PeakVaultProvider.for(settings.account!, role);
-        this.isL2Wallet = false;
+        this.isL2Wallet = isL1ProxyDisabled;
 
         break;
       }
       case UsedWallet.GOOGLE_DRIVE: {
         currentWallet.value = await GoogleDriveWalletProvider.for(settings.account!, role);
-        this.isL2Wallet = false;
+        this.isL2Wallet = isL1ProxyDisabled;
 
         break;
       }

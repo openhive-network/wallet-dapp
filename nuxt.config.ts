@@ -53,6 +53,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       showHtmInMenu: false,
+      enableL1Proxy: true,
+      htmProxyAccount: 'htm.proxy',
       commitHash: getCommitHash(),
       ctokensApiUrl: 'https://htm.fqdn.pl:10081',
       hiveNodeEndpoint: 'https://api.hive.blog',

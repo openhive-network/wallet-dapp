@@ -16,6 +16,8 @@ const walletStore = useWalletStore();
 const isPublicPage = computed(() => route.meta.isPublicPage ?? false); // Default to false
 const isAuthenticated = computed(() => !!tokensStore.wallet);
 
+const { public: { enableL1Proxy } } = useRuntimeConfig();
+
 const hasL1WalletConnected = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
 
 const showRegistrationForm = ref(false);
@@ -98,7 +100,7 @@ const goBack = () => {
       />
     </div>
     <div
-      v-if="!hasL1WalletConnected"
+      v-if="enableL1Proxy && !hasL1WalletConnected"
       class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-800 bg-blue-600 px-4 h-11 min-h-[44px] w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center"
       @click="walletStore.openWalletSelectModal()"
     >

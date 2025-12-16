@@ -87,7 +87,8 @@ const broadcastHtmOperation = async (
   const hasL1Wallet = typeof settingsStore.settings.account !== 'undefined' && !walletStore.isL2Wallet;
 
   // Set proxy account for HTM transactions
-  HtmTransaction.HiveProxyAccount = hasL1Wallet ? settingsStore.settings.account! : 'htm.proxy'; // TODO: Move this to .env config later
+  const { public: { htmProxyAccount } } = useRuntimeConfig();
+  HtmTransaction.HiveProxyAccount = hasL1Wallet ? settingsStore.settings.account! : htmProxyAccount;
 
   // Create Layer 2 HTM transaction for user signup
   const l2Transaction = new HtmTransaction(wax);
