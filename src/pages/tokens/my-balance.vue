@@ -7,14 +7,17 @@ import {
   mdiPlusCircle,
   mdiWallet,
   mdiImageMultiple,
-  mdiStar
+  mdiStar,
+  mdiQrcodeScan
 } from '@mdi/js';
 import type { htm_operation } from '@mtyszczak-cargo/htm';
 import { onMounted, ref } from 'vue';
+import { toast } from 'vue-sonner';
 
 import { TokenAmountInput } from '@/components/htm/amount';
 import HTMTokenBalancesTable from '@/components/htm/HTMTokenBalancesTable.vue';
 import TokenTransferCard from '@/components/htm/tokens/TokenTransferCard.vue';
+import QrScanner from '@/components/QrScanner.vue';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button as CopyButton } from '@/components/ui/copybutton';
@@ -60,6 +63,61 @@ const nftCollectionsCount = ref(0);
 const stakedTokensCount = ref(0);
 
 const fetchedBalances = ref<TokenStoreApiResponse<CTokenPairBalanceDefinition> | null>(null);
+
+// QR Scanner state
+const showQrScanner = ref(false);
+
+// Handle QR code scan - detect URL or private key
+const handleQrScan = async (scannedContent: string) => {
+  try {
+    // Check if it's a URL (transfer QR code)
+    if (scannedContent.startsWith('http://') || scannedContent.startsWith('https://')) {
+      const url = new URL(scannedContent);
+      const currentOrigin = window.location.origin;
+
+      // Check if URL is from our application
+      if (url.origin === currentOrigin) {
+        // Navigate to the path with query parameters
+        const targetPath = url.pathname + url.search;
+        toast.success('QR code scanned successfully', {
+          description: 'Redirecting to the scanned page...'
+        });
+        await navigateTo(targetPath);
+      } else {
+        // External URL - show warning and navigate
+        toast.info('External link detected', {
+          description: 'Opening external page...'
+        });
+        window.open(scannedContent, '_blank');
+      }
+      return;
+    }
+
+    // Check if it's a relative path from our app (e.g., /tokens/pos/send?...)
+    if (scannedContent.startsWith('/')) {
+      toast.success('QR code scanned successfully', {
+        description: 'Redirecting to the scanned page...'
+      });
+      await navigateTo(scannedContent);
+      return;
+    }
+
+    // Check if it might be a private key (starts with 5 and is ~51 chars for WIF format)
+    if (scannedContent.startsWith('5') && scannedContent.length >= 50 && scannedContent.length <= 52) {
+      toast.info('Private key detected', {
+        description: 'Navigate to a token page to use this key for signing transactions.'
+      });
+      return;
+    }
+
+    // Unknown content
+    toast.warning('Unknown QR code format', {
+      description: 'The scanned QR code could not be recognized as a valid transfer link or private key.'
+    });
+  } catch (error) {
+    toastError('Failed to process QR code', error);
+  }
+};
 
 // Helper function to format count with >100, >60 etc
 const formatCount = (count: number): string => {
@@ -217,6 +275,24 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-2">
+        <Button
+          variant="outline"
+          @click="showQrScanner = true"
+        >
+          <svg
+            width="16"
+            height="16"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="sm:mr-2"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiQrcodeScan"
+            />
+          </svg>
+          <span class="hidden sm:inline">Scan QR</span>
+        </Button>
         <Button
           variant="outline"
           :disabled="isLoading"
@@ -623,5 +699,11 @@ onMounted(() => {
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- QR Scanner Modal -->
+    <QrScanner
+      v-model="showQrScanner"
+      @scan="handleQrScan"
+    />
   </div>
 </template>
