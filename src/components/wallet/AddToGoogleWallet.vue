@@ -6,6 +6,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { toastError } from '@/utils/parse-error';
 
 const tokensStore = useTokensStore();
+const runtimeConfig = useRuntimeConfig();
 
 // Google Wallet integration
 const googleWalletLoading = ref(false);
@@ -15,9 +16,10 @@ const addToGoogleWallet = async () => {
 
   try {
     const { operationalKey, name } = await tokensStore.getCurrentUserMetadata();
-    const baseUrl = window.location.origin;
+    const baseUrl = runtimeConfig.public.appUrl;
     const data = await $fetch<{ url?: string; error?: boolean; message?: string }>('/api/google-wallet', {
       method: 'POST',
+      baseURL: baseUrl,
       body: {
         operationalPublicKey: operationalKey,
         displayName: name || 'User',
