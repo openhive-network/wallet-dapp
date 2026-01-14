@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { LogIn } from 'lucide-vue-next';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 
 import GoogleDriveKeyManager from '@/components/settings/GoogleDriveKeyManager.vue';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 const settingsStore = useSettingsStore();
 const isInitializing = ref(true);
 const isGoogleDriveConnected = ref(false);
+const googleDriveKeyManagerRef = ref<InstanceType<typeof GoogleDriveKeyManager> | null>(null);
 
 const checkGoogleDriveConnection = async () => {
   isInitializing.value = true;
@@ -28,13 +29,47 @@ const handleConnectGoogleDrive = () => {
   settingsStore.loginWithGoogle('/settings');
 };
 
+/**
+ * Handle OAuth callback - called when user returns from Google auth
+ * Cleans up URL and triggers wallet info reload
+ */
+const handleOAuthCallback = async () => {
+  // Check if we just returned from Google OAuth
+  const urlParams = new URLSearchParams(window.location.search);
+  const authStatus = urlParams.get('auth');
+
+  if (authStatus === 'success') {
+    // Remove the auth parameter from URL to prevent re-processing on refresh
+    const newUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, newUrl);
+
+    // Refresh auth state and wait for component to be ready
+    await checkGoogleDriveConnection();
+
+    // If now connected, trigger wallet info reload in child component
+    if (isGoogleDriveConnected.value) {
+      await nextTick();
+      googleDriveKeyManagerRef.value?.reloadWalletInfo();
+    }
+  } else {
+    // Normal page load - just check connection
+    await checkGoogleDriveConnection();
+  }
+};
+
 onMounted(() => {
-  checkGoogleDriveConnection();
+  handleOAuthCallback();
 });
 
 // Watch for changes in authentication status (e.g., when user logs out from AccountSwitcher)
-watch(() => settingsStore.isGoogleAuthenticated, (newValue) => {
+watch(() => settingsStore.isGoogleAuthenticated, async (newValue, oldValue) => {
   isGoogleDriveConnected.value = newValue;
+
+  // If auth state changed from false to true, reload wallet info
+  if (newValue && !oldValue) {
+    await nextTick();
+    googleDriveKeyManagerRef.value?.reloadWalletInfo();
+  }
 });
 </script>
 
@@ -102,7 +137,7 @@ watch(() => settingsStore.isGoogleAuthenticated, (newValue) => {
 
     <!-- Connected - show settings -->
     <div v-else>
-      <GoogleDriveKeyManager />
+      <GoogleDriveKeyManager ref="googleDriveKeyManagerRef" />
     </div>
   </div>
 </template>

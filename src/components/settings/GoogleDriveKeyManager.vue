@@ -4,6 +4,7 @@ import { KeyRound, Plus, Trash2, Check, Loader2, Eye, EyeOff, Key } from 'lucide
 import { ref, onMounted, computed } from 'vue';
 import { toast } from 'vue-sonner';
 
+import GoogleDriveConnect from '@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,6 +37,7 @@ const rolePublicKeys = ref<Record<TRole, string>>({} as Record<TRole, string>);
 const showAddDialog = ref(false);
 const showDeleteWalletDialog = ref(false);
 const showDeleteKeyDialog = ref(false);
+const showCreateWalletDialog = ref(false);
 const roleToAdd = ref<TRole | null>(null);
 const roleToDelete = ref<TRole | null>(null);
 const newPrivateKey = ref('');
@@ -64,43 +66,80 @@ const roleColors: Record<TRole, string> = {
   memo: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
 };
 
+/**
+ * Check if wallet file exists on Google Drive (without loading it)
+ * This is a quick check that doesn't require password/decryption
+ */
+const checkWalletFileExists = async (): Promise<boolean> => {
+  try {
+    const response = await $fetch<{ exists: boolean }>('/api/google-drive/check-wallet-file');
+    return response.exists;
+  } catch {
+    return false;
+  }
+};
+
 // Load wallet info
 const loadWalletInfo = async () => {
   isLoadingWalletInfo.value = true;
   try {
     isGoogleDriveConnected.value = await googleDrive.checkAuth();
 
-    if (isGoogleDriveConnected.value) {
-      const savedAccountName = settingsStore.settings.account;
-      if (!savedAccountName) {
-        hasGoogleDriveWallet.value = false;
-        return;
-      }
+    if (!isGoogleDriveConnected.value) {
+      hasGoogleDriveWallet.value = false;
+      return;
+    }
 
-      // First check if wallet exists by trying to load any role
-      const info = await googleDrive.getWalletInfo(savedAccountName, 'posting');
-      hasGoogleDriveWallet.value = info.exists;
-      hiveAccountName.value = info.accountName;
+    // First do a quick check if wallet file exists on Drive
+    const walletFileExists = await checkWalletFileExists();
 
-      if (hasGoogleDriveWallet.value) {
-        // Get all configured roles by probing each one individually
-        availableKeyRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
+    if (!walletFileExists) {
+      // No wallet file on Google Drive - show UI with button to create wallet
+      hasGoogleDriveWallet.value = false;
+      hiveAccountName.value = undefined;
+      availableKeyRoles.value = [];
+      rolePublicKeys.value = {} as Record<TRole, string>;
+      return;
+    }
 
-        // Get public keys for each configured role
-        const publicKeysMap: Record<TRole, string> = {} as Record<TRole, string>;
-        for (const role of availableKeyRoles.value) {
-          try {
-            const keyInfo = await googleDrive.getPublicKeyForRole(savedAccountName, role);
-            if (keyInfo?.publicKey)
-              publicKeysMap[role] = keyInfo.publicKey;
-          } catch (_error) {}
-        }
-        rolePublicKeys.value = publicKeysMap;
+    // Wallet file exists - now check account name
+    const savedAccountName = settingsStore.settings.account;
+    if (!savedAccountName) {
+      // File exists but no account name saved - still show key management UI
+      // User can add keys which will prompt for account name
+      hasGoogleDriveWallet.value = true;
+      hiveAccountName.value = undefined;
+      availableKeyRoles.value = [];
+      rolePublicKeys.value = {} as Record<TRole, string>;
+      return;
+    }
+
+    hiveAccountName.value = savedAccountName;
+
+    // Try to load wallet info for the saved account
+    const info = await googleDrive.getWalletInfo(savedAccountName, 'posting');
+    hasGoogleDriveWallet.value = true; // File exists, so wallet exists
+
+    if (info.exists) {
+      // Get all configured roles by probing each one individually
+      availableKeyRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
+
+      // Get public keys for each configured role
+      const publicKeysMap: Record<TRole, string> = {} as Record<TRole, string>;
+      for (const role of availableKeyRoles.value) {
+        try {
+          const keyInfo = await googleDrive.getPublicKeyForRole(savedAccountName, role);
+          if (keyInfo?.publicKey)
+            publicKeysMap[role] = keyInfo.publicKey;
+        } catch (_error) {}
       }
-      else {
-        availableKeyRoles.value = [];
-        rolePublicKeys.value = {} as Record<TRole, string>;
-      }
+      rolePublicKeys.value = publicKeysMap;
+    }
+    else {
+      // Wallet file exists but no keys for this account - still show key management UI
+      // so user can add keys
+      availableKeyRoles.value = [];
+      rolePublicKeys.value = {} as Record<TRole, string>;
     }
   } catch (error) {
     toastError('Failed to load wallet information. Please try refreshing the page.', error);
@@ -110,6 +149,36 @@ const loadWalletInfo = async () => {
     isLoadingWalletInfo.value = false;
   }
 };
+
+/**
+ * Public method to reload wallet info - called from parent component after OAuth
+ */
+const reloadWalletInfo = () => {
+  loadWalletInfo();
+};
+
+/**
+ * Handle wallet created from GoogleDriveConnect dialog
+ */
+const handleWalletCreated = async (accountName: string) => {
+  showCreateWalletDialog.value = false;
+  settingsStore.settings.account = accountName;
+  settingsStore.saveSettings();
+  toast.success(`Wallet created for @${accountName}`);
+  await loadWalletInfo();
+};
+
+/**
+ * Handle close of create wallet dialog
+ */
+const handleCreateDialogClose = () => {
+  showCreateWalletDialog.value = false;
+};
+
+// Expose methods for parent component
+defineExpose({
+  reloadWalletInfo
+});
 
 // Add key dialog
 const openAddDialog = (role: TRole) => {
@@ -264,16 +333,22 @@ onMounted(() => {
       </AlertDescription>
     </Alert>
 
-    <!-- No wallet -->
-    <Alert
-      v-else-if="!hasGoogleDriveWallet"
-      variant="info"
-    >
-      <AlertTitle>No Wallet Found</AlertTitle>
-      <AlertDescription>
-        You don't have a Google Drive wallet yet. Create one from the wallet selection screen when logging in.
-      </AlertDescription>
-    </Alert>
+    <!-- No wallet - show friendly prompt to create -->
+    <div v-else-if="!hasGoogleDriveWallet" class="flex flex-col items-center justify-center py-8 text-center">
+      <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+        <KeyRound class="w-8 h-8 text-primary" />
+      </div>
+      <h4 class="text-lg font-semibold mb-2">
+        No Wallet File Found
+      </h4>
+      <p class="text-sm text-muted-foreground max-w-sm mb-6">
+        Create a new encrypted wallet on your Google Drive to securely store and manage your Hive private keys.
+      </p>
+      <Button size="lg" @click="showCreateWalletDialog = true">
+        <Plus class="w-4 h-4 mr-2" />
+        Create Wallet
+      </Button>
+    </div>
 
     <!-- Wallet exists - show key management -->
     <template v-else>
@@ -586,6 +661,20 @@ onMounted(() => {
             {{ isDeletingKey ? 'Removing...' : 'Remove Key' }}
           </Button>
         </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Create Wallet Dialog -->
+    <Dialog
+      :open="showCreateWalletDialog"
+      @update:open="(open: boolean) => !open && handleCreateDialogClose()"
+    >
+      <DialogContent class="sm:max-w-[500px] p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
+        <GoogleDriveConnect
+          :account-name="hiveAccountName"
+          @setaccount="handleWalletCreated"
+          @close="handleCreateDialogClose"
+        />
       </DialogContent>
     </Dialog>
   </div>

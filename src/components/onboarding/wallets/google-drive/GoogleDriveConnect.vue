@@ -17,6 +17,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
+import { getWax } from '@/stores/wax.store';
 import { GoogleDriveWalletProvider as GoogleDriveProvider } from '@/utils/wallet/google-drive/provider';
 
 interface Props {
@@ -266,6 +267,18 @@ async function createWallet () {
 
     if (!passwordsMatch.value)
       throw new Error('Recovery passwords do not match');
+
+    // Validate all private keys format BEFORE creating wallet file
+    // Use wax.calculatePublicKey which throws an error for invalid WIF keys
+    const wax = await getWax();
+    for (const keyData of keysToAdd) {
+      const trimmedKey = keyData.privateKey.trim();
+      try {
+        wax.calculatePublicKey(trimmedKey);
+      } catch {
+        throw new Error(`Invalid ${keyData.role} private key format. Please provide a valid Hive WIF private key.`);
+      }
+    }
 
     const accountName = form.value.accountName;
 
