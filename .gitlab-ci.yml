@@ -58,6 +58,17 @@ build:
     reports:
       dotenv: app_docker_image_name.env
 
+.deploy_instance_script: &deploy_instance_script
+  - |
+    # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
+    export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+    ./scripts/run_instance.sh \
+      --image="$IMAGE_NAME" \
+      --name="$CONTAINER_NAME" \
+      --port=$PORT \
+      --env-file="${DEPLOYMENT_ENV_FILE}" \
+      --detach
+
 build_app_image:
   extends: .build_app_image_base
 
@@ -93,21 +104,10 @@ deploy_dev_environment:
     url: https://auth.dev.openhive.network
     on_stop: stop_dev_environment
 
-  script:
-    # Avoid performing source ${!DEPLOYMENT_ENV_FILE} to prevent errors on exec. of complex var. values
-    - |
-      # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
-      export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
-      ./scripts/run_instance.sh \
-        --image="$IMAGE_NAME" \
-        --name="$CONTAINER_NAME" \
-        --port=$PORT \
-        --env-file="${DEPLOYMENT_ENV_FILE}" \
-        --detach
-  
+  script: *deploy_instance_script
 
   rules:
-    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
       when: on_success
     - when: never
 
@@ -143,7 +143,7 @@ stop_dev_environment:
     on_stop: stop_htm_environment
 
   rules:
-    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
       #when: manual
       #allow_failure: true
       when: never # temp. disabled until app will be ready
@@ -202,7 +202,7 @@ deploy_prototyping_environment:
         --detach
 
   rules:
-    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH && $CI_COMMIT_REF_PROTECTED == "true"'
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
       when: manual
       allow_failure: true
     - when: never
@@ -238,8 +238,10 @@ deploy_prod_environment:
     url: https://auth.openhive.network
     on_stop: stop_prod_environment
 
+  script: *deploy_instance_script
+
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
     - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
       when: on_success
@@ -254,7 +256,7 @@ stop_prod_environment:
   variables:
     CONTAINER_NAME: hive_bridge_prod_deployment
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
       allow_failure: true
     - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
