@@ -252,6 +252,18 @@ onMounted(async () => {
         <TextTooltip side="right">{{ metamaskVersion }}</TextTooltip>
         <TextTooltip side="right">Commit Hash: {{ commitHash.substring(0, 7) }}</TextTooltip>
         <TextTooltip side="right">Chain ID: {{ chainId }}</TextTooltip>
+        <Separator class="my-2 w-3/4 mx-auto" />
+        <a
+          href="https://blog.openhive.network/privacy.html"
+          target="_blank"
+          class="hover:underline"
+        >Privacy Policy</a>
+        <span class="mx-2">·</span>
+        <a
+          href="https://blog.openhive.network/tos.html"
+          target="_blank"
+          class="hover:underline"
+        >Terms of Service</a>
       </sub>
     </SidebarFooter>
   </Sidebar>
