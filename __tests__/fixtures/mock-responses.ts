@@ -190,6 +190,51 @@ export const mockGoogleDriveWalletFileNotExists = {
 // HTM/CTokens API Mock Responses
 // ===========================================
 
+/**
+ * API format tokens matching CtokensAppToken interface
+ * @see src/utils/wallet/ctokens/api/index.d.ts
+ */
+export const mockCTokensTokenApi = {
+  asset_num: 100000001,
+  nai: '@@100000001',
+  owner: 'STM8GC13uCZbP44HzMLV6zPZGwVQ8Nt4Kji8PapsPiNq1BK153XTX',
+  precision: 8,
+  total_supply: '100000000000000',
+  max_supply: '1000000000000000',
+  capped: true,
+  others_can_stake: true,
+  others_can_unstake: true,
+  is_nft: false,
+  metadata: {
+    name: 'Test Token',
+    symbol: 'TEST',
+    description: 'A test token for E2E testing',
+    website: 'https://test-token.example.com',
+    image: 'https://test-token.example.com/logo.png',
+    type: 0
+  }
+};
+
+export const mockCTokensVestingTokenApi = {
+  asset_num: 100000002,
+  nai: '@@100000002',
+  owner: 'STM8GC13uCZbP44HzMLV6zPZGwVQ8Nt4Kji8PapsPiNq1BK153XTX',
+  precision: 8,
+  total_supply: '100000000000000',
+  max_supply: '1000000000000000',
+  capped: true,
+  others_can_stake: true,
+  others_can_unstake: true,
+  is_nft: false,
+  metadata: {
+    name: 'Test Token (Staked)',
+    symbol: 'TEST.STAKED',
+    description: 'Staked version of Test Token',
+    type: 0
+  }
+};
+
+// Display format (used in tests)
 export const mockCTokensToken = {
   nai: '@@100000001',
   assetNum: 100000001,
@@ -222,10 +267,40 @@ export const mockCTokensVestingToken = {
   })
 };
 
+/**
+ * API format balance matching CtokensAppBalance interface
+ */
+export const mockCTokensBalanceApi = {
+  asset_num: 100000001,
+  nai: '@@100000001',
+  amount: '1000000000000', // 10000.00000000 TEST
+  precision: 8,
+  metadata: {
+    name: 'Test Token',
+    symbol: 'TEST'
+  }
+};
+
+/**
+ * API format user matching CtokensAppUser interface
+ */
+export const mockCTokensUserApi = {
+  management_key: 'STM8GC13uCZbP44HzMLV6zPZGwVQ8Nt4Kji8PapsPiNq1BK153XTX',
+  operational_key: 'STM8GC13uCZbP44HzMLV6zPZGwVQ8Nt4Kji8PapsPiNq1BK153XTX',
+  hive_account: 'testuser',
+  metadata: {
+    name: 'Test User',
+    about: 'A test HTM user',
+    profileImage: 'https://example.com/avatar.png',
+    website: 'https://example.com'
+  }
+};
+
+// Legacy format (for backwards compatibility with existing tests)
 export const mockCTokensBalance = {
   account: 'testuser',
   nai: '@@100000001',
-  balance: '1000000000000' // 10000.00000000 TEST
+  balance: '1000000000000'
 };
 
 export const mockCTokensUser = {
@@ -239,6 +314,49 @@ export const mockCTokensUser = {
   })
 };
 
+/**
+ * API response matching CtokensAppRegisteredTokensResponse
+ * This is what the WAX library expects from the tokens endpoint
+ */
+export const mockCTokensTokensApiResponse = {
+  total_items: 1,
+  total_pages: 1,
+  items: [
+    {
+      liquid: mockCTokensTokenApi,
+      vesting: mockCTokensVestingTokenApi
+    }
+  ]
+};
+
+/**
+ * API response matching CtokensAppAccountBalancesResponse
+ */
+export const mockCTokensBalancesApiResponse = {
+  total_items: 1,
+  total_pages: 1,
+  items: [
+    {
+      is_nft: false,
+      liquid: mockCTokensBalanceApi,
+      vesting: null
+    }
+  ]
+};
+
+// Legacy format kept for backwards compatibility
+export const mockCTokensTokenListApiFormat = {
+  items: [
+    {
+      liquid: mockCTokensTokenApi,
+      vesting: mockCTokensVestingTokenApi
+    }
+  ],
+  total_items: 1,
+  total_pages: 1
+};
+
+// Legacy format (for backwards compatibility)
 export const mockCTokensTokenList = {
   items: [mockCTokensToken, mockCTokensVestingToken],
   total: 2,

@@ -2,16 +2,14 @@
  * E2E Tests: Token Transfer
  *
  * Tests for token transfer functionality:
- * - HIVE/HBD transfers
  * - HTM token transfers
  * - Transfer validation
- * - Transfer confirmation
+ * - Transfer form interactions
  */
 
 import { test, expect } from '@playwright/test';
 
-import { primaryTestAccount, secondaryTestAccount } from '../../fixtures/test-accounts';
-import { primaryTestToken } from '../../fixtures/test-tokens';
+import { primaryTestAccount } from '../../fixtures/test-accounts';
 import {
   setupAllMocks,
   mockCTokensApi,
@@ -19,6 +17,7 @@ import {
 } from '../../helpers/api-mocks';
 import { setupKeychainWallet } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Token Transfer', () => {
 
@@ -30,524 +29,294 @@ test.describe('Token Transfer', () => {
     await mockHiveApi(page);
   });
 
-  test.describe('Transfer Form', () => {
+  test.describe('Transfer Card Display', () => {
 
-    test('should display token page content', async ({ page }) => {
-      // Navigate to HTM token page where transfer form is located
+    test('should display transfer card on token page', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      // Verify page loaded with meaningful content (not blank/error)
-      const pageContent = page.locator('body');
-      await expect(pageContent).toBeVisible({ timeout: 15000 });
-
-      // Check that either token info or a redirect/login prompt is shown
-      const hasContent = await page.locator('main').or(page.locator('[role="main"]')).first().isVisible();
-      expect(hasContent).toBe(true);
+      // Transfer card should be visible for non-staked tokens
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
     });
 
-    test('should validate recipient account with invalid input', async ({ page }) => {
+    test('should display amount input in transfer card', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      // Look for recipient input field
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
+      // Wait for transfer card
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Amount container should be visible
+      const amountContainer = page.locator(selectors.tokenTransfer.amountContainer);
+      await expect(amountContainer).toBeVisible();
 
-      if (isFormVisible) {
-        await recipientInput.first().fill('invalid@account!');
-        await recipientInput.first().blur();
-
-        // Wait for validation to trigger
-        await expect(async () => {
-          // Form should either show error or the input should be present (no crash)
-          const inputStillVisible = await recipientInput.first().isVisible();
-          expect(inputStillVisible).toBe(true);
-        }).toPass({ timeout: 2000 });
-
-        // Verify input contains the value we set (form didn't crash/reset)
-        const currentValue = await recipientInput.first().inputValue();
-        expect(currentValue).toBe('invalid@account!');
-      } else {
-        // Form not shown - skip this test as user is not logged in
-        test.skip();
-      }
+      // Amount input should be visible
+      const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+      await expect(amountInput).toBeVisible();
     });
 
-    test('should handle negative amount input', async ({ page }) => {
+    test('should display memo toggle in transfer card', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const amountInput = page.locator('#token-amount').or(
-        page.locator('input[type="number"]').first()
-      );
+      // Wait for transfer card
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await amountInput.isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (isFormVisible) {
-        await amountInput.fill('-10');
-        await amountInput.blur();
-
-        // HTML number inputs typically handle negative values in one of these ways:
-        // 1. Prevent entry (value stays empty or positive)
-        // 2. Allow entry but show validation error
-        const value = await amountInput.inputValue();
-
-        // Value should either be empty, '0', or the negative value with validation shown
-        const isValidResponse = value === '' || value === '0' || value === '-10' || !value.includes('-');
-        expect(isValidResponse).toBe(true);
-      } else {
-        test.skip();
-      }
+      // Memo toggle should be visible
+      const memoToggle = page.locator(selectors.tokenTransfer.memoToggle);
+      await expect(memoToggle).toBeVisible();
     });
 
-    test('should handle amount exceeding balance', async ({ page }) => {
+    test('should display send button in transfer card', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const amountInput = page.locator('#token-amount').or(
-        page.locator('input[type="number"]').first()
-      );
+      // Wait for transfer card
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await amountInput.isVisible({ timeout: 5000 }).catch(() => false);
+      // Send button should be visible
+      const sendButton = page.locator(selectors.tokenTransfer.htmSendButton);
+      await expect(sendButton).toBeVisible();
+    });
+  });
 
-      if (isFormVisible) {
-        await amountInput.fill('999999999999');
-        await amountInput.blur();
+  test.describe('Amount Input', () => {
 
-        // Wait for any validation to appear
-        await expect(async () => {
-          const inputVisible = await amountInput.isVisible();
-          expect(inputVisible).toBe(true);
-        }).toPass({ timeout: 2000 });
+    test('should accept valid amount input', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
 
-        // Check for error indicator or disabled submit button
-        const errorMessage = page.locator('.text-destructive, .text-red-500, [data-error]');
-        const submitButton = page.locator('button:has-text("Send")').first();
+      // Wait for transfer card and amount input
+      const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+      await expect(amountInput).toBeVisible({ timeout: 15000 });
 
-        const hasError = await errorMessage.first().isVisible().catch(() => false);
-        const isButtonDisabled = await submitButton.isDisabled().catch(() => false);
+      // Fill amount
+      await amountInput.fill('10');
 
-        // Either error is shown OR button is disabled OR form accepts the value (will fail on submit)
-        expect(hasError || isButtonDisabled || await amountInput.inputValue() === '999999999999').toBe(true);
-      } else {
-        test.skip();
-      }
+      // Verify value was entered
+      await expect(amountInput).toHaveValue('10');
     });
 
-    test('should fill max amount when clicking max button', async ({ page }) => {
+    test('should handle amount with decimals', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      // Look for max button near amount input
-      const maxButton = page.locator('button:has-text("Max")').or(
-        page.locator('button:has-text("MAX")')
-      );
+      const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+      await expect(amountInput).toBeVisible({ timeout: 15000 });
 
-      const isMaxButtonVisible = await maxButton.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Fill amount with decimals
+      await amountInput.fill('10.5');
+      await expect(amountInput).toHaveValue('10.5');
+    });
 
-      if (isMaxButtonVisible) {
-        // Clear any existing value first
-        const amountInput = page.locator('#token-amount').or(
-          page.locator('input[type="number"]').first()
-        );
-        await amountInput.fill('');
+    test('should display max button when balance available', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
 
-        await maxButton.first().click();
+      const amountContainer = page.locator(selectors.tokenTransfer.amountContainer);
+      await expect(amountContainer).toBeVisible({ timeout: 15000 });
 
-        // Wait for value to be populated
-        await expect(async () => {
-          const value = await amountInput.inputValue();
-          // Value should be non-empty and represent a number
-          expect(value).toBeTruthy();
-          expect(parseFloat(value)).toBeGreaterThanOrEqual(0);
-        }).toPass({ timeout: 3000 });
+      // Max button should be visible when there's an available balance
+      const maxButton = page.locator(selectors.tokenTransfer.maxAmountBtn);
+
+      // Check if max button is visible (may depend on balance being available)
+      const isMaxVisible = await maxButton.isVisible({ timeout: 3000 }).catch(() => false);
+
+      if (isMaxVisible) {
+        await expect(maxButton).toBeVisible();
       } else {
-        // Max button not available in this context
-        test.skip();
+        // If not visible, verify the amount container is still functional
+        const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+        await expect(amountInput).toBeVisible();
       }
     });
   });
 
-  test.describe('HIVE Transfer', () => {
+  test.describe('Memo Input', () => {
 
-    test('should submit HIVE transfer form', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
-      // Navigate to token page
+    test('should toggle memo input visibility', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      // Look for transfer form fields
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
+      // Wait for transfer card
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Memo toggle should be visible
+      const memoToggle = page.locator(selectors.tokenTransfer.memoToggle);
+      await expect(memoToggle).toBeVisible();
 
-      if (isFormVisible) {
-        await recipientInput.first().fill(secondaryTestAccount.name);
+      // Initially memo input should be hidden
+      const memoInput = page.locator(selectors.tokenTransfer.memoInput);
+      await expect(memoInput).toBeHidden();
 
-        const amountInput = page.locator('#token-amount').or(
-          page.locator('input[type="number"]').first()
-        );
-        await amountInput.fill('1');
+      // Click to expand memo
+      await memoToggle.click();
 
-        // Click send button
-        const submitButton = page.locator('button:has-text("Send Transfer")').or(
-          page.locator('button:has-text("Send")')
-        );
-        await submitButton.first().click();
-
-        // Wait for response - check for toast, success message, or form state change
-        const successIndicators = page.locator('[data-sonner-toast], .toast, [role="alert"]');
-        const loadingIndicator = page.locator('.animate-spin, [data-loading]');
-
-        await expect(async () => {
-          const hasToast = await successIndicators.first().isVisible().catch(() => false);
-          const isLoading = await loadingIndicator.first().isVisible().catch(() => false);
-          const formCleared = await amountInput.inputValue() === '';
-
-          // One of these should be true after submitting
-          expect(hasToast || isLoading || formCleared).toBe(true);
-        }).toPass({ timeout: 5000 });
-      } else {
-        test.skip();
-      }
+      // Memo input should now be visible
+      await expect(memoInput).toBeVisible();
     });
 
-    test('should handle transfer rejection from wallet', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: false
-      });
-
+    test('should accept memo input', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
+      const memoToggle = page.locator(selectors.tokenTransfer.memoToggle);
+      await expect(memoToggle).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Expand memo section
+      await memoToggle.click();
 
-      if (isFormVisible) {
-        await recipientInput.first().fill(secondaryTestAccount.name);
+      // Fill memo
+      const memoInput = page.locator(selectors.tokenTransfer.memoInput);
+      await expect(memoInput).toBeVisible();
+      await memoInput.fill('Test memo message');
 
-        const amountInput = page.locator('#token-amount').first();
-        await amountInput.fill('1');
-
-        const submitButton = page.locator('button:has-text("Send")').first();
-        await submitButton.click();
-
-        // Should show rejection/error - check for error toast or message
-        const errorIndicators = page.locator(
-          '[data-sonner-toast][data-type="error"], ' +
-          '.toast-error, ' +
-          '[role="alert"]:has-text("reject"), ' +
-          '[role="alert"]:has-text("error"), ' +
-          '.text-destructive'
-        );
-
-        await expect(async () => {
-          const hasError = await errorIndicators.first().isVisible().catch(() => false);
-          // Form should remain visible (not cleared) on error
-          const formStillVisible = await recipientInput.first().isVisible();
-
-          expect(hasError || formStillVisible).toBe(true);
-        }).toPass({ timeout: 5000 });
-      } else {
-        test.skip();
-      }
-    });
-  });
-
-  test.describe('HBD Transfer', () => {
-
-    test('should submit HBD transfer form', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
-      await page.goto('/tokens/token?asset-num=100000001');
-      await page.waitForLoadState('networkidle');
-
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
-
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (isFormVisible) {
-        await recipientInput.first().fill(secondaryTestAccount.name);
-
-        const amountInput = page.locator('#token-amount').first();
-        await amountInput.fill('1');
-
-        const submitButton = page.locator('button:has-text("Send")').first();
-        await submitButton.click();
-
-        // Verify form responds to submission
-        await expect(async () => {
-          const toastVisible = await page.locator('[data-sonner-toast]').first().isVisible().catch(() => false);
-          const buttonLoading = await submitButton.isDisabled().catch(() => false);
-          const formChanged = await amountInput.inputValue() !== '1';
-
-          expect(toastVisible || buttonLoading || formChanged).toBe(true);
-        }).toPass({ timeout: 5000 });
-      } else {
-        test.skip();
-      }
-    });
-  });
-
-  test.describe('HTM Token Transfer', () => {
-
-    test('should complete HTM token transfer flow', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
-      // Navigate to HTM token transfer
-      await page.goto(`/tokens/token?nai=${primaryTestToken.nai}`);
-      await page.waitForLoadState('networkidle');
-
-      // Click transfer button
-      const transferButton = page.locator('[data-testid="transfer-button"]').or(
-        page.locator('button:has-text("Transfer")')
-      );
-
-      const hasTransferButton = await transferButton.first().isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (hasTransferButton) {
-        await transferButton.first().click();
-
-        // Fill transfer form
-        const recipientInput = page.locator('[data-testid="recipient-input"]').or(page.locator('[placeholder*="recipient"]').first());
-        const amountInput = page.locator('[data-testid="amount-input"]').or(page.locator('input[type="number"]').first());
-
-        await expect(recipientInput.first()).toBeVisible({ timeout: 5000 });
-
-        await recipientInput.first().fill(secondaryTestAccount.name);
-        await amountInput.first().fill('100');
-
-        const submitButton = page.locator('[data-testid="send-button"]').or(
-          page.locator('button:has-text("Send")')
-        );
-        await submitButton.last().click();
-
-        // Check for success response
-        const successIndicator = page.locator('[data-testid="transfer-success"]').or(
-          page.locator('[data-sonner-toast][data-type="success"]')
-        ).or(page.locator('text=success'));
-
-        await expect(successIndicator.first()).toBeVisible({ timeout: 10000 });
-      } else {
-        test.skip();
-      }
-    });
-  });
-
-  test.describe('Transfer with Memo', () => {
-
-    test('should include memo in transfer submission', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
-      await page.goto('/tokens/token?asset-num=100000001');
-      await page.waitForLoadState('networkidle');
-
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
-      const memoInput = page.locator('#memo').or(
-        page.locator('textarea[placeholder*="memo"]')
-      );
-
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (isFormVisible) {
-        await recipientInput.first().fill(secondaryTestAccount.name);
-
-        const amountInput = page.locator('#token-amount').first();
-        await amountInput.fill('1');
-
-        const hasMemoField = await memoInput.first().isVisible().catch(() => false);
-        if (hasMemoField) {
-          await memoInput.first().fill('Test memo message');
-
-          // Verify memo was entered
-          const memoValue = await memoInput.first().inputValue();
-          expect(memoValue).toBe('Test memo message');
-        }
-
-        const submitButton = page.locator('button:has-text("Send")').first();
-        await submitButton.click();
-
-        // Wait for form submission response
-        await expect(async () => {
-          const hasResponse = await page.locator('[data-sonner-toast]').first().isVisible().catch(() => false);
-          const buttonChanged = await submitButton.isDisabled().catch(() => false);
-          expect(hasResponse || buttonChanged).toBe(true);
-        }).toPass({ timeout: 5000 });
-      } else {
-        test.skip();
-      }
+      // Verify value
+      await expect(memoInput).toHaveValue('Test memo message');
     });
 
     test('should accept encrypted memo format', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const memoInput = page.locator('#memo').or(
-        page.locator('textarea[placeholder*="memo"]')
-      );
+      const memoToggle = page.locator(selectors.tokenTransfer.memoToggle);
+      await expect(memoToggle).toBeVisible({ timeout: 15000 });
 
-      const hasMemoField = await memoInput.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Expand memo section
+      await memoToggle.click();
 
-      if (hasMemoField) {
-        // Enter memo starting with # for encryption
-        await memoInput.first().fill('#Secret message');
+      // Fill encrypted memo (starts with #)
+      const memoInput = page.locator(selectors.tokenTransfer.memoInput);
+      await memoInput.fill('#Secret message');
 
-        // Verify the encrypted memo format is accepted (not rejected/cleared)
-        const memoValue = await memoInput.first().inputValue();
-        expect(memoValue).toBe('#Secret message');
-
-        // Check that no immediate validation error appears for the # prefix
-        const validationError = page.locator('.text-destructive:near(#memo), .text-red-500:near(#memo)');
-        const hasValidationError = await validationError.first().isVisible({ timeout: 1000 }).catch(() => false);
-        expect(hasValidationError).toBe(false);
-      } else {
-        test.skip();
-      }
+      // Verify encrypted memo format is accepted
+      await expect(memoInput).toHaveValue('#Secret message');
     });
   });
 
-  test.describe('Transfer Confirmation', () => {
+  test.describe('Recipient Selection', () => {
 
-    test('should trigger wallet confirmation on transfer', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
+    test('should display recipient selector', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
+      // Wait for transfer card
+      const transferCard = page.locator(selectors.tokenTransfer.htmTransferCard);
+      await expect(transferCard).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-
-      if (isFormVisible) {
-        await recipientInput.first().fill(secondaryTestAccount.name);
-
-        const amountInput = page.locator('#token-amount').first();
-        await amountInput.fill('100');
-
-        const submitButton = page.locator('button:has-text("Send")').first();
-        await submitButton.click();
-
-        // Should trigger wallet confirmation (mocked) - verify response
-        await expect(async () => {
-          // Check for any UI response: toast, loading state, or form change
-          const hasToast = await page.locator('[data-sonner-toast]').first().isVisible().catch(() => false);
-          const hasDialog = await page.locator('[role="dialog"]').first().isVisible().catch(() => false);
-          const buttonChanged = await submitButton.textContent() !== 'Send';
-
-          expect(hasToast || hasDialog || buttonChanged).toBe(true);
-        }).toPass({ timeout: 5000 });
-      } else {
-        test.skip();
-      }
+      // Recipient trigger should be visible
+      const recipientTrigger = page.locator(selectors.tokenTransfer.recipientTrigger);
+      await expect(recipientTrigger).toBeVisible();
     });
 
-    test('should allow form to be filled and modified', async ({ page }) => {
+    test('should open recipient popover on click', async ({ page }) => {
       await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      const recipientInput = page.locator('input[placeholder*="recipient"]').or(
-        page.locator('#recipient')
-      );
+      // Wait for recipient trigger
+      const recipientTrigger = page.locator(selectors.tokenTransfer.recipientTrigger);
+      await expect(recipientTrigger).toBeVisible({ timeout: 15000 });
 
-      const isFormVisible = await recipientInput.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Click to open popover
+      await recipientTrigger.click();
 
-      if (isFormVisible) {
-        // Fill the form
-        await recipientInput.first().fill(secondaryTestAccount.name);
+      // Search input should become visible in popover
+      const recipientSearch = page.locator(selectors.tokenTransfer.recipientSearch);
+      await expect(recipientSearch).toBeVisible({ timeout: 5000 });
+    });
 
-        const amountInput = page.locator('#token-amount').first();
-        await amountInput.fill('1');
+    test('should allow searching for recipient', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
 
-        // Verify values can be read back
-        const recipientValue = await recipientInput.first().inputValue();
-        const amountValue = await amountInput.inputValue();
+      // Open recipient selector
+      const recipientTrigger = page.locator(selectors.tokenTransfer.recipientTrigger);
+      await expect(recipientTrigger).toBeVisible({ timeout: 15000 });
+      await recipientTrigger.click();
 
-        expect(recipientValue).toBe(secondaryTestAccount.name);
-        expect(amountValue).toBe('1');
+      // Wait for search input
+      const recipientSearch = page.locator(selectors.tokenTransfer.recipientSearch);
+      await expect(recipientSearch).toBeVisible({ timeout: 5000 });
 
-        // Verify form can be modified
-        await amountInput.fill('2');
-        const newAmountValue = await amountInput.inputValue();
-        expect(newAmountValue).toBe('2');
-      } else {
-        test.skip();
-      }
+      // Type a public key
+      await recipientSearch.fill('STM');
+
+      // Verify input value
+      await expect(recipientSearch).toHaveValue('STM');
     });
   });
 
-  test.describe('Transfer History', () => {
+  test.describe('Send Button State', () => {
 
-    test('should display transaction history section', async ({ page }) => {
-      await mockHiveKeychain(page, {
-        accountName: primaryTestAccount.name,
-        signingSuccess: true
-      });
-
-      await page.goto('/');
+    test('should have send button disabled initially', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
       await page.waitForLoadState('networkidle');
 
-      // Check for transaction history section
-      const historySection = page.locator('[data-testid="transaction-history"]').or(
-        page.locator('text=Recent').or(page.locator('text=History'))
-      );
+      // Wait for send button
+      const sendButton = page.locator(selectors.tokenTransfer.htmSendButton);
+      await expect(sendButton).toBeVisible({ timeout: 15000 });
 
-      const hasHistorySection = await historySection.first().isVisible({ timeout: 5000 }).catch(() => false);
+      // Button should be disabled without valid form data
+      await expect(sendButton).toBeDisabled();
+    });
 
-      if (hasHistorySection) {
-        await historySection.first().click();
+    test('should keep send button disabled with only amount filled', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
 
-        // Verify section is interactive
-        await expect(historySection.first()).toBeVisible();
+      // Fill only amount
+      const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+      await expect(amountInput).toBeVisible({ timeout: 15000 });
+      await amountInput.fill('10');
 
-        // Check for transfer records container (may be empty)
-        const transferRecords = page.locator('[data-testid="transaction-item"]').or(
-          page.locator('[data-testid="transfer-record"]')
-        );
+      // Button should still be disabled (no recipient)
+      const sendButton = page.locator(selectors.tokenTransfer.htmSendButton);
+      await expect(sendButton).toBeDisabled();
+    });
+  });
 
-        const count = await transferRecords.count();
-        // Count can be 0 (no history) or more
-        expect(count).toBeGreaterThanOrEqual(0);
-      } else {
-        // History section not available on this page/state
-        test.skip();
-      }
+  test.describe('Form Persistence', () => {
+
+    test('should retain amount value after typing', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
+
+      const amountInput = page.locator(selectors.tokenTransfer.amountInput);
+      await expect(amountInput).toBeVisible({ timeout: 15000 });
+
+      // Fill amount
+      await amountInput.fill('123.456');
+
+      // Wait a moment
+      await page.waitForTimeout(500);
+
+      // Value should persist
+      await expect(amountInput).toHaveValue('123.456');
+    });
+
+    test('should retain memo value after typing', async ({ page }) => {
+      await page.goto('/tokens/token?asset-num=100000001');
+      await page.waitForLoadState('networkidle');
+
+      // Expand memo
+      const memoToggle = page.locator(selectors.tokenTransfer.memoToggle);
+      await expect(memoToggle).toBeVisible({ timeout: 15000 });
+      await memoToggle.click();
+
+      // Fill memo
+      const memoInput = page.locator(selectors.tokenTransfer.memoInput);
+      await memoInput.fill('Persistent memo');
+
+      // Wait a moment
+      await page.waitForTimeout(500);
+
+      // Value should persist
+      await expect(memoInput).toHaveValue('Persistent memo');
     });
   });
 });

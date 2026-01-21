@@ -18,9 +18,10 @@ import {
   mockGoogleDriveToken,
   mockGoogleDriveWalletFile,
   mockGoogleDriveWalletFileNotExists,
-  mockCTokensTokenList,
-  mockCTokensBalanceList,
-  mockCTokensUser,
+  mockCTokensTokensApiResponse,
+  mockCTokensBalancesApiResponse,
+  mockCTokensUserApi,
+  mockCTokensTokenApi,
   mockBroadcastSuccess
 } from '../fixtures/mock-responses';
 
@@ -304,13 +305,14 @@ export async function mockCTokensApi (page: Page, options: MockApiOptions = {}) 
     await handleWithDelay(route, delay, async () => {
       const url = new URL(route.request().url());
       const path = url.pathname;
+      const searchParams = url.searchParams;
 
-      // Token list
+      // Token list (handles both list and single token queries)
       if (path.includes('/tokens')) {
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(mockCTokensTokenList)
+          body: JSON.stringify(mockCTokensTokensApiResponse)
         });
       }
 
@@ -319,7 +321,7 @@ export async function mockCTokensApi (page: Page, options: MockApiOptions = {}) 
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify(mockCTokensBalanceList)
+          body: JSON.stringify(mockCTokensBalancesApiResponse)
         });
       }
 
@@ -328,7 +330,11 @@ export async function mockCTokensApi (page: Page, options: MockApiOptions = {}) 
         return route.fulfill({
           status: 200,
           contentType: 'application/json',
-          body: JSON.stringify({ items: [mockCTokensUser], total: 1 })
+          body: JSON.stringify({
+            total_items: 1,
+            total_pages: 1,
+            items: [mockCTokensUserApi]
+          })
         });
       }
 
@@ -358,7 +364,7 @@ export async function mockCTokensApi (page: Page, options: MockApiOptions = {}) 
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ items: [], total: 0 })
+        body: JSON.stringify({ total_items: 0, total_pages: 0, items: [] })
       });
     });
   });

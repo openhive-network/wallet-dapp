@@ -134,7 +134,7 @@ export const tokenTransfer = {
 
   // Memo
   memoToggle: testid('memo-toggle-btn'),
-  memoInput: testid('memo-textarea'),
+  memoInput: `${testid('memo-textarea')} textarea`,
 
   // Buttons
   qrScanBtn: testid('receive-qr-scan-btn'),

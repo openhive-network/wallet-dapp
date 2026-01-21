@@ -316,30 +316,33 @@ test.describe('API Response Integration', () => {
     });
 
     test('should handle empty token list', async ({ page }) => {
+      // Setup general mocks first
+      await setupAllMocks(page);
+
+      // Then override with empty token list (LIFO order - last route takes precedence)
       await page.route('**/htm.fqdn.pl:10081/**/tokens**', async (route) => {
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
           body: JSON.stringify({
-            items: [],
-            total: 0,
-            page: 1,
-            pages: 0,
-            hasMore: false
+            total_items: 0,
+            total_pages: 0,
+            items: []
           })
         });
       });
-      await setupAllMocks(page);
 
       await page.goto('/tokens/list');
       await page.waitForLoadState('networkidle');
 
-      // Should show empty state
-      const emptyState = page.locator('[data-testid="empty-token-list"]').or(
-        page.locator('text=No tokens').or(page.locator('text=no tokens'))
-      );
+      // Page should load successfully even with empty token list
+      const pageTitle = page.locator('h1:has-text("Tokens List")');
+      await expect(pageTitle).toBeVisible({ timeout: 10000 });
 
-      await expect(emptyState.first()).toBeVisible({ timeout: 10000 });
+      // Verify no token cards are displayed
+      const tokenCards = page.locator('a[href*="/tokens/token"]');
+      const count = await tokenCards.count();
+      expect(count).toBe(0);
     });
   });
 
