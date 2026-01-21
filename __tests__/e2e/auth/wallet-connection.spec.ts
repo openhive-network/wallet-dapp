@@ -170,16 +170,14 @@ test.describe('Wallet Connection', () => {
       await page.locator(selectors.walletConnection.keychainTitle).waitFor({ state: 'visible', timeout: 10000 });
 
       // Verify connect button is present in the Keychain card
-      const keychainConnectBtn = page.locator('aside button.border-\\[\\#e31337\\]:has-text("Connect")').or(
-        page.locator('aside button:has-text("Connect")').last()
-      );
-      await expect(keychainConnectBtn.first()).toBeVisible();
+      const keychainConnectBtn = page.locator(selectors.walletConnection.keychainConnectBtn);
+      await expect(keychainConnectBtn).toBeVisible();
 
       // Wait for button to be enabled and clickable
-      await keychainConnectBtn.first().waitFor({ state: 'visible', timeout: 5000 });
+      await keychainConnectBtn.waitFor({ state: 'visible', timeout: 5000 });
 
       // Click connect - this triggers Keychain mock
-      await keychainConnectBtn.first().click();
+      await keychainConnectBtn.click();
 
       // Wait for UI response - the mock responds instantly, so the modal may close quickly
       // or show a brief loading state. We verify by checking that either:
@@ -225,13 +223,11 @@ test.describe('Wallet Connection', () => {
       await page.locator(selectors.walletConnection.keychainTitle).waitFor({ state: 'visible', timeout: 10000 });
 
       // Get connect button and wait for it to be ready
-      const keychainConnectBtn = page.locator('aside button.border-\\[\\#e31337\\]:has-text("Connect")').or(
-        page.locator('aside button:has-text("Connect")').last()
-      );
-      await keychainConnectBtn.first().waitFor({ state: 'visible', timeout: 5000 });
+      const keychainConnectBtn = page.locator(selectors.walletConnection.keychainConnectBtn);
+      await keychainConnectBtn.waitFor({ state: 'visible', timeout: 5000 });
 
       // Click connect with mock rejection
-      await keychainConnectBtn.first().click();
+      await keychainConnectBtn.click();
 
       // Wait for error response - either toast or modal remains open with error
       await expect(async () => {
@@ -284,7 +280,7 @@ test.describe('Wallet Connection', () => {
       await page.locator(selectors.walletConnection.peakVaultTitle).waitFor({ state: 'visible', timeout: 10000 });
 
       // Verify connect button is present in PeakVault card
-      const pvConnectBtn = page.locator('aside button:has-text("Connect")').last();
+      const pvConnectBtn = page.locator(selectors.walletConnection.peakVaultConnectBtn);
       await expect(pvConnectBtn).toBeVisible();
 
       // Wait for button to be ready
@@ -457,8 +453,8 @@ test.describe('Wallet Connection', () => {
 
       await page.locator(selectors.walletConnection.walletSelectTitle).waitFor({ state: 'visible', timeout: 10000 });
 
-      // Click X button (ghost variant button with SVG icon)
-      const xButton = page.locator('button.px-2:has(svg)').first();
+      // Click X button
+      const xButton = page.locator(selectors.walletConnection.walletSelectClose);
       await xButton.click();
 
       // Wait for modal to close with proper assertion

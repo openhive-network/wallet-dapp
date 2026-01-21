@@ -33,7 +33,7 @@ const connect = async () => {
 <template>
   <Card class="w-full max-w-[350px]">
     <CardHeader>
-      <CardTitle>
+      <CardTitle data-testid="peakvault-connector-title">
         <div class="inline-flex justify-between w-full">
           <div class="inline-flex items-center">
             <img
@@ -82,6 +82,7 @@ const connect = async () => {
         <p>Step 1: Click this button to connect:</p>
         <div class="flex justify-center">
           <Button
+            data-testid="peakvault-connect-btn"
             :disabled="isLoading"
             variant="outline"
             size="lg"

@@ -58,7 +58,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     :open="recoveryPasswordDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
-    <DialogContent class="sm:max-w-md">
+    <DialogContent data-testid="recovery-password-dialog" class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <KeyRound class="w-5 h-5 text-primary" />
@@ -76,6 +76,7 @@ const handleKeydown = (event: KeyboardEvent) => {
             <Input
               id="recoveryPassword"
               v-model="password"
+              data-testid="recovery-password-input"
               :type="showPassword ? 'text' : 'password'"
               placeholder="Enter your recovery password"
               autocomplete="off"
@@ -84,6 +85,7 @@ const handleKeydown = (event: KeyboardEvent) => {
             />
             <Button
               type="button"
+              data-testid="recovery-password-toggle"
               variant="ghost"
               size="sm"
               class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
@@ -114,6 +116,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
       <DialogFooter>
         <Button
+          data-testid="recovery-cancel-btn"
           variant="outline"
           :disabled="isSubmitting"
           @click="handleCancel"
@@ -121,6 +124,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           Cancel
         </Button>
         <Button
+          data-testid="recovery-submit-btn"
           :disabled="!password.trim() || isSubmitting"
           @click="handleSubmit"
         >

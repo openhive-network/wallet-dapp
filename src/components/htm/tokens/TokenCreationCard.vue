@@ -71,7 +71,7 @@ const copyAssetNum = async () => {
 </script>
 
 <template>
-  <Card>
+  <Card data-testid="tokencreate-card">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <svg
@@ -97,6 +97,7 @@ const copyAssetNum = async () => {
         <Label for="token-name">Token Name *</Label>
         <Input
           id="token-name"
+          data-testid="tokencreate-name"
           :model-value="token.name"
           placeholder="e.g., My Awesome Token"
           :disabled="isSubmitting"
@@ -109,6 +110,7 @@ const copyAssetNum = async () => {
         <Label for="token-symbol">Token Symbol *</Label>
         <Input
           id="token-symbol"
+          data-testid="tokencreate-symbol"
           :model-value="token.symbol"
           placeholder="e.g., MAT"
           class="uppercase"
@@ -130,6 +132,7 @@ const copyAssetNum = async () => {
         <Label for="token-description">Description</Label>
         <Textarea
           id="token-description"
+          data-testid="tokencreate-description"
           :model-value="token.description"
           placeholder="Describe your token..."
           :disabled="isSubmitting"
@@ -184,6 +187,7 @@ const copyAssetNum = async () => {
         <Label for="initial-supply">Initial Supply *</Label>
         <Input
           id="initial-supply"
+          data-testid="tokencreate-supply"
           :model-value="initialSupply"
           placeholder="1000000"
           :disabled="isSubmitting"
@@ -202,6 +206,7 @@ const copyAssetNum = async () => {
         <Label for="precision">Decimal Precision *</Label>
         <Input
           id="precision"
+          data-testid="tokencreate-precision"
           :model-value="token.precision"
           type="number"
           min="0"

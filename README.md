@@ -43,6 +43,12 @@ pnpm start
 pnpm dev
 ```
 
+### 5. Run tests
+
+```bash
+pnpm test
+```
+
 The application will be available at [http://localhost:3000](http://localhost:3000).
 
 ## Development Notes

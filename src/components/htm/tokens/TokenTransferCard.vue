@@ -187,7 +187,7 @@ const connectToHTM = async () => {
 </script>
 
 <template>
-  <Card v-if="!props.token.isStaked" class="flex flex-col h-full">
+  <Card v-if="!props.token.isStaked" data-testid="htm-transfer-card" class="flex flex-col h-full">
     <CardHeader>
       <CardTitle class="flex items-center gap-2">
         <svg
@@ -320,6 +320,7 @@ const connectToHTM = async () => {
           <UserSelector
             id="recipient"
             v-model="recipientData"
+            data-testid="htm-transfer-recipient"
             :disabled="isTransferring"
             class="transition-colors font-mono text-sm"
             :class="transferForm.to ? (isRecipientValid ? 'border-green-500 focus-visible:ring-green-500' : 'border-red-500 focus-visible:ring-red-500') : ''"
@@ -352,6 +353,7 @@ const connectToHTM = async () => {
         />
 
         <Button
+          data-testid="htm-transfer-send-btn"
           class="w-full"
           size="lg"
           :disabled="isTransferring || !isRecipientValid || !amountValidation.isValid"

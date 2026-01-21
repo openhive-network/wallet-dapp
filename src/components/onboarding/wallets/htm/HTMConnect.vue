@@ -21,7 +21,7 @@ const handleSetAccount = (account: string) => {
 <template>
   <Card class="w-full max-w-[350px]">
     <CardHeader>
-      <CardTitle>
+      <CardTitle data-testid="htm-connector-title">
         <div class="inline-flex justify-between w-full">
           <div class="inline-flex items-center">
             <img

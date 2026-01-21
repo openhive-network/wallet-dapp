@@ -115,7 +115,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[600px]">
+  <Card data-testid="sign-tx-card" class="w-full max-w-[600px]">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Transaction signing</span>
@@ -147,6 +147,7 @@ onMounted(() => {
       </Alert>
       <Textarea
         v-model="inputData"
+        data-testid="sign-tx-input"
         placeholder="Transaction in API JSON form"
         class="my-4"
         height="200px"
@@ -155,6 +156,7 @@ onMounted(() => {
       <span class="text-foreground/70 my-4 text-sm">Sign using authority level:</span>
       <Select
         v-model="selectedLevel"
+        data-testid="sign-tx-authority-select"
         class="my-4"
       >
         <SelectTrigger>
@@ -179,6 +181,7 @@ onMounted(() => {
       </Select>
       <div class="my-4 space-x-4">
         <Button
+          data-testid="sign-tx-btn"
           :disabled="!inputData || isBroadcasting"
           :loading="isLoading"
           @click="sign"
@@ -188,6 +191,7 @@ onMounted(() => {
       </div>
       <Textarea
         v-model="outputData"
+        data-testid="sign-tx-output"
         placeholder="Signed transaction"
         copy-enabled
         class="my-4"
@@ -196,6 +200,7 @@ onMounted(() => {
       />
       <div class="my-4 space-x-4">
         <Button
+          data-testid="sign-tx-broadcast-btn"
           :disabled="!outputData || isLoading"
           :loading="isBroadcasting"
           @click="broadcast"

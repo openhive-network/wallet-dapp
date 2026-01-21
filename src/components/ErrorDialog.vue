@@ -26,7 +26,7 @@ const createErrorText = () => `${errorStore.title} - ${errorStore.description}`;
     class="max-w-[90vw]"
     @update:open="updateOpen"
   >
-    <DialogContent class="max-w-[95vw] sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh]">
+    <DialogContent data-testid="error-dialog" class="max-w-[95vw] sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] grid-rows-[auto_minmax(0,1fr)_auto] p-0 max-h-[90dvh]">
       <DialogHeader class="p-6 pb-0">
         <DialogTitle>{{ errorStore.title }}</DialogTitle>
         <DialogDescription>
@@ -40,12 +40,13 @@ const createErrorText = () => `${errorStore.title} - ${errorStore.description}`;
       </div>
       <DialogFooter class="p-6 pt-0">
         <Button
+          data-testid="error-log-btn"
           variant="secondary"
           @click="logOriginator"
         >
           Log error to console
         </Button>
-        <Button :copy="createErrorText">
+        <Button data-testid="error-copy-btn" :copy="createErrorText">
           Copy error message
         </Button>
       </DialogFooter>

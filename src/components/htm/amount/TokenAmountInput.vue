@@ -10,6 +10,7 @@ type CommonProps = {
   disabled?: boolean;
   id?: string;
   publicKey?: string;
+  dataTestid?: string;
 }
 
 type Props = (CommonProps & {
@@ -100,7 +101,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div data-testid="token-amount-container" class="space-y-2">
     <Label
       :for="id"
       class="text-sm font-medium text-foreground"
@@ -115,6 +116,7 @@ onMounted(() => {
           v-model:validation-error="validationError"
           :disabled="disabled"
           :token="selectedToken"
+          :data-testid="dataTestid ? `${dataTestid}-input` : 'token-amount-input'"
           :class="variant === 'selector' ? '' : 'pr-24'"
         />
       </div>
@@ -157,6 +159,7 @@ onMounted(() => {
       </span>
       <button
         type="button"
+        data-testid="token-amount-max-btn"
         class="text-primary hover:text-primary/80 font-medium"
         @click="handleMax"
       >

@@ -29,6 +29,7 @@ defineProps<{
       <Switch
         id="encrypt-keys"
         v-model="encryptKeys"
+        data-testid="htm-encrypt-toggle"
       />
     </div>
 
@@ -46,6 +47,7 @@ defineProps<{
         <Input
           id="password"
           v-model="password"
+          data-testid="htm-password"
           type="password"
           placeholder="Enter a password to encrypt the wallet"
         />
@@ -55,6 +57,7 @@ defineProps<{
         <Input
           id="repeatPassword"
           v-model="repeatPassword"
+          data-testid="htm-repeat-password"
           type="password"
           placeholder="Repeat the password"
         />

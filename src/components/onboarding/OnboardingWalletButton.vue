@@ -13,6 +13,7 @@ const props = defineProps<{
   disabled?: boolean;
   downloadUrl?: string;
   downloadUrlTriggersClick?: boolean;
+  dataTestid?: string;
 }>();
 
 const emit = defineEmits(['click']);
@@ -22,6 +23,7 @@ const emit = defineEmits(['click']);
   <div class="relative">
     <Button
       :disabled="disabled"
+      :data-testid="dataTestid"
       variant="outline"
       size="lg"
       :class="cn('w-full justify-start px-5 py-8', props.class)"

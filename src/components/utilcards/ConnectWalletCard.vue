@@ -9,7 +9,7 @@ const walletStore = useWalletStore();
 </script>
 
 <template>
-  <Card class="w-full">
+  <Card data-testid="connect-wallet-card" class="w-full">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Connect your account</span>
@@ -30,6 +30,7 @@ const walletStore = useWalletStore();
     <CardContent>
       <div class="space-y-4">
         <Button
+          data-testid="connect-wallet-btn"
           class="w-full font-bold"
           @click="walletStore.openWalletSelectModal()"
         >

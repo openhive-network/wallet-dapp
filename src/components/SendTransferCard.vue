@@ -48,7 +48,7 @@ watch(() => form.value.memo, (newValue) => {
 </script>
 
 <template>
-  <Card>
+  <Card data-testid="send-transfer-card">
     <CardHeader>
       <CardTitle>Receive token</CardTitle>
       <CardDescription>

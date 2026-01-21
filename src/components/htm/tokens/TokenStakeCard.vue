@@ -202,6 +202,7 @@ const handleUnstake = async () => {
 <template>
   <Card
     v-if="props.token && (props.token.othersCanStake || props.token.othersCanUnstake || props.isTokenOwner)"
+    data-testid="stake-card"
     class="flex flex-col h-full"
   >
     <CardHeader>
@@ -248,6 +249,7 @@ const handleUnstake = async () => {
           Connect your wallet to stake/unstake tokens
         </p>
         <Button
+          data-testid="stake-connect-btn"
           size="lg"
           @click="connectToHTM"
         >
@@ -318,6 +320,7 @@ const handleUnstake = async () => {
         <div class="grid grid-cols-2 gap-3">
           <Button
             v-if="props.token.othersCanStake || props.isTokenOwner"
+            data-testid="stake-btn"
             size="lg"
             :disabled="isStaking || isUnstaking || !stakeForm.amount"
             @click="handleStake"
@@ -353,6 +356,7 @@ const handleUnstake = async () => {
 
           <Button
             v-if="props.token.othersCanUnstake || props.isTokenOwner"
+            data-testid="unstake-btn"
             variant="outline"
             size="lg"
             :disabled="isStaking || isUnstaking || !stakeForm.amount"

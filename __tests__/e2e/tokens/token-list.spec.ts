@@ -17,6 +17,7 @@ import {
 } from '../../helpers/api-mocks';
 import { setupKeychainWallet } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 import { TokenListPage } from '../../helpers/page-objects';
 
 test.describe('Token List', () => {
@@ -34,8 +35,8 @@ test.describe('Token List', () => {
       await page.goto('/tokens/list');
       await page.waitForLoadState('networkidle');
 
-      // Should show page title "Tokens List"
-      const pageTitle = page.locator('h1:has-text("Tokens List")');
+      // Should show page title
+      const pageTitle = page.locator(selectors.tokenList.pageTitle);
       await expect(pageTitle).toBeVisible({ timeout: 15000 });
     });
 
@@ -44,7 +45,7 @@ test.describe('Token List', () => {
       await page.waitForLoadState('networkidle');
 
       // Page should load with token list structure
-      const pageTitle = page.locator('h1:has-text("Tokens List")');
+      const pageTitle = page.locator(selectors.tokenList.pageTitle);
       await expect(pageTitle).toBeVisible({ timeout: 15000 });
 
       // Verify page has main content area
@@ -59,7 +60,7 @@ test.describe('Token List', () => {
       // Just verify page eventually loads
       await page.waitForLoadState('networkidle');
 
-      const pageTitle = page.locator('h1:has-text("Tokens List")');
+      const pageTitle = page.locator(selectors.tokenList.pageTitle);
       await expect(pageTitle).toBeVisible({ timeout: 15000 });
     });
 
@@ -76,13 +77,13 @@ test.describe('Token List', () => {
       await page.goto('/tokens/list');
       await page.waitForLoadState('networkidle');
 
-      // Page should load - check for empty state or "No Tokens Found"
-      const pageContent = page.locator('body');
-      await expect(pageContent).toBeVisible({ timeout: 15000 });
+      // Page should load
+      const pageTitle = page.locator(selectors.tokenList.pageTitle);
+      await expect(pageTitle).toBeVisible({ timeout: 15000 });
 
-      // Verify page title is still shown (page didn't crash)
-      const pageTitle = page.locator('h1:has-text("Tokens List")');
-      await expect(pageTitle).toBeVisible();
+      // Empty state should be shown
+      const emptyState = page.locator(selectors.tokenList.emptyState);
+      await expect(emptyState).toBeVisible({ timeout: 5000 });
     });
   });
 
@@ -93,24 +94,16 @@ test.describe('Token List', () => {
       await page.waitForLoadState('networkidle');
 
       // Find search input
-      const searchInput = page.locator('input[placeholder*="Search tokens"]').first();
+      const searchInput = page.locator(selectors.tokenList.searchInput);
+      await expect(searchInput).toBeVisible({ timeout: 5000 });
 
-      const isSearchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+      await searchInput.fill('TEST');
 
-      if (isSearchVisible) {
-        await searchInput.fill('TEST');
+      // Wait for search results to update
+      await expect(searchInput).toHaveValue('TEST');
 
-        // Wait for search results to update
-        await expect(async () => {
-          const inputValue = await searchInput.inputValue();
-          expect(inputValue).toBe('TEST');
-        }).toPass({ timeout: 2000 });
-
-        // Verify page is still responsive
-        await expect(page.locator('body')).toBeVisible();
-      } else {
-        test.skip();
-      }
+      // Verify page is still responsive
+      await expect(page.locator('body')).toBeVisible();
     });
 
     test('should show no results for invalid search', async ({ page }) => {
@@ -118,24 +111,16 @@ test.describe('Token List', () => {
       await page.waitForLoadState('networkidle');
 
       // Find search input
-      const searchInput = page.locator('input[placeholder*="Search tokens"]').first();
+      const searchInput = page.locator(selectors.tokenList.searchInput);
+      await expect(searchInput).toBeVisible({ timeout: 5000 });
 
-      const isSearchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+      await searchInput.fill('NONEXISTENTTOKENXYZ123');
 
-      if (isSearchVisible) {
-        await searchInput.fill('NONEXISTENTTOKENXYZ123');
+      // Wait for search to be applied
+      await expect(searchInput).toHaveValue('NONEXISTENTTOKENXYZ123');
 
-        // Wait for search to be applied
-        await expect(async () => {
-          const inputValue = await searchInput.inputValue();
-          expect(inputValue).toBe('NONEXISTENTTOKENXYZ123');
-        }).toPass({ timeout: 2000 });
-
-        // Page should show empty state or no results message
-        await expect(page.locator('body')).toBeVisible();
-      } else {
-        test.skip();
-      }
+      // Page should show empty state or no results message
+      await expect(page.locator('body')).toBeVisible();
     });
 
     test('should clear search and show all tokens', async ({ page }) => {
@@ -143,24 +128,19 @@ test.describe('Token List', () => {
       await page.waitForLoadState('networkidle');
 
       // Find search input
-      const searchInput = page.locator('input[placeholder*="Search tokens"]').first();
+      const searchInput = page.locator(selectors.tokenList.searchInput);
+      await expect(searchInput).toBeVisible({ timeout: 5000 });
 
-      const isSearchVisible = await searchInput.isVisible({ timeout: 5000 }).catch(() => false);
+      // Fill search
+      await searchInput.fill('TEST');
+      await expect(searchInput).toHaveValue('TEST');
 
-      if (isSearchVisible) {
-        // Fill search
-        await searchInput.fill('TEST');
-        await expect(searchInput).toHaveValue('TEST');
+      // Clear search
+      await searchInput.clear();
+      await expect(searchInput).toHaveValue('');
 
-        // Clear search
-        await searchInput.clear();
-        await expect(searchInput).toHaveValue('');
-
-        // Verify page is still responsive
-        await expect(page.locator('body')).toBeVisible();
-      } else {
-        test.skip();
-      }
+      // Verify page is still responsive
+      await expect(page.locator('body')).toBeVisible();
     });
   });
 
@@ -170,19 +150,24 @@ test.describe('Token List', () => {
       await page.goto('/tokens/list');
       await page.waitForLoadState('networkidle');
 
-      // Find first token card link
-      const tokenCards = page.locator('a[href*="/tokens/token"]');
-      const cardCount = await tokenCards.count();
+      // Wait for token cards to load
+      const tokenCards = page.locator(selectors.tokenList.tokenCard);
+
+      // Wait for at least one card or timeout
+      const cardCount = await tokenCards.count().catch(() => 0);
 
       if (cardCount > 0) {
-        await tokenCards.first().click();
+        // Find token card link
+        const tokenLinks = page.locator(selectors.tokenList.tokenCardLink);
+        await tokenLinks.first().click();
         await page.waitForURL(/\/tokens\/token/, { timeout: 10000 });
 
         // Verify navigation succeeded
         expect(page.url()).toContain('/tokens/token');
       } else {
-        // No token cards available - skip
-        test.skip();
+        // No token cards available - verify page loaded correctly
+        const pageTitle = page.locator(selectors.tokenList.pageTitle);
+        await expect(pageTitle).toBeVisible();
       }
     });
 
@@ -191,11 +176,13 @@ test.describe('Token List', () => {
       await page.waitForLoadState('networkidle');
 
       // Look for create token button
-      const createButton = page.locator('button:has-text("Create Token")');
+      const createButton = page.locator(selectors.tokenList.createTokenButton);
+      await expect(createButton).toBeVisible({ timeout: 5000 });
 
-      const isCreateVisible = await createButton.isVisible({ timeout: 5000 }).catch(() => false);
+      // Button may be disabled if not logged in
+      const isEnabled = await createButton.isEnabled().catch(() => false);
 
-      if (isCreateVisible && await createButton.isEnabled()) {
+      if (isEnabled) {
         await createButton.click();
 
         // Wait for navigation or dialog
@@ -205,8 +192,8 @@ test.describe('Token List', () => {
           expect(urlChanged || dialogOpened).toBe(true);
         }).toPass({ timeout: 10000 });
       } else {
-        // Create button not available - skip
-        test.skip();
+        // Button disabled - verify it exists but is disabled
+        await expect(createButton).toBeDisabled();
       }
     });
   });
@@ -230,7 +217,7 @@ test.describe('Token List', () => {
       await expect(pageContent).toBeVisible({ timeout: 15000 });
 
       // Page title should still be visible even on error
-      const pageTitle = page.locator('h1:has-text("Tokens List")');
+      const pageTitle = page.locator(selectors.tokenList.pageTitle);
       await expect(pageTitle).toBeVisible();
     });
 
@@ -266,24 +253,16 @@ test.describe('Token List', () => {
       await tokenListPage.navigate();
       await page.waitForLoadState('networkidle');
 
-      // Look for retry button
-      const retryButton = page.locator('[data-testid="retry-button"]').or(
-        page.locator('button:has-text("Retry")').or(
-          page.locator('button:has-text("Try again")')
-        )
-      );
+      // Look for refresh button to retry
+      const refreshButton = page.locator(selectors.tokenList.refreshButton);
 
-      const hasRetryButton = await retryButton.first().isVisible({ timeout: 3000 }).catch(() => false);
-
-      if (hasRetryButton) {
-        await retryButton.first().click();
+      if (await refreshButton.isVisible().catch(() => false)) {
+        await refreshButton.click();
         await tokenListPage.waitForTokensLoaded();
-        expect(await tokenListPage.getTokenCount()).toBeGreaterThan(0);
-      } else {
-        // No retry button - app may auto-retry or show different error UI
-        // Verify page is still functional
-        await expect(page.locator('body')).toBeVisible();
       }
+
+      // Verify page is still functional
+      await expect(page.locator('body')).toBeVisible();
     });
   });
 });

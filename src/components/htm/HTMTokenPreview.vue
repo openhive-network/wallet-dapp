@@ -29,6 +29,7 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
 
 <template>
   <Card
+    data-testid="token-card"
     class="transition-all"
   >
     <CardHeader class="pb-3">

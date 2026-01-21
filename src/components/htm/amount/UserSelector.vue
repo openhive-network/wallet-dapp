@@ -28,11 +28,13 @@ interface Props {
   modelValue?: CTokenUser | undefined;
   placeholder?: string;
   disabled?: boolean;
+  dataTestid?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: undefined,
-  placeholder: 'Select user or enter STM public key'
+  placeholder: 'Select user or enter STM public key',
+  dataTestid: undefined
 });
 
 const emit = defineEmits<{
@@ -259,6 +261,7 @@ watch(isOpen, async (open) => {
           :aria-expanded="isOpen"
           :disabled="disabled"
           as-child
+          :data-testid="dataTestid ? `${dataTestid}-trigger` : undefined"
           class="w-full justify-between flex h-10 sm:h-9 py-1 cursor-pointer font-normal hover:bg-transparent touch-manipulation"
         >
           <div
@@ -320,6 +323,7 @@ watch(isOpen, async (open) => {
             v-model="searchQuery"
             type="text"
             placeholder="Search name or STM key..."
+            :data-testid="dataTestid ? `${dataTestid}-search` : undefined"
             class="flex-1 h-9 sm:h-8 bg-transparent text-base sm:text-sm outline-none placeholder:text-muted-foreground"
             inputmode="text"
             autocomplete="off"

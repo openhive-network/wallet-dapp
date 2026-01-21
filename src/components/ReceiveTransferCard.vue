@@ -247,7 +247,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card>
+  <Card data-testid="receive-transfer-card">
     <CardHeader>
       <CardTitle>Confirm Transfer</CardTitle>
       <CardDescription>
@@ -279,6 +279,7 @@ onMounted(() => {
             </div>
             <Button
               v-if="!tempSigner"
+              data-testid="receive-qr-scan-btn"
               size="sm"
               variant="outline"
               @click="showQrScanner = true"
@@ -385,6 +386,7 @@ onMounted(() => {
         <!-- Send button -->
         <Button
           v-if="!transferCompleted"
+          data-testid="receive-send-btn"
           class="w-full"
           :disabled="isSending || !isFormValid || (!isLoggedIn && !tempSigner)"
           @click="handleSend"

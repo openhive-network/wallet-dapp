@@ -19,7 +19,7 @@
   "scripts": {
     "start": "nuxt dev",
     "dev": "nuxt dev",
-    "test": "echo \"TBA\"",
+    "test": "pnpm run test:e2e",
     "build": "nuxt build",
     "preview": "nuxt preview",
     "lint": "npm run lint-ci -- --fix",

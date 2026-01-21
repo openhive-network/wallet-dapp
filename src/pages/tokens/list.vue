@@ -159,7 +159,7 @@ onUnmounted(() => {
     <div class="space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">
+          <h1 data-testid="token-list-title" class="text-2xl sm:text-3xl font-bold tracking-tight">
             Tokens List
           </h1>
           <p class="text-muted-foreground text-sm sm:text-base">
@@ -169,6 +169,7 @@ onUnmounted(() => {
 
         <div class="flex gap-2">
           <Button
+            data-testid="token-refresh-btn"
             variant="outline"
             size="sm"
             :disabled="tokensStore.isLoading"
@@ -196,6 +197,7 @@ onUnmounted(() => {
           >
             <NuxtLink :to="!!settingsStore.account ? '/tokens/create' : ''" class="keychainify-checked">
               <Button
+                data-testid="create-token-btn"
                 size="sm"
                 :disabled="!settingsStore.account"
               >
@@ -225,6 +227,7 @@ onUnmounted(() => {
       <div class="w-full sm:max-w-[350px] flex-1 relative">
         <Input
           v-model="searchQuery"
+          data-testid="token-search-input"
           placeholder="Search tokens by symbol, name, or Asset num..."
           class="w-full"
           @input="debouncedSearch(searchQuery)"
@@ -303,7 +306,7 @@ onUnmounted(() => {
     <div v-else-if="!tokensStore.isLoading" class="flex flex-col gap-4">
 
       <!-- Tokens Grid -->
-      <div v-if="tokensList.items.length > 0" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div v-if="tokensList.items.length > 0" data-testid="token-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         <template
           v-for="token in tokensList.items"
           :key="token.liquid?.assetNum || token.vesting?.assetNum"
@@ -344,7 +347,7 @@ onUnmounted(() => {
       </div>
 
       <!-- Empty State -->
-      <Card v-else-if="tokensList.items.length === 0">
+      <Card v-else-if="tokensList.items.length === 0" data-testid="token-empty-state">
         <CardContent class="text-center py-12">
           <svg
             width="64"

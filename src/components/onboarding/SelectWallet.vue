@@ -25,14 +25,15 @@ const close = () => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[350px]">
+  <Card data-testid="wallet-select-modal" class="w-full max-w-[350px]">
     <CardHeader>
-      <CardTitle>
+      <CardTitle data-testid="wallet-select-title">
         <div class="inline-flex justify-between w-full">
           <div class="inline-flex items-center">
             <span class="mt-[2px]">Select wallet</span>
           </div>
           <Button
+            data-testid="wallet-select-close"
             variant="ghost"
             size="sm"
             class="px-2"
@@ -54,6 +55,7 @@ const close = () => {
     </CardHeader>
     <CardContent class="space-y-2">
       <OnboardingButton
+        data-testid="wallet-metamask-option"
         download-url="https://metamask.io/download/"
         :disabled="!walletsStatus.metamask"
         :logo-url="getWalletIcon(UsedWallet.METAMASK)"
@@ -63,6 +65,7 @@ const close = () => {
       />
       <OnboardingButton
         v-if="isTokensUrl"
+        data-testid="wallet-htm-option"
         :disabled="!walletsStatus.ctokens"
         :logo-url="getWalletIcon(UsedWallet.CTOKENS_IMPLEMENTATION)"
         name="Hive Token Machine"
@@ -70,6 +73,7 @@ const close = () => {
         @click="useWallet(UsedWallet.CTOKENS_IMPLEMENTATION)"
       />
       <OnboardingButton
+        data-testid="wallet-keychain-option"
         download-url="https://hive-keychain.com/"
         :disabled="!walletsStatus.keychain"
         :logo-url="getWalletIcon(UsedWallet.KEYCHAIN)"
@@ -78,6 +82,7 @@ const close = () => {
         @click="useWallet(UsedWallet.KEYCHAIN)"
       />
       <OnboardingButton
+        data-testid="wallet-peakvault-option"
         download-url="https://vault.peakd.com/peakvault/guide.html#installation"
         :disabled="!walletsStatus.peakvault"
         :logo-url="getWalletIcon(UsedWallet.PEAKVAULT)"
@@ -86,6 +91,7 @@ const close = () => {
         @click="useWallet(UsedWallet.PEAKVAULT)"
       />
       <OnboardingButton
+        data-testid="wallet-googledrive-option"
         :disabled="false"
         :logo-url="getWalletIcon(UsedWallet.GOOGLE_DRIVE)"
         name="Google Drive"

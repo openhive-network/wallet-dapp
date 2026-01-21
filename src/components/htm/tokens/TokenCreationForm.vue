@@ -301,7 +301,7 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <div data-testid="tokencreate-form" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <!-- Token Creation Form -->
     <TokenCreationCard
       v-model:initial-supply="initialSupply"
@@ -336,6 +336,7 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
               <Checkbox
                 id="disclaimer"
                 v-model="agreedToDisclaimer"
+                data-testid="tokencreate-disclaimer"
                 :disabled="isCreatingToken"
               />
               <Label
@@ -351,6 +352,7 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
 
       <!-- Create Button -->
       <Button
+        data-testid="tokencreate-submit-btn"
         class="w-full"
         size="lg"
         :disabled="createButtonState.disabled"

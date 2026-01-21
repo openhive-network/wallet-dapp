@@ -50,7 +50,7 @@ const handleKeydown = (event: KeyboardEvent) => {
     :open="accountNamePromptDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
-    <DialogContent class="sm:max-w-md">
+    <DialogContent data-testid="account-prompt-dialog" class="sm:max-w-md">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <User class="w-5 h-5 text-primary" />
@@ -67,6 +67,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           <Input
             id="accountName"
             v-model="accountName"
+            data-testid="account-prompt-input"
             type="text"
             placeholder="Enter your Hive account name"
             autocomplete="off"
@@ -81,6 +82,7 @@ const handleKeydown = (event: KeyboardEvent) => {
 
       <DialogFooter>
         <Button
+          data-testid="account-prompt-cancel-btn"
           variant="outline"
           :disabled="isSubmitting"
           @click="handleCancel"
@@ -88,6 +90,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           Cancel
         </Button>
         <Button
+          data-testid="account-prompt-submit-btn"
           :disabled="!accountName.trim() || isSubmitting"
           @click="handleSubmit"
         >

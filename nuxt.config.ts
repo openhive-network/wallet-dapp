@@ -3,6 +3,8 @@ import path from 'node:path';
 
 import { defineNuxtConfig } from 'nuxt/config';
 
+import { stripTestIds } from './config/vite-strip-testid';
+
 const getCommitHash = () => {
   const rev = fs.readFileSync('.git/HEAD').toString().trim();
 
@@ -28,8 +30,12 @@ export default defineNuxtConfig({
     }
   },
   vite: {
+    plugins: [stripTestIds()],
     esbuild: {
       target: 'es2022'
+    },
+    build: {
+      sourcemap: false // Only affects production builds - dev has sourcemaps enabled by default
     }
   },
   dir: {
@@ -49,6 +55,9 @@ export default defineNuxtConfig({
   },
   eslint: {
     checker: true
+  },
+  nitro: {
+    sourceMap: false // Disable server-side sourcemaps in production
   },
   runtimeConfig: {
     public: {

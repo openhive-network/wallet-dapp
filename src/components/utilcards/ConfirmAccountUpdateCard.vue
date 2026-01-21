@@ -77,7 +77,7 @@ const updateAuthority = async () => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[600px]">
+  <Card data-testid="update-authority-card" class="w-full max-w-[600px]">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Process Authority Update</span>
@@ -142,6 +142,7 @@ const updateAuthority = async () => {
           />
         </div>
         <Button
+          data-testid="update-authority-btn"
           class="my-2"
           :loading="isLoading"
           @click="updateAuthority"

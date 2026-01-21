@@ -9,6 +9,7 @@ const props = defineProps<{
   disabled?: boolean;
   class?: string;
   id?: string;
+  dataTestid?: string;
 }>();
 
 // Models:
@@ -42,6 +43,7 @@ watch(model, () => {
     v-model="model"
     no-border
     :class="props.class"
+    :data-testid="props.dataTestid"
     type="text"
     inputmode="decimal"
     :placeholder="props.token ? `${props.token.precision} precision amount` : 'Select a token first'"

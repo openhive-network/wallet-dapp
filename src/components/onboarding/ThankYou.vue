@@ -29,7 +29,7 @@ const close = () => {
 <template>
   <Card class="w-full max-w-[350px]">
     <CardHeader>
-      <CardTitle class="inline-flex space-x-1">
+      <CardTitle data-testid="wallet-success-message" class="inline-flex space-x-1">
         Wallet selected!
       </CardTitle>
       <CardDescription>You have succesfully connected your account with <span class="font-bold">{{ stringifiedWallet }}</span>!</CardDescription>
@@ -55,6 +55,7 @@ const close = () => {
     </CardContent>
     <CardFooter class="flex justify-center">
       <Button
+        data-testid="wallet-close-btn"
         variant="outline"
         size="lg"
         @click="close"

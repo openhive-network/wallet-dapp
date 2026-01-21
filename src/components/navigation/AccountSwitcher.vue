@@ -202,7 +202,7 @@ const otherAccount = computed(() => {
 </script>
 
 <template>
-  <div class="inline-flex items-center relative gap-2">
+  <div data-testid="account-switcher" class="inline-flex items-center relative gap-2">
     <!-- Main account display (shown when at least one account is connected) -->
     <div
       v-if="displayedAccount"
@@ -230,6 +230,7 @@ const otherAccount = computed(() => {
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
+              data-testid="account-disconnect-btn"
               variant="ghost"
               size="icon"
               class="h-10 w-10 sm:h-6 sm:w-6 ml-1"
@@ -261,6 +262,7 @@ const otherAccount = computed(() => {
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
+              data-testid="account-switch-btn"
               variant="outline"
               size="icon"
               class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"
@@ -307,6 +309,7 @@ const otherAccount = computed(() => {
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
+              data-testid="account-connect-htm-btn"
               variant="outline"
               size="icon"
               class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"
@@ -329,6 +332,7 @@ const otherAccount = computed(() => {
         <Tooltip>
           <TooltipTrigger as-child>
             <Button
+              data-testid="account-connect-hive-btn"
               variant="outline"
               size="icon"
               class="h-10 w-10 sm:h-8 sm:w-8 rounded-full"

@@ -2,10 +2,10 @@
  * Page Object Models
  *
  * Reusable page abstractions for consistent test interactions.
- * Uses actual selectors from the wallet-dapp UI.
+ * Uses data-testid selectors for stability.
  */
 
-import type { Page, Locator} from '@playwright/test';
+import type { Page, Locator } from '@playwright/test';
 import { expect } from '@playwright/test';
 
 import * as selectors from './selectors';
@@ -15,17 +15,17 @@ import * as selectors from './selectors';
 // ===========================================
 
 export class BasePage {
-  constructor (protected page: Page) {}
+  constructor(protected page: Page) {}
 
-  async navigate (path: string = '/') {
+  async navigate(path: string = '/') {
     await this.page.goto(path);
   }
 
-  async waitForPageLoad () {
+  async waitForPageLoad() {
     await this.page.waitForLoadState('networkidle');
   }
 
-  async getToastMessage (): Promise<string | null> {
+  async getToastMessage(): Promise<string | null> {
     const toast = this.page.locator(selectors.common.toast).first();
     if (await toast.isVisible().catch(() => false))
       return toast.textContent();
@@ -33,7 +33,7 @@ export class BasePage {
     return null;
   }
 
-  async waitForToast (expectedText?: string, timeout = 10000) {
+  async waitForToast(expectedText?: string, timeout = 10000) {
     const toast = this.page.locator(selectors.common.toast).first();
     await expect(toast).toBeVisible({ timeout });
     if (expectedText)
@@ -42,20 +42,17 @@ export class BasePage {
     return toast;
   }
 
-  async waitForLoading () {
+  async waitForLoading() {
     const spinner = this.page.locator(selectors.common.loadingSpinner);
     const skeleton = this.page.locator(selectors.common.loadingSkeleton);
     await spinner.waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
     await skeleton.first().waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
   }
 
-  async closeDialog () {
-    const closeBtn = this.page.locator(selectors.common.closeButton).or(
-      this.page.locator(selectors.common.dialogCloseButton)
-    );
+  async closeDialog() {
+    const closeBtn = this.page.locator(selectors.common.closeButton);
     if (await closeBtn.first().isVisible().catch(() => false))
       await closeBtn.first().click();
-
   }
 }
 
@@ -64,44 +61,40 @@ export class BasePage {
 // ===========================================
 
 export class HomePage extends BasePage {
-  // Locators using actual UI selectors
-  get connectWalletButton (): Locator {
-    return this.page.locator(selectors.walletConnection.connectButton).or(
-      this.page.locator(selectors.accountDisplay.connectWalletButton)
-    );
+  get connectWalletButton(): Locator {
+    return this.page.locator(selectors.walletConnection.connectButton);
   }
 
-  get connectWalletCard (): Locator {
+  get connectWalletCard(): Locator {
     return this.page.locator(selectors.accountDisplay.connectWalletCard);
   }
 
-  get accountDetailsCard (): Locator {
+  get accountDetailsCard(): Locator {
     return this.page.locator(selectors.accountDisplay.accountDetailsCard);
   }
 
-  get accountName (): Locator {
+  get accountName(): Locator {
     return this.page.locator(selectors.accountDisplay.accountName);
   }
 
-  // Actions
-  async goto () {
+  async goto() {
     await this.navigate('/');
     await this.waitForPageLoad();
   }
 
-  async clickConnectWallet () {
+  async clickConnectWallet() {
     await this.connectWalletButton.first().click();
   }
 
-  async isLoggedIn (): Promise<boolean> {
+  async isLoggedIn(): Promise<boolean> {
     return this.accountDetailsCard.isVisible().catch(() => false);
   }
 
-  async isConnected (): Promise<boolean> {
+  async isConnected(): Promise<boolean> {
     return this.isLoggedIn();
   }
 
-  async getDisplayedAccountName (): Promise<string | null> {
+  async getDisplayedAccountName(): Promise<string | null> {
     if (await this.accountName.first().isVisible().catch(() => false))
       return this.accountName.first().textContent();
 
@@ -114,74 +107,72 @@ export class HomePage extends BasePage {
 // ===========================================
 
 export class WalletSelectModal extends BasePage {
-  get modal (): Locator {
+  get modal(): Locator {
     return this.page.locator(selectors.walletConnection.walletSelectModal);
   }
 
-  get keychainOption (): Locator {
+  get keychainOption(): Locator {
     return this.page.locator(selectors.walletConnection.keychainOption);
   }
 
-  get peakvaultOption (): Locator {
+  get peakvaultOption(): Locator {
     return this.page.locator(selectors.walletConnection.peakVaultOption);
   }
 
-  get metamaskOption (): Locator {
+  get metamaskOption(): Locator {
     return this.page.locator(selectors.walletConnection.metamaskOption);
   }
 
-  get googleDriveOption (): Locator {
+  get googleDriveOption(): Locator {
     return this.page.locator(selectors.walletConnection.googleDriveOption);
   }
 
-  get htmOption (): Locator {
+  get htmOption(): Locator {
     return this.page.locator(selectors.walletConnection.htmOption);
   }
 
-  get closeButton (): Locator {
-    return this.page.locator(selectors.walletConnection.closeButton).or(
-      this.page.locator(selectors.common.closeButton)
-    );
+  get closeButton(): Locator {
+    return this.page.locator(selectors.walletConnection.closeButton);
   }
 
-  async waitForOpen () {
+  async waitForOpen() {
     await this.page.locator(selectors.walletConnection.walletSelectTitle).waitFor({ state: 'visible', timeout: 10000 });
   }
 
-  async waitForClose () {
+  async waitForClose() {
     await this.modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
-  async selectKeychain () {
+  async selectKeychain() {
     await this.keychainOption.click();
   }
 
-  async selectPeakVault () {
+  async selectPeakVault() {
     await this.peakvaultOption.click();
   }
 
-  async selectMetaMask () {
+  async selectMetaMask() {
     await this.metamaskOption.click();
   }
 
-  async selectGoogleDrive () {
+  async selectGoogleDrive() {
     await this.googleDriveOption.click();
   }
 
-  async selectHTM () {
+  async selectHTM() {
     await this.htmOption.click();
   }
 
-  async close () {
+  async close() {
     await this.page.keyboard.press('Escape');
     await this.waitForClose();
   }
 
-  async waitForKeychainConnect () {
+  async waitForKeychainConnect() {
     await this.page.locator(selectors.walletConnection.keychainTitle).waitFor({ state: 'visible', timeout: 10000 });
   }
 
-  async selectAuthority (authority: 'Posting' | 'Active' | 'Memo') {
+  async selectAuthority(authority: 'Posting' | 'Active' | 'Memo') {
     await this.page.locator(selectors.walletConnection.authoritySelect).click();
     const option = authority === 'Posting' ? selectors.walletConnection.authorityPosting :
       authority === 'Active' ? selectors.walletConnection.authorityActive :
@@ -189,20 +180,20 @@ export class WalletSelectModal extends BasePage {
     await this.page.locator(option).click();
   }
 
-  async clickKeychainConnect () {
+  async clickKeychainConnect() {
     const btn = this.page.locator('button:has-text("Connect")');
     await btn.click();
   }
 
-  async waitForSuccess () {
+  async waitForSuccess() {
     await this.page.locator(selectors.walletConnection.successMessage).waitFor({ state: 'visible', timeout: 10000 });
   }
 
-  async closeSuccessModal () {
+  async closeSuccessModal() {
     await this.page.locator(selectors.walletConnection.closeButton).click();
   }
 
-  async isWalletAvailable (wallet: 'keychain' | 'peakvault' | 'metamask' | 'google-drive' | 'htm'): Promise<boolean> {
+  async isWalletAvailable(wallet: 'keychain' | 'peakvault' | 'metamask' | 'google-drive' | 'htm'): Promise<boolean> {
     const optionMap = {
       'keychain': this.keychainOption,
       'peakvault': this.peakvaultOption,
@@ -223,48 +214,48 @@ export { WalletSelectModal as WalletModal };
 // ===========================================
 
 export class RecoveryPasswordDialog extends BasePage {
-  get dialog (): Locator {
-    return this.page.locator(selectors.common.dialog);
+  get dialog(): Locator {
+    return this.page.locator(selectors.common.recoveryPasswordDialog);
   }
 
-  get passwordInput (): Locator {
-    return this.page.locator('#password').or(this.page.locator('input[type="password"]'));
+  get passwordInput(): Locator {
+    return this.page.locator(selectors.common.recoveryPasswordInput);
   }
 
-  get submitButton (): Locator {
-    return this.page.locator('button:has-text("Submit")').or(this.page.locator('button:has-text("Login")'));
+  get submitButton(): Locator {
+    return this.page.locator(selectors.common.recoverySubmitBtn);
   }
 
-  get cancelButton (): Locator {
-    return this.page.locator('button:has-text("Cancel")');
+  get cancelButton(): Locator {
+    return this.page.locator(selectors.common.recoveryCancelBtn);
   }
 
-  get errorMessage (): Locator {
+  get errorMessage(): Locator {
     return this.page.locator(selectors.common.errorMessage);
   }
 
-  async waitForOpen () {
+  async waitForOpen() {
     await this.dialog.waitFor({ state: 'visible', timeout: 5000 });
   }
 
-  async waitForClose () {
+  async waitForClose() {
     await this.dialog.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
   }
 
-  async enterPassword (password: string) {
+  async enterPassword(password: string) {
     await this.passwordInput.fill(password);
   }
 
-  async submit () {
+  async submit() {
     await this.submitButton.click();
   }
 
-  async cancel () {
+  async cancel() {
     await this.cancelButton.click();
     await this.waitForClose();
   }
 
-  async submitPassword (password: string) {
+  async submitPassword(password: string) {
     await this.enterPassword(password);
     await this.submit();
   }
@@ -275,85 +266,84 @@ export class RecoveryPasswordDialog extends BasePage {
 // ===========================================
 
 export class TokenListPage extends BasePage {
-  get pageTitle (): Locator {
+  get pageTitle(): Locator {
     return this.page.locator(selectors.tokenList.pageTitle);
   }
 
-  get tokenList (): Locator {
+  get tokenList(): Locator {
     return this.page.locator(selectors.tokenList.tokenGrid);
   }
 
-  get tokenCards (): Locator {
+  get tokenCards(): Locator {
     return this.page.locator(selectors.tokenList.tokenCard);
   }
 
-  get searchInput (): Locator {
+  get searchInput(): Locator {
     return this.page.locator(selectors.tokenList.searchInput);
   }
 
-  get createTokenButton (): Locator {
+  get createTokenButton(): Locator {
     return this.page.locator(selectors.tokenList.createTokenButton);
   }
 
-  get loadingSpinner (): Locator {
+  get loadingSpinner(): Locator {
     return this.page.locator(selectors.common.loadingSkeleton);
   }
 
-  get refreshButton (): Locator {
+  get refreshButton(): Locator {
     return this.page.locator(selectors.tokenList.refreshButton);
   }
 
-  get emptyState (): Locator {
+  get emptyState(): Locator {
     return this.page.locator(selectors.tokenList.emptyState);
   }
 
-  get loadMoreButton (): Locator {
+  get loadMoreButton(): Locator {
     return this.page.locator(selectors.tokenList.loadMoreButton);
   }
 
-  async goto () {
+  async goto() {
     await this.navigate('/tokens/list');
     await this.waitForPageLoad();
   }
 
-  async waitForTokensLoaded () {
+  async waitForTokensLoaded() {
     await this.pageTitle.waitFor({ state: 'visible', timeout: 10000 });
     await this.waitForLoading();
   }
 
-  async searchToken (query: string) {
+  async searchToken(query: string) {
     await this.searchInput.fill(query);
     await this.page.waitForTimeout(500);
   }
 
-  async clearSearch () {
+  async clearSearch() {
     await this.searchInput.clear();
   }
 
-  async getTokenCount (): Promise<number> {
+  async getTokenCount(): Promise<number> {
     return this.tokenCards.count();
   }
 
-  async clickToken (index: number) {
+  async clickToken(index: number) {
     const links = this.page.locator(selectors.tokenList.tokenCardLink);
     await links.nth(index).click();
   }
 
-  async clickCreateToken () {
+  async clickCreateToken() {
     await this.createTokenButton.click();
   }
 
-  async clickRefresh () {
+  async clickRefresh() {
     await this.refreshButton.click();
   }
 
-  async loadMore () {
+  async loadMore() {
     if (await this.loadMoreButton.isVisible().catch(() => false))
       await this.loadMoreButton.click();
-
   }
 
-  async hasEmptyState (): Promise<boolean> {
+  async hasEmptyState(): Promise<boolean> {
     return this.emptyState.isVisible().catch(() => false);
   }
 }
@@ -366,38 +356,32 @@ export { TokenListPage as TokensPage };
 // ===========================================
 
 export class TokenDetailPage extends BasePage {
-  get tokenInfo (): Locator {
-    return this.page.locator('.rounded-xl.border.bg-card');
+  get tokenInfo(): Locator {
+    return this.page.locator('[data-testid="token-info"]');
   }
 
-  get tokenName (): Locator {
-    return this.page.locator('h1, .text-2xl.font-bold');
+  get tokenName(): Locator {
+    return this.page.locator('[data-testid="token-name"]');
   }
 
-  get tokenSymbol (): Locator {
-    return this.page.locator('.text-lg.truncate');
+  get transferButton(): Locator {
+    return this.page.locator('[data-testid="transfer-btn"]');
   }
 
-  get transferButton (): Locator {
-    return this.page.locator('button:has-text("Transfer")').or(
-      this.page.locator('button:has(svg[d*="send"])')
-    );
+  get stakeButton(): Locator {
+    return this.page.locator(selectors.tokenStaking.stakeBtn);
   }
 
-  get stakeButton (): Locator {
-    return this.page.locator('button:has-text("Stake")');
-  }
-
-  async goto (assetNum: string) {
+  async goto(assetNum: string) {
     await this.navigate(`/tokens/token?asset-num=${assetNum}`);
     await this.waitForPageLoad();
   }
 
-  async clickTransfer () {
+  async clickTransfer() {
     await this.transferButton.click();
   }
 
-  async clickStake () {
+  async clickStake() {
     await this.stakeButton.click();
   }
 }
@@ -407,68 +391,42 @@ export class TokenDetailPage extends BasePage {
 // ===========================================
 
 export class SendTransferCard extends BasePage {
-  get card (): Locator {
-    return this.page.locator(selectors.common.dialog).or(
-      this.page.locator('.rounded-xl.border.bg-card')
-    );
+  get card(): Locator {
+    return this.page.locator(selectors.tokenTransfer.sendTransferCard);
   }
 
-  get recipientInput (): Locator {
-    return this.page.locator(selectors.tokenTransfer.recipientInput).or(
-      this.page.locator('input[placeholder*="recipient"]').or(
-        this.page.locator('input[placeholder*="account"]')
-      )
-    );
+  get recipientInput(): Locator {
+    return this.page.locator(selectors.tokenTransfer.recipientInput);
   }
 
-  get amountInput (): Locator {
-    return this.page.locator(selectors.tokenTransfer.amountInput).or(
-      this.page.locator('input[type="number"]')
-    );
+  get amountInput(): Locator {
+    return this.page.locator(selectors.tokenTransfer.amountInput);
   }
 
-  get memoInput (): Locator {
-    return this.page.locator('#memo').or(
-      this.page.locator('textarea[placeholder*="memo"]').or(
-        this.page.locator('input[placeholder*="memo"]')
-      )
-    );
+  get memoInput(): Locator {
+    return this.page.locator(selectors.tokenTransfer.memoInput);
   }
 
-  get tokenSelect (): Locator {
-    return this.page.locator('[role="combobox"]');
+  get sendButton(): Locator {
+    return this.page.locator(selectors.tokenTransfer.sendButton);
   }
 
-  get sendButton (): Locator {
-    return this.page.locator('button:has-text("Send")').or(
-      this.page.locator('button:has-text("Transfer")')
-    );
+  get maxButton(): Locator {
+    return this.page.locator(selectors.tokenTransfer.maxAmountBtn);
   }
 
-  get maxButton (): Locator {
-    return this.page.locator('button:has-text("Max")').or(
-      this.page.locator('button:has-text("MAX")')
-    );
-  }
-
-  async fillTransfer (recipient: string, amount: string, memo?: string) {
+  async fillTransfer(recipient: string, amount: string, memo?: string) {
     await this.recipientInput.first().fill(recipient);
     await this.amountInput.first().fill(amount);
     if (memo)
       await this.memoInput.first().fill(memo);
-
   }
 
-  async selectToken (tokenSymbol: string) {
-    await this.tokenSelect.click();
-    await this.page.locator(`[role="option"]:has-text("${tokenSymbol}")`).click();
-  }
-
-  async clickMax () {
+  async clickMax() {
     await this.maxButton.click();
   }
 
-  async submit () {
+  async submit() {
     await this.sendButton.first().click();
   }
 }
@@ -478,51 +436,44 @@ export class SendTransferCard extends BasePage {
 // ===========================================
 
 export class SettingsPage extends BasePage {
-  get pageTitle (): Locator {
+  get pageTitle(): Locator {
     return this.page.locator(selectors.settings.pageTitle);
   }
 
-  get connectGoogleCard (): Locator {
+  get connectGoogleCard(): Locator {
     return this.page.locator(selectors.settings.connectGoogleCard);
   }
 
-  get connectGoogleButton (): Locator {
+  get connectGoogleButton(): Locator {
     return this.page.locator(selectors.settings.connectGoogleButton);
   }
 
-  get privateKeyInput (): Locator {
+  get privateKeyInput(): Locator {
     return this.page.locator(selectors.settings.privateKeyInput);
   }
 
-  get saveButton (): Locator {
+  get saveButton(): Locator {
     return this.page.locator(selectors.settings.saveButton);
   }
 
-  get googleDriveSection (): Locator {
-    return this.page.locator('[data-testid="google-drive-section"]').or(
-      this.page.locator('text=Google Drive')
-    );
-  }
-
-  async goto () {
+  async goto() {
     await this.navigate('/settings');
     await this.waitForPageLoad();
   }
 
-  async isGoogleConnected (): Promise<boolean> {
-    // If connect card is visible, not connected
+  async isGoogleConnected(): Promise<boolean> {
     return !(await this.connectGoogleCard.isVisible().catch(() => false));
   }
 
-  async clickConnectGoogle () {
+  async clickConnectGoogle() {
     await this.connectGoogleButton.click();
   }
 
-  async fillPrivateKey (key: string) {
+  async fillPrivateKey(key: string) {
     await this.privateKeyInput.fill(key);
   }
 
-  async clickSave () {
+  async clickSave() {
     await this.saveButton.click();
   }
 }
@@ -532,75 +483,74 @@ export class SettingsPage extends BasePage {
 // ===========================================
 
 export class AppNavigation extends BasePage {
-  get sidebar (): Locator {
+  get sidebar(): Locator {
     return this.page.locator(selectors.layout.sidebar);
   }
 
-  get header (): Locator {
+  get header(): Locator {
     return this.page.locator(selectors.layout.header);
   }
 
-  get accountSwitcher (): Locator {
+  get accountSwitcher(): Locator {
     return this.page.locator(selectors.accountDisplay.accountSwitcher);
   }
 
-  get homeLink (): Locator {
+  get homeLink(): Locator {
     return this.page.locator(selectors.navigation.home);
   }
 
-  get tokensLink (): Locator {
+  get tokensLink(): Locator {
     return this.page.locator(selectors.navigation.tokensList);
   }
 
-  get settingsLink (): Locator {
+  get settingsLink(): Locator {
     return this.page.locator(selectors.navigation.googleDriveWallet);
   }
 
-  get sidebarTrigger (): Locator {
+  get sidebarTrigger(): Locator {
     return this.page.locator(selectors.layout.sidebarTrigger);
   }
 
-  async openSidebar () {
+  async openSidebar() {
     if (await this.sidebarTrigger.isVisible().catch(() => false))
       await this.sidebarTrigger.click();
-
   }
 
-  async goToHome () {
+  async goToHome() {
     await this.homeLink.click();
     await this.waitForPageLoad();
   }
 
-  async goToTokens () {
+  async goToTokens() {
     await this.tokensLink.click();
     await this.waitForPageLoad();
   }
 
-  async goToSettings () {
+  async goToSettings() {
     await this.settingsLink.click();
     await this.waitForPageLoad();
   }
 
-  async openAccountSwitcher () {
+  async openAccountSwitcher() {
     await this.accountSwitcher.click();
   }
 
-  async navigateToMemoEncryption () {
+  async navigateToMemoEncryption() {
     await this.page.locator(selectors.navigation.memoEncryption).click();
     await this.waitForPageLoad();
   }
 
-  async navigateToTransactionSigning () {
+  async navigateToTransactionSigning() {
     await this.page.locator(selectors.navigation.transactionSigning).click();
     await this.waitForPageLoad();
   }
 
-  async navigateToRegisterHTMAccount () {
+  async navigateToRegisterHTMAccount() {
     await this.page.locator(selectors.navigation.registerHtmAccount).click();
     await this.waitForPageLoad();
   }
 
-  async navigateToMyHTMAccount () {
+  async navigateToMyHTMAccount() {
     await this.page.locator(selectors.navigation.myHtmAccount).click();
     await this.waitForPageLoad();
   }
@@ -611,32 +561,32 @@ export class AppNavigation extends BasePage {
 // ===========================================
 
 export class HTMRegistrationPage extends BasePage {
-  get optionsCard (): Locator {
+  get optionsCard(): Locator {
     return this.page.locator(selectors.htmRegistration.optionsCard);
   }
 
-  get registerNewButton (): Locator {
+  get registerNewButton(): Locator {
     return this.page.locator(selectors.htmRegistration.registerNewButton);
   }
 
-  get loginButton (): Locator {
+  get loginButton(): Locator {
     return this.page.locator(selectors.htmRegistration.loginButton);
   }
 
-  async goto () {
+  async goto() {
     await this.navigate('/tokens/register-account');
     await this.waitForPageLoad();
   }
 
-  async clickRegisterNew () {
+  async clickRegisterNew() {
     await this.registerNewButton.click();
   }
 
-  async clickLogin () {
+  async clickLogin() {
     await this.loginButton.click();
   }
 
-  async fillRegistrationForm (options: {
+  async fillRegistrationForm(options: {
     displayName: string;
     password: string;
     about?: string;
@@ -647,26 +597,25 @@ export class HTMRegistrationPage extends BasePage {
 
     if (options.about)
       await this.page.locator(selectors.htmRegistration.aboutTextarea).fill(options.about);
-
   }
 
-  async generateKeys () {
+  async generateKeys() {
     await this.page.locator(selectors.htmRegistration.generateButton).click();
   }
 
-  async confirmDownload () {
+  async confirmDownload() {
     await this.page.locator(selectors.htmRegistration.confirmCheckbox).click();
   }
 
-  async submitRegistration () {
+  async submitRegistration() {
     await this.page.locator(selectors.htmRegistration.registerButton).click();
   }
 
-  async fillLoginPassword (password: string) {
+  async fillLoginPassword(password: string) {
     await this.page.locator(selectors.htmRegistration.passwordInput).fill(password);
   }
 
-  async submitLogin () {
+  async submitLogin() {
     await this.page.locator(selectors.htmRegistration.loginSubmitButton).click();
   }
 }
@@ -676,37 +625,37 @@ export class HTMRegistrationPage extends BasePage {
 // ===========================================
 
 export class MyBalancePage extends BasePage {
-  get pageTitle (): Locator {
+  get pageTitle(): Locator {
     return this.page.locator(selectors.myBalance.pageTitle);
   }
 
-  get refreshButton (): Locator {
+  get refreshButton(): Locator {
     return this.page.locator(selectors.myBalance.refreshButton);
   }
 
-  get balanceTable (): Locator {
+  get balanceTable(): Locator {
     return this.page.locator(selectors.myBalance.balanceTable);
   }
 
-  async goto () {
+  async goto() {
     await this.navigate('/tokens/my-balance');
     await this.waitForPageLoad();
   }
 
-  async waitForBalancesLoad () {
+  async waitForBalancesLoad() {
     await this.pageTitle.waitFor({ state: 'visible', timeout: 10000 });
     await this.waitForLoading();
   }
 
-  async clickRefresh () {
+  async clickRefresh() {
     await this.refreshButton.click();
   }
 
-  async getBalanceRows (): Promise<Locator> {
+  async getBalanceRows(): Promise<Locator> {
     return this.page.locator('tbody tr');
   }
 
-  async hasNoBalances (): Promise<boolean> {
+  async hasNoBalances(): Promise<boolean> {
     return this.page.locator(selectors.myBalance.noBalances).isVisible().catch(() => false);
   }
 }

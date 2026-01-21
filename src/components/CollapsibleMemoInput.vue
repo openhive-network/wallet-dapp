@@ -37,6 +37,7 @@ const handleInput = (event: Event) => {
   <div>
     <div class="flex items-center justify-between">
       <Button
+        data-testid="memo-toggle-btn"
         variant="ghost"
         size="sm"
         class="gap-2"
@@ -60,6 +61,7 @@ const handleInput = (event: Event) => {
     <div v-show="isExpanded" class="mt-2">
       <Textarea
         id="memo"
+        data-testid="memo-textarea"
         :model-value="modelValue"
         :placeholder="placeholder || 'Memo...'"
         :rows="rows || 3"
