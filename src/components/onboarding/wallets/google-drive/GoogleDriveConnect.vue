@@ -341,7 +341,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <Card class="w-full max-w-[480px]">
+  <Card class="w-full max-w-[480px]" data-testid="wallet-googledrive-card">
     <!-- Header -->
     <CardHeader class="pb-3">
       <div class="flex items-center justify-between">

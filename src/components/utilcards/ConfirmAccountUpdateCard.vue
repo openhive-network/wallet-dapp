@@ -109,6 +109,7 @@ const updateAuthority = async () => {
           <Label for="updateAuthority_memoKey">New Memo Key</Label>
           <Input
             id="updateAuthority_memoKey"
+            data-testid="memo-key"
             v-model="memoKey"
             placeholder="Nothing to update"
             class="my-2"
@@ -118,6 +119,7 @@ const updateAuthority = async () => {
           <Label for="updateAuthority_postingKey">Add Posting Key</Label>
           <Input
             id="updateAuthority_postingKey"
+            data-testid="posting-key"
             v-model="postingKey"
             placeholder="Nothing to add"
             class="my-2"
@@ -127,6 +129,7 @@ const updateAuthority = async () => {
           <Label for="updateAuthority_activeKey">Add Active Key</Label>
           <Input
             id="updateAuthority_activeKey"
+            data-testid="active-key"
             v-model="activeKey"
             placeholder="Nothing to add"
             class="my-2"
@@ -136,6 +139,7 @@ const updateAuthority = async () => {
           <Label for="updateAuthority_ownerKey">Add Owner Key</Label>
           <Input
             id="updateAuthority_ownerKey"
+            data-testid="owner-key"
             v-model="ownerKey"
             placeholder="Nothing to add"
             class="my-2"

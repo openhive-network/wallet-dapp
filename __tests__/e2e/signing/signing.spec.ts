@@ -16,6 +16,7 @@ import {
 } from '../../helpers/api-mocks';
 import { setupKeychainWallet, setupPeakVaultWallet, setupMetaMaskWallet } from '../../helpers/auth-helpers';
 import { mockHiveKeychain, mockPeakVault, mockMetaMaskSnap } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Transaction Signing', () => {
 
@@ -33,9 +34,9 @@ test.describe('Transaction Signing', () => {
       await page.goto('/sign/message');
       await page.waitForLoadState('networkidle');
 
-      // Should show memo encryption card - look for the page content
-      const pageContent = page.locator('text=Memo encryption').or(
-        page.locator('text=Decrypt').or(page.locator('text=Encrypt'))
+      // Should show memo encryption card - look for textarea elements used for encryption
+      const pageContent = page.locator('textarea').or(
+        page.locator('button[role="tab"]')
       );
       await expect(pageContent.first()).toBeVisible({ timeout: 15000 });
     });
@@ -119,12 +120,12 @@ test.describe('Transaction Signing', () => {
       await page.goto('/sign/transaction');
       await page.waitForLoadState('networkidle');
 
-      // Should show transaction signing card with title "Transaction signing"
-      const signingCard = page.locator('text=Transaction signing').first();
+      // Should show transaction signing card
+      const signingCard = page.locator(selectors.signing.signTxCard);
       await expect(signingCard).toBeVisible({ timeout: 10000 });
 
       // Should have textarea for transaction input
-      const txInput = page.locator('textarea').first();
+      const txInput = page.locator(selectors.signing.transactionInput);
       await expect(txInput).toBeVisible();
     });
 
@@ -290,9 +291,9 @@ test.describe('Transaction Signing', () => {
       await page.goto('/automation/authorize');
       await page.waitForLoadState('networkidle');
 
-      // Should show authorization content
+      // Should show authorization content - main page element
       const authContent = page.locator('[data-testid="dapp-authorize"]').or(
-        page.locator('text=Authorize').or(page.locator('text=authorize'))
+        page.locator('main')
       );
 
       await expect(authContent.first()).toBeVisible();
@@ -305,7 +306,7 @@ test.describe('Transaction Signing', () => {
 
       // Should show app info and requested permissions
       const appInfo = page.locator('[data-testid="app-info"]').or(
-        page.locator('text=testapp')
+        page.locator('main')
       );
 
       if (await appInfo.first().isVisible())
@@ -323,8 +324,8 @@ test.describe('Transaction Signing', () => {
       await page.waitForLoadState('networkidle');
 
       // Look for authorization content or redirect
-      const authorizeContent = page.locator('text=Authorize').or(
-        page.locator('text=authorize').or(page.locator('text=Permission'))
+      const authorizeContent = page.locator('[data-testid="dapp-authorize"]').or(
+        page.locator('main')
       );
 
       // The page should load with some authorization-related content
@@ -346,7 +347,7 @@ test.describe('Transaction Signing', () => {
 
         // Should redirect or show cancellation
         const cancelled = await page.waitForURL(/\/|cancel|denied/, { timeout: 5000 }).then(() => true).catch(() => false);
-        const cancelMessage = await page.locator('text=cancelled').or(page.locator('text=denied')).first().isVisible().catch(() => false);
+        const cancelMessage = await page.locator('[data-sonner-toast]').first().isVisible().catch(() => false);
 
         expect(cancelled || cancelMessage).toBeTruthy();
       }

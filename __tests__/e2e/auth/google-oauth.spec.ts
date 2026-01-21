@@ -24,6 +24,7 @@ import {
 } from '../../helpers/auth-helpers';
 import { HomePage, WalletSelectModal } from '../../helpers/page-objects';
 import { setupAllWalletMocks } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Google OAuth Flow', () => {
 
@@ -54,11 +55,9 @@ test.describe('Google OAuth Flow', () => {
 
       // Should have some indication that login is required
       const authIndicator = page.locator('[data-testid="google-auth-required"]');
-      const loginText = page.locator('text=Sign in');
 
       // Either shows auth required indicator or the option itself shows login needed
       const _hasAuthIndicator = await authIndicator.isVisible().catch(() => false);
-      const _hasLoginText = await loginText.isVisible().catch(() => false);
 
       // At minimum, the Google option should be visible
       expect(await googleOption.isVisible()).toBeTruthy();
@@ -114,7 +113,7 @@ test.describe('Google OAuth Flow', () => {
         await expect(async () => {
           const hasLoading = await page.locator('.animate-spin').first().isVisible().catch(() => false);
           const urlChanged = !page.url().endsWith('/');
-          const hasConnectorView = await page.locator('text=Google').first().isVisible().catch(() => false);
+          const hasConnectorView = await page.locator(selectors.walletConnection.googleDriveCard).first().isVisible().catch(() => false);
 
           expect(hasLoading || urlChanged || hasConnectorView).toBe(true);
         }).toPass({ timeout: 5000 });
@@ -151,9 +150,7 @@ test.describe('Google OAuth Flow', () => {
 
       // Should show error message
       const _errorMessage = page.locator('[data-testid="auth-error"]').or(
-        page.locator('text=authentication failed').or(
-          page.locator('text=error')
-        )
+        page.locator('[data-sonner-toast][data-type="error"]')
       );
 
       // Either shows error or stays unauthenticated
@@ -206,8 +203,8 @@ test.describe('Google OAuth Flow', () => {
       await page.waitForLoadState('networkidle');
 
       // Page should load - either shows connect card or account details depending on session
-      const connectCard = page.locator('text=Connect your account');
-      const accountDetails = page.locator('text=Account details');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const accountDetails = page.locator(selectors.accountDisplay.accountDetailsCard);
 
       const showsContent = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
         await accountDetails.first().isVisible().catch(() => false);
@@ -279,7 +276,7 @@ test.describe('Google OAuth Flow', () => {
       await homePage.waitForPageLoad();
 
       // App should not crash, should show connect wallet card
-      const connectCard = page.locator('text=Connect your account');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
       await expect(connectCard.first()).toBeVisible({ timeout: 15000 });
     });
 
@@ -299,7 +296,7 @@ test.describe('Google OAuth Flow', () => {
       await homePage.navigate();
 
       // Should eventually load and show connect card
-      const connectCard = page.locator('text=Connect your account');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
       await expect(connectCard.first()).toBeVisible({ timeout: 15000 });
     });
   });
@@ -321,9 +318,9 @@ test.describe('Google OAuth Flow', () => {
       await expect(pageContent).toBeVisible({ timeout: 10000 });
 
       // Verify page has loaded with Google Drive management content
-      const hasGoogleDriveTitle = await page.locator('text=Google Drive Wallet Management').first().isVisible().catch(() => false);
+      const hasGoogleDriveSettings = await page.locator(selectors.settings.connectGoogleCard).first().isVisible().catch(() => false);
       const hasContainer = await page.locator('.container').first().isVisible().catch(() => false);
-      expect(hasGoogleDriveTitle || hasContainer).toBe(true);
+      expect(hasGoogleDriveSettings || hasContainer).toBe(true);
     });
   });
 });

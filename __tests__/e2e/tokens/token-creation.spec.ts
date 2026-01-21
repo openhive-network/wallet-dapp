@@ -19,6 +19,7 @@ import {
 } from '../../helpers/api-mocks';
 import { setupKeychainWallet } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Token Creation', () => {
 
@@ -37,14 +38,14 @@ test.describe('Token Creation', () => {
       await page.waitForLoadState('networkidle');
 
       // The page should show token creation form or require HTM login
-      // Check for any token creation related content
-      const pageTitle = page.locator('text=Create Token').or(
-        page.locator('text=Token Creation').or(
-          page.locator('text=HTM Access Required')
+      // Check for token creation card or form
+      const tokenCreationContent = page.locator(selectors.tokenCreation.card).or(
+        page.locator(selectors.tokenCreation.form).or(
+          page.locator(selectors.htmRegistration.optionsCard)
         )
       );
 
-      await expect(pageTitle.first()).toBeVisible({ timeout: 15000 });
+      await expect(tokenCreationContent.first()).toBeVisible({ timeout: 15000 });
     });
 
     test('should have all required fields', async ({ page }) => {
@@ -90,9 +91,9 @@ test.describe('Token Creation', () => {
       if (await submitButton.first().isVisible()) {
         await submitButton.first().click();
 
-        // Should show validation errors
+        // Should show validation errors - form fields will be invalid
         const validationErrors = page.locator('[data-testid="validation-error"]').or(
-          page.locator('text=required').or(page.locator('.text-red').or(page.locator('.error')))
+          page.locator('[aria-invalid="true"]').or(page.locator('[data-invalid="true"]'))
         );
 
         const errorCount = await validationErrors.count();
@@ -113,9 +114,9 @@ test.describe('Token Creation', () => {
         await symbolInput.fill('TOOLONGSYMBOLNAME');
         await symbolInput.blur();
 
-        // Should show validation error
+        // Should show validation error or input may be limited
         const symbolError = page.locator('[data-testid="symbol-error"]').or(
-          page.locator('text=too long').or(page.locator('text=maximum'))
+          page.locator(`${selectors.tokenCreation.symbolInput}[aria-invalid="true"]`)
         );
 
         await expect(symbolError.first()).toBeVisible({ timeout: 3000 }).catch(() => {
@@ -137,9 +138,9 @@ test.describe('Token Creation', () => {
         await precisionInput.fill('25');
         await precisionInput.blur();
 
-        // Should show validation error
+        // Should show validation error or input may be limited
         const precisionError = page.locator('[data-testid="precision-error"]').or(
-          page.locator('text=between').or(page.locator('text=maximum'))
+          page.locator(`${selectors.tokenCreation.precisionInput}[aria-invalid="true"]`)
         );
 
         await expect(precisionError.first()).toBeVisible({ timeout: 3000 }).catch(() => {
@@ -166,7 +167,7 @@ test.describe('Token Creation', () => {
 
         // Should show validation error
         const supplyError = page.locator('[data-testid="supply-error"]').or(
-          page.locator('text=cannot exceed').or(page.locator('text=greater than'))
+          page.locator(`${selectors.tokenCreation.maxSupplyInput}[aria-invalid="true"]`)
         );
 
         await expect(supplyError.first()).toBeVisible({ timeout: 3000 });
@@ -221,13 +222,13 @@ test.describe('Token Creation', () => {
         await Promise.race([
           page.waitForURL(/\/tokens\/token/),
           page.waitForSelector('[data-testid="token-created-success"]'),
-          page.waitForSelector('text=success', { state: 'visible' })
+          page.waitForSelector('[data-sonner-toast][data-type="success"]', { state: 'visible' })
         ]).catch(() => {
           // Check for success toast
         });
 
         const successIndicator = page.locator('[data-testid="token-created-success"]').or(
-          page.locator('text=success').or(page.locator('text=created'))
+          page.locator('[data-sonner-toast][data-type="success"]')
         );
 
         const isSuccess = await successIndicator.first().isVisible().catch(() => false);
@@ -259,9 +260,9 @@ test.describe('Token Creation', () => {
         );
         await submitButton.first().click();
 
-        // Should show error message
+        // Should show error message via toast or inline error
         const errorMessage = page.locator('[data-testid="creation-error"]').or(
-          page.locator('text=error').or(page.locator('text=failed'))
+          page.locator('[data-sonner-toast][data-type="error"]')
         );
 
         await expect(errorMessage.first()).toBeVisible({ timeout: 10000 });

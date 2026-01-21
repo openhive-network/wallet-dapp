@@ -18,6 +18,7 @@ import {
   mockPeakVault,
   mockMetamaskProvider
 } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Wallet Store Integration', () => {
 
@@ -331,8 +332,10 @@ test.describe('Wallet Store Integration', () => {
       if (await accountSwitcher.first().isVisible().catch(() => false)) {
         await accountSwitcher.first().click();
 
-        // Select different account
-        const secondAccount = page.locator(`text=${secondaryTestAccount.name}`);
+        // Select different account - look for account item by testid pattern
+        const secondAccount = page.locator(`[data-testid="account-item-${secondaryTestAccount.name}"]`).or(
+          page.locator('[data-testid="account-list"] button').nth(1)
+        );
         if (await secondAccount.first().isVisible().catch(() => false)) {
           await secondAccount.first().click();
 

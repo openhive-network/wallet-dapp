@@ -22,6 +22,7 @@ import {
   UsedWallet
 } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Settings Store Integration', () => {
 
@@ -232,8 +233,8 @@ test.describe('Settings Store Integration', () => {
       // App should work without settings
       await expect(page.locator('body')).toBeVisible();
 
-      // Should show connect wallet option (text based selector)
-      const connectCard = page.locator('text=Connect your account');
+      // Should show connect wallet option
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
       await expect(connectCard.first()).toBeVisible({ timeout: 15000 });
     });
 

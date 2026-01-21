@@ -27,6 +27,7 @@ import {
 } from '../../helpers/api-mocks';
 import { setupKeychainWallet, setupGoogleAuthCookies } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('API Response Integration', () => {
 
@@ -126,7 +127,7 @@ test.describe('API Response Integration', () => {
 
       // May show error message
       const errorIndicator = page.locator('[data-testid="api-error"]').or(
-        page.locator('text=error')
+        page.locator('[data-sonner-toast][data-type="error"]')
       );
 
       // Either shows error or handles silently

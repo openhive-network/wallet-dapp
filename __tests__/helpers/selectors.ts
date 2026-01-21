@@ -47,6 +47,7 @@ export const walletConnection = {
   peakVaultOption: testid('wallet-peakvault-option'),
   metamaskOption: testid('wallet-metamask-option'),
   googleDriveOption: testid('wallet-googledrive-option'),
+  googleDriveCard: testid('wallet-googledrive-card'),
   htmOption: testid('wallet-htm-option'),
 
   // Keychain connect

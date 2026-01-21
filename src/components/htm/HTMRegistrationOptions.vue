@@ -16,7 +16,7 @@ const showHTMLogin = () => {
 </script>
 
 <template>
-  <Card>
+  <Card data-testid="htm-options-card">
     <CardHeader class="text-center">
       <CardTitle class="text-2xl">
         HTM Access Required

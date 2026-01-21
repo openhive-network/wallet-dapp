@@ -374,7 +374,7 @@ test.describe('Wallet Connection', () => {
       // Wait for Google Drive connector or auth flow to appear
       await expect(async () => {
         // Check for either: connector view, redirect, or loading state
-        const hasConnectorView = await page.locator('text=Google Drive').first().isVisible().catch(() => false);
+        const hasConnectorView = await page.locator(selectors.walletConnection.googleDriveCard).first().isVisible().catch(() => false);
         const hasLoadingState = await page.locator('.animate-spin').first().isVisible().catch(() => false);
         const urlChanged = page.url() !== 'http://localhost:3000/';
 
@@ -411,8 +411,8 @@ test.describe('Wallet Connection', () => {
       await page.waitForLoadState('networkidle');
 
       // Page should load with HTM options or login form
-      const htmContent = page.locator('text=HTM').or(
-        page.locator('text=Hive Token Machine')
+      const htmContent = page.locator(selectors.htmRegistration.optionsCard).or(
+        page.locator(selectors.walletConnection.htmTitle)
       );
       await expect(htmContent.first()).toBeVisible({ timeout: 10000 });
     });

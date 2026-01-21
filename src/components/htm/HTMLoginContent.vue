@@ -158,6 +158,7 @@ const connect = async () => {
           <Button
             :disabled="isLoading || !isFormValid"
             variant="outline"
+            data-testid="htm-login-btn"
             size="lg"
             class="px-8 py-4 border-[#FBA510] border-[2px]"
             @click="connect"

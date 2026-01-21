@@ -20,6 +20,7 @@ import {
 import { setupKeychainWallet, setupUnauthenticatedState } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
 import { HomePage } from '../../helpers/page-objects';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Account Management', () => {
 
@@ -37,10 +38,10 @@ test.describe('Account Management', () => {
       await homePage.navigate();
       await homePage.waitForPageLoad();
 
-      // When not connected, shows "Connect your account" card
+      // When not connected, shows connect wallet card
       // When connected, shows account details with account name
-      const connectCard = page.locator('text=Connect your account');
-      const accountDetails = page.locator('text=Account details');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const accountDetails = page.locator(selectors.accountDisplay.accountDetailsCard);
 
       // Either connect prompt or account details should be visible
       const showsConnectOrAccount = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
@@ -56,8 +57,8 @@ test.describe('Account Management', () => {
 
       // When not connected, shows connect wallet card
       // When connected, shows account balances
-      const connectCard = page.locator('text=Connect your account');
-      const balanceCard = page.locator('text=Account Balances');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const balanceCard = page.locator('[data-testid="account-balances-card"]');
 
       const showsConnectOrBalances = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
         await balanceCard.first().isVisible().catch(() => false);
@@ -71,8 +72,8 @@ test.describe('Account Management', () => {
       await homePage.waitForPageLoad();
 
       // When connected, HP section is visible; when not, connect card is visible
-      const connectCard = page.locator('text=Connect your account');
-      const hpBalance = page.locator('h3:has-text("HP")');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const hpBalance = page.locator('[data-testid="hp-balance"]');
 
       const showsContent = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
         await hpBalance.first().isVisible().catch(() => false);
@@ -106,8 +107,8 @@ test.describe('Account Management', () => {
       await homePage.waitForPageLoad();
 
       // When connected, total estimated value is visible; when not, connect card is visible
-      const connectCard = page.locator('text=Connect your account');
-      const totalValue = page.locator('text=Total Estimated Value');
+      const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const totalValue = page.locator('[data-testid="total-value"]');
 
       const showsContent = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
         await totalValue.first().isVisible().catch(() => false);
@@ -120,9 +121,7 @@ test.describe('Account Management', () => {
       await homePage.navigate();
       await homePage.waitForPageLoad();
 
-      const votingMana = page.locator('[data-testid="voting-mana"]').or(
-        page.locator('text=Voting').or(page.locator('text=mana'))
-      );
+      const votingMana = page.locator('[data-testid="voting-mana"]');
 
       // May or may not be visible depending on UI
       if (await votingMana.first().isVisible())
@@ -145,9 +144,8 @@ test.describe('Account Management', () => {
       await page.waitForLoadState('networkidle');
 
       // Should show the account creation page content
-      // Look for text that indicates we're on the right page
-      const pageContent = page.locator('text=Create').or(
-        page.locator('text=Account').or(page.locator('text=Request'))
+      const pageContent = page.locator('[data-testid="account-creation-page"]').or(
+        page.locator('main')
       );
 
       await expect(pageContent.first()).toBeVisible({ timeout: 10000 });
@@ -170,7 +168,7 @@ test.describe('Account Management', () => {
 
         // Should show validation error
         const validationError = page.locator('[data-testid="account-name-error"]').or(
-          page.locator('text=at least').or(page.locator('text=characters'))
+          page.locator('[aria-invalid="true"]')
         );
 
         await expect(validationError.first()).toBeVisible({ timeout: 3000 });
@@ -212,7 +210,7 @@ test.describe('Account Management', () => {
 
         // Should show account taken error
         const takenError = page.locator('[data-testid="account-taken-error"]').or(
-          page.locator('text=taken').or(page.locator('text=exists').or(page.locator('text=unavailable')))
+          page.locator('[data-testid="account-unavailable"]')
         );
 
         await expect(takenError.first()).toBeVisible({ timeout: 5000 });
@@ -253,7 +251,7 @@ test.describe('Account Management', () => {
 
         // Should show available indicator
         const availableIndicator = page.locator('[data-testid="account-available"]').or(
-          page.locator('text=available').or(page.locator('svg[data-testid="check-icon"]'))
+          page.locator('[data-testid="check-icon"]')
         );
 
         await expect(availableIndicator.first()).toBeVisible({ timeout: 5000 });
@@ -273,7 +271,7 @@ test.describe('Account Management', () => {
 
       // Should show confirmation content
       const confirmationContent = page.locator('[data-testid="account-creation-confirm"]').or(
-        page.locator('text=Confirm').or(page.locator('text=Create Account'))
+        page.locator('main')
       );
 
       await expect(confirmationContent.first()).toBeVisible();
@@ -295,7 +293,7 @@ test.describe('Account Management', () => {
 
       // Should show update form or content
       const updateContent = page.locator('[data-testid="account-update-form"]').or(
-        page.locator('text=Update').or(page.locator('text=Authority'))
+        page.locator(selectors.signing.updateAuthorityCard)
       );
 
       await expect(updateContent.first()).toBeVisible();
@@ -306,15 +304,9 @@ test.describe('Account Management', () => {
       await page.waitForLoadState('networkidle');
 
       // Should show current key authorities
-      const ownerKey = page.locator('[data-testid="owner-key"]').or(
-        page.locator('text=Owner')
-      );
-      const activeKey = page.locator('[data-testid="active-key"]').or(
-        page.locator('text=Active')
-      );
-      const postingKey = page.locator('[data-testid="posting-key"]').or(
-        page.locator('text=Posting')
-      );
+      const ownerKey = page.locator('[data-testid="owner-key"]');
+      const activeKey = page.locator('[data-testid="active-key"]');
+      const postingKey = page.locator('[data-testid="posting-key"]');
 
       // At least some authority info should be shown
       const anyVisible = await ownerKey.first().isVisible() ||
@@ -392,9 +384,9 @@ test.describe('Account Management', () => {
 
       // The registration page shows options: "Register New HTM Account" or "Login to Existing HTM Account"
       // Or if already logged in with L1 wallet, it shows the registration form directly
-      const registrationOptions = page.locator('text=Register New HTM Account').or(
-        page.locator('text=HTM Access Required').or(
-          page.locator('text=HTM Registration')
+      const registrationOptions = page.locator(selectors.htmRegistration.optionsCard).or(
+        page.locator(selectors.htmRegistration.registerNewButton).or(
+          page.locator(selectors.htmRegistration.loginButton)
         )
       );
 
@@ -448,7 +440,7 @@ test.describe('Account Management', () => {
 
       // Should show error or prompt to create account
       const errorOrCreate = page.locator('[data-testid="account-not-found"]').or(
-        page.locator('text=not found').or(page.locator('text=does not exist'))
+        page.locator('[data-sonner-toast][data-type="error"]')
       );
 
       // May show error or just empty state
@@ -475,7 +467,7 @@ test.describe('Account Management', () => {
 
       // Should show error message but not crash
       const _errorMessage = page.locator('[data-testid="api-error"]').or(
-        page.locator('text=error').or(page.locator('text=Error'))
+        page.locator('[data-sonner-toast][data-type="error"]')
       );
 
       // App should still be functional

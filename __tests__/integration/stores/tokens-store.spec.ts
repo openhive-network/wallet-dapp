@@ -15,6 +15,7 @@ import { primaryTestAccount } from '../../fixtures/test-accounts';
 import { setupAllMocks, mockCTokensApi } from '../../helpers/api-mocks';
 import { setupKeychainWallet } from '../../helpers/auth-helpers';
 import { mockHiveKeychain } from '../../helpers/mock-wallets';
+import * as selectors from '../../helpers/selectors';
 
 test.describe('Tokens Store Integration', () => {
 
@@ -103,7 +104,7 @@ test.describe('Tokens Store Integration', () => {
 
         // Page should update
         const pagination = page.locator('[data-testid="current-page"]').or(
-          page.locator('text=Page 2')
+          page.locator('[data-testid="pagination-page-2"]')
         );
 
         await expect(pagination.first()).toBeVisible({ timeout: 5000 });
@@ -251,7 +252,7 @@ test.describe('Tokens Store Integration', () => {
 
       // Token information card should be visible
       const tokenInfoCard = page.locator('[data-testid="token-info-card"]').or(
-        page.locator('text=Token Information').or(page.locator('text=TEST'))
+        page.locator(selectors.tokenList.tokenCard)
       );
 
       // Test passes if token page loaded with any token info
@@ -309,7 +310,7 @@ test.describe('Tokens Store Integration', () => {
 
         // Should show validation errors
         const validationError = page.locator('[data-testid="validation-error"]').or(
-          page.locator('.error').or(page.locator('text=required'))
+          page.locator('[aria-invalid="true"]')
         );
 
         await expect(validationError.first()).toBeVisible({ timeout: 5000 });
@@ -393,7 +394,7 @@ test.describe('Tokens Store Integration', () => {
 
           // Should show insufficient balance error
           const balanceError = page.locator('[data-testid="insufficient-balance"]').or(
-            page.locator('text=insufficient').or(page.locator('text=exceeds'))
+            page.locator('[aria-invalid="true"]')
           );
 
           // Validation may or may not show immediately

@@ -362,6 +362,7 @@ provide<HTMRegistrationContext>(HTM_REGISTRATION_KEY, {
           </Button>
           <Button
             type="submit"
+            data-testid="htm-register-btn"
             :disabled="isLoading || !keysGenerated || !hasConfirmedDownload"
             class="flex-1"
           >
