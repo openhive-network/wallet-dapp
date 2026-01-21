@@ -1,42 +1,77 @@
-# Copilot Instructions for This Nuxt Repository
+# AI Assistant Guide
 
-## Code Structure
-- Prefer imports from absolute paths using `@`: `@/components/...`, over relative paths.
-- Break pages and components into small, reusable units whenever possible.
-  - **Max page size:** 400 LOC.
-  - Follow **Single Responsibility Principle** for all components.
-- Avoid trailing spaces and maintain consistent formatting (use project ESLint/Prettier rules).
+Nuxt 4 (Vue 3) dApp for Hive blockchain wallet operations with MetaMask, Keychain, PeakVault, and Google Drive wallet support.
 
-## Error Handling & Logging
-- **Never** use `console.*` for logging, debugging, or error reporting.
-- Always use `toastError(message, error)` to surface errors to the user.
+## Commands
 
-## Loading States
-- When components or pages depend on async data, include **Skeleton components** whenever possible.
-  - Skeletons should be lightweight, reusable, and reflect the expected layout.
+```bash
+pnpm dev      # Dev server (localhost:3000)
+pnpm build    # Production build
+pnpm lint     # Lint and auto-fix
+pnpm test     # Playwright E2E tests
+```
 
-## Architecture & Data Flow
-- **HTM/ctokens** is a separate domain and **not** directly tied to the wallet-dapp. Keep abstractions clean.
-- Always use the **store** (Pinia/Vuex) and **mediating interfaces/services** for API communication.
-  - APIs may change - components should never call APIs directly.
-  - Prefer strongly typed interfaces for request/response modeling.
-  - Prefer defining Pinia stores as `state`, `getters`, and `actions` (avoid using `defineStore` with only setup functions).
+## Tech Stack
 
-## UI & Styling
-- Maintain consistent component naming and directory structure. Add directories as needed.
-- Avoid excessive inline styles; prefer Tailwind CSS utility classes or component-scoped styles.
-- If required, install Shadcn UI components via `pnpm dlx shadcn-vue@latest add <component>` and import them properly.
+Nuxt 4.2 | Vue 3.5 | TypeScript 5.7 | Pinia 3.0 | Tailwind CSS 3 | Reka UI 2.0 | @hiveio/wax | Playwright
 
-## Project Documentation
-- **Do not** create markdown files for documentation, architecture, reference, summary or instructions.
-- Write self-documenting code; add comments only where intent is not obvious.
+## Structure
 
-## Code formatting
-- Prefer arrow functions and concise syntax where applicable.
+```text
+src/
+├── components/      # Vue components (ui/ is auto-generated - do not edit)
+├── pages/           # Nuxt routes (max 400 LOC per page)
+├── stores/          # Pinia stores (*.store.ts)
+├── composables/     # Vue composables
+├── utils/           # Utilities
+└── layouts/         # Page layouts
+server/api/          # Server routes
+__tests__/           # Playwright tests (e2e/, integration/, helpers/, fixtures/)
+```
 
-## General Guidelines
-- Prefer using `NuxtLink` for internal navigation over `<a>` tags. External links should use `<a>` with `target="_blank"` and `rel="noopener noreferrer"`.
-- Do not repeat the code. If you notice that it is the same in a multiple files - extract the code into a separate file/component, implementing common functionality
-- When using any component creating a link/navigation, ensure it has a class `keychainify-checked` to avoid hydration issues when keychain is installed.
-- Prefer fallback-safe, defensive programming for external interactions (APIs, wallets, etc.).
-- Keep dependencies minimal and review them regularly.
+## Code Rules
+
+### Components
+
+- `<script setup lang="ts">` only (no Options API)
+- `data-testid` attributes for E2E selectors
+- Max 400 LOC per page, follow Single Responsibility Principle
+- Use Skeleton components for async loading states
+- `NuxtLink` for internal navigation, `<a target="_blank" rel="noopener noreferrer">` for external
+- Add `keychainify-checked` class to all link/navigation components
+
+### Stores & Data
+
+- Never call APIs directly from components - use Pinia stores
+- Define stores with `state`, `getters`, `actions` pattern
+- Use `shallowRef` for complex objects (wallet instances)
+- HTM/ctokens is a separate domain - keep abstractions clean
+
+### Error Handling
+
+- **Never** use `console.*` - always `toastError(message, error)`
+- Defensive programming for external APIs/wallets
+
+### Style
+
+- Imports: use `@/` alias, order: builtin → external → internal → relative
+- TypeScript: PascalCase (types), camelCase (vars), UPPER_CASE (enums), `_unused` prefix
+- Tailwind only (no custom CSS), mobile-first, dark mode support
+- Arrow functions, concise syntax
+- Don't repeat code - extract common functionality
+
+### Documentation
+
+- Do not create markdown documentation files
+- Write self-documenting code; comments only where intent unclear
+
+## Do Not Edit
+
+- `src/components/ui/*` - Auto-generated Reka UI/shadcn
+- `src/utils/wallet/ctokens/api.ts` - Generated from spec
+
+## Before Commit
+
+1. `pnpm lint` - Fix issues
+2. `pnpm build` - Verify build
+3. `pnpm test` - Run tests (on relevant changes)

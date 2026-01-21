@@ -80,8 +80,6 @@ node_modules/
 .yarn/install-state.gz
 .pnp.*
 
-# Claude Code local state
-CLAUDE.md
 # Playwright
 test-results/
 playwright-report/
