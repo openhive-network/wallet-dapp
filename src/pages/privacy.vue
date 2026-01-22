@@ -9,7 +9,7 @@ import privacyContent from '@/../content/privacy.md?raw';
     <article class="leading-relaxed text-foreground">
       <header class="text-center mb-12">
         <h1 class="text-3xl font-bold mb-4">Privacy Policy</h1>
-        <p class="text-muted-foreground">Effective: Oct 7, 2019</p>
+        <p class="text-muted-foreground">Effective: January 22, 2026</p>
       </header>
 
       <MarkdownContent :content="privacyContent" />
