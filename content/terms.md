@@ -100,7 +100,7 @@ You can revoke this access at any time through your [Google Account Settings](ht
 
 13.1. We may, in our sole discretion and without cost to you, with or without prior notice and at any time, modify or discontinue, temporarily or permanently, any portion of our Services. You are solely responsible for storing, outside of the Services, a backup of any Account and Private Key that you maintain in your Account.
 
-13.2. If you do not maintain a backup of your Account data outside of the Services, you will be may not be able to access HIVE, Hive Dollars and Hive Power associated with any Account maintained in your Account if we discontinue or deprecate the Services.
+13.2. If you do not maintain a backup of your Account data outside of the Services, you may be unable to access HIVE, Hive Dollars and Hive Power associated with any Account maintained in your Account if we discontinue or deprecate the Services.
 
 ## 14. Suspension or Termination of Service
 
