@@ -98,10 +98,12 @@
     "node": "^20.18.1 || >= 21.2"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "google-auth-library": "^10.4.2",
     "googleapis": "^140.0.0",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",
+    "marked": "^17.0.1",
     "qrcode": "^1.5.4"
   }
 }

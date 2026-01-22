@@ -20,3 +20,8 @@ declare global {
     'eip6963:announceProvider': EIP6963AnnounceProviderEvent;
   }
 }
+
+declare module '*.md?raw' {
+  const content: string;
+  export default content;
+}
