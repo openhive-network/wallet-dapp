@@ -36,6 +36,56 @@ We will never ask you to share your private keys or wallet seed. Never trust any
 
 ---
 
+<div class="mb-8 pb-6 bg-muted/30 rounded-lg p-6 border border-border not-prose">
+
+## Google User Data
+
+Our application integrates with Google services. Below is how we handle Google user data in compliance with the Google API Services User Data Policy.
+
+### Data Accessed
+
+When you connect your Google account, we access:
+
+- **Google Drive App Data:** A dedicated, application-specific folder to store your encrypted wallet data.
+- **Basic Profile Information:** Your email address and display name for authentication purposes.
+
+### Data Usage
+
+We use your Google user data exclusively for:
+
+- Storing your encrypted Hive wallet keys in your Google Drive
+- Authenticating you and maintaining your session
+- Displaying which Google account is connected
+
+We do not use your Google user data for advertising or marketing purposes.
+
+### Data Sharing
+
+**We do not share your Google user data with any third parties.**
+
+- Your data remains in your own Google Drive account
+- Data is never transmitted to our servers
+- Data is never sold or disclosed to advertisers
+
+### Data Storage & Protection
+
+- **Client-Side Encryption:** All wallet data is encrypted on your device before being stored in Google Drive.
+- **No Server Storage:** Your Google user data is never stored on our servers.
+- **Secure OAuth 2.0:** We use Google's secure OAuth 2.0 protocol for authentication.
+- **HTTPS Only:** All communications occur over encrypted HTTPS connections.
+
+### Data Retention & Deletion
+
+**Retention:** Your encrypted wallet data remains in your Google Drive until you delete it. Authentication tokens are stored locally and cleared when you disconnect.
+
+**Deletion:** You can delete your data by:
+
+- Disconnecting your Google account in the Settings page
+- Removing the app data folder directly in Google Drive
+- Revoking access at [Google Account Permissions](https://myaccount.google.com/permissions)
+
+</div>
+
 ## USE OF PERSONAL INFORMATION
 
 To provide our service we will use your personal information in the following ways:

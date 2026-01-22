@@ -62,63 +62,69 @@ All other trademarks, registered trademarks, product names and company names or 
 
 8.3. You acknowledge and understand that cryptography is a progressing field. Advances in code cracking or technical advances such as the development of quantum computers may present risks to the Services that you use and your Account, which could result in the theft or loss of your property. By using the Service or accessing Hive Content, you acknowledge these inherent risks.
 
-## 9. The Services
+## 9. Google Account Integration
 
-9.1. As described in more detail below, the Services, among other things, provide software that facilitates the submission of Hive blockchain transaction data to the Hive blockchain without requiring you to access the Hive blockchain command line interface.
+When you connect your Google account to use Google Drive wallet storage, you authorize us to access your Google Drive app data folder to store encrypted wallet information and read your basic profile information for authentication purposes.
 
-9.2. Account and Private Keys. Should you agree to create an Account through our Service, we generate a cryptographic private and public key pair that are provided solely to you and completely owned by you; provided however that we not store passwords or Private Keys for our you. We never have access to your Private Key and do not custody any Private Keys on your behalf, and therefore, assume no responsibility for the management of the Private Key tied to your Account. The Private Key uniquely match the Account name and must be used in connection with the Account to authorize the transfer of HIVE and Hive Dollars from that Account. You are solely responsible for maintaining the security of your Private Keys. You must keep your Private Key access information secure. Failure to do so may result in the loss of control of HIVE, Hive Power and Hive Dollars associated with your Account.
+You can revoke this access at any time through your [Google Account Settings](https://myaccount.google.com/permissions). Our use of Google user data complies with the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy).
 
-9.3. No Password Retrieval. We do not receive or store your Account password or Private Keys. Your Private Key is your own and you are solely responsible for their safekeeping. We cannot assist you with Account password retrieval, reset, or recovery. You are solely responsible for remembering your Account password. If you have not safely stored a backup of any Account and password pairs maintained in your Account, you accept and acknowledge that any HIVE, Hive Dollars and Hive Power you have associated with such Account will become permanently inaccessible if you do not have your Account password.
+## 10. The Services
 
-9.4. Transactions. All proposed Hive blockchain transactions must be confirmed and recorded in the Hive blockchain via the Hive distributed consensus network (a peer-to-peer network), which is not owned, controlled, or operated by us. The Hive blockchain is operated by a decentralized network of independent third parties. We have no control over the Hive blockchain and therefore cannot and will not ensure that any transaction details you submit via the Services will be confirmed on the Hive blockchain. You acknowledge and agree that the transaction details you submit via the Services may not be completed, or may be substantially delayed, by the Hive blockchain. You may use the Services to submit these details to the Hive blockchain.
+10.1. As described in more detail below, the Services, among other things, provide software that facilitates the submission of Hive blockchain transaction data to the Hive blockchain without requiring you to access the Hive blockchain command line interface.
 
-9.5. No Storage or Transmission of HIVE, Hive Dollars or Hive Power. HIVE, in any of its forms (HIVE, Hive Dollars and Hive Power) is an intangible, digital asset controlled by you. These assets exist only by virtue of the ownership record maintained on the Hive blockchain. The Service does not store, send, or receive HIVE, Hive Dollars, or Hive Power. Any transfer of title that might occur in any HIVE, Hive Dollars or Hive Power occurs on the Hive blockchain and not within the Services. We do not guarantee that the Service can affect the transfer of title or right in any HIVE, Hive Dollars or Hive Power.
+10.2. Account and Private Keys. Should you agree to create an Account through our Service, we generate a cryptographic private and public key pair that are provided solely to you and completely owned by you; provided however that we not store passwords or Private Keys for our you. We never have access to your Private Key and do not custody any Private Keys on your behalf, and therefore, assume no responsibility for the management of the Private Key tied to your Account. The Private Key uniquely match the Account name and must be used in connection with the Account to authorize the transfer of HIVE and Hive Dollars from that Account. You are solely responsible for maintaining the security of your Private Keys. You must keep your Private Key access information secure. Failure to do so may result in the loss of control of HIVE, Hive Power and Hive Dollars associated with your Account.
 
-9.6. Relationship. Nothing in this Agreement is intended to nor shall create any partnership, joint venture, agency, consultancy, or trusteeship, between you and us.
+10.3. No Password Retrieval. We do not receive or store your Account password or Private Keys. Your Private Key is your own and you are solely responsible for their safekeeping. We cannot assist you with Account password retrieval, reset, or recovery. You are solely responsible for remembering your Account password. If you have not safely stored a backup of any Account and password pairs maintained in your Account, you accept and acknowledge that any HIVE, Hive Dollars and Hive Power you have associated with such Account will become permanently inaccessible if you do not have your Account password.
 
-9.7. Accuracy of Information. You represent and warrant that any information you provide via the Services is accurate and complete. You accept and acknowledge that we are not responsible for any errors or omissions that you make in connection with any Hive blockchain transaction initiated via the Services, for instance, if you mistype an Account name or otherwise provide incorrect information. We strongly encourage you to review your transaction details carefully before completing them via the Services.
+10.4. Transactions. All proposed Hive blockchain transactions must be confirmed and recorded in the Hive blockchain via the Hive distributed consensus network (a peer-to-peer network), which is not owned, controlled, or operated by us. The Hive blockchain is operated by a decentralized network of independent third parties. We have no control over the Hive blockchain and therefore cannot and will not ensure that any transaction details you submit via the Services will be confirmed on the Hive blockchain. You acknowledge and agree that the transaction details you submit via the Services may not be completed, or may be substantially delayed, by the Hive blockchain. You may use the Services to submit these details to the Hive blockchain.
 
-9.8. No Cancellations or Modifications. Once transaction details have been submitted to the Hive blockchain via the Services, The Services cannot assist you to cancel or otherwise modify your transaction details. We have no control over the Hive blockchain and do not have the ability to facilitate any cancellation or modification requests.
+10.5. No Storage or Transmission of HIVE, Hive Dollars or Hive Power. HIVE, in any of its forms (HIVE, Hive Dollars and Hive Power) is an intangible, digital asset controlled by you. These assets exist only by virtue of the ownership record maintained on the Hive blockchain. The Service does not store, send, or receive HIVE, Hive Dollars, or Hive Power. Any transfer of title that might occur in any HIVE, Hive Dollars or Hive Power occurs on the Hive blockchain and not within the Services. We do not guarantee that the Service can affect the transfer of title or right in any HIVE, Hive Dollars or Hive Power.
 
-9.9. Taxes. It is your responsibility to determine what, if any, taxes apply to the transactions you for which you have submitted transaction details via the Services, and it is your responsibility to report and remit the correct tax to the appropriate tax authority. You agree that the we are not responsible for determining whether taxes apply to your Hive blockchain transactions or for collecting, reporting, withholding, or remitting any taxes arising from any Hive blockchain transactions.
+10.6. Relationship. Nothing in this Agreement is intended to nor shall create any partnership, joint venture, agency, consultancy, or trusteeship, between you and us.
 
-## 10. Fees for Using the Services
+10.7. Accuracy of Information. You represent and warrant that any information you provide via the Services is accurate and complete. You accept and acknowledge that we are not responsible for any errors or omissions that you make in connection with any Hive blockchain transaction initiated via the Services, for instance, if you mistype an Account name or otherwise provide incorrect information. We strongly encourage you to review your transaction details carefully before completing them via the Services.
 
-10.1. Fees Creating an Account. We do not currently charge fees for any Services in connection with the creation of Accounts, however we reserve the right to do so in future, and in such case any applicable fees will be displayed prior to you using any Service to which a fee applies.
+10.8. No Cancellations or Modifications. Once transaction details have been submitted to the Hive blockchain via the Services, The Services cannot assist you to cancel or otherwise modify your transaction details. We have no control over the Hive blockchain and do not have the ability to facilitate any cancellation or modification requests.
 
-## 11. No Right to Cancel And/or Reverse Hive Transactions
+10.9. Taxes. It is your responsibility to determine what, if any, taxes apply to the transactions you for which you have submitted transaction details via the Services, and it is your responsibility to report and remit the correct tax to the appropriate tax authority. You agree that the we are not responsible for determining whether taxes apply to your Hive blockchain transactions or for collecting, reporting, withholding, or remitting any taxes arising from any Hive blockchain transactions.
 
-11.1. If you use a Service to which HIVE, Hive Dollars or Hive Power is transacted, you will not be able to change your mind once you have confirmed that you wish to proceed with the Service or transaction.
+## 11. Fees for Using the Services
 
-## 12. Discontinuation of Services
+11.1. Fees Creating an Account. We do not currently charge fees for any Services in connection with the creation of Accounts, however we reserve the right to do so in future, and in such case any applicable fees will be displayed prior to you using any Service to which a fee applies.
 
-12.1. We may, in our sole discretion and without cost to you, with or without prior notice and at any time, modify or discontinue, temporarily or permanently, any portion of our Services. You are solely responsible for storing, outside of the Services, a backup of any Account and Private Key that you maintain in your Account.
+## 12. No Right to Cancel And/or Reverse Hive Transactions
 
-12.2. If you do not maintain a backup of your Account data outside of the Services, you will be may not be able to access HIVE, Hive Dollars and Hive Power associated with any Account maintained in your Account if we discontinue or deprecate the Services.
+12.1. If you use a Service to which HIVE, Hive Dollars or Hive Power is transacted, you will not be able to change your mind once you have confirmed that you wish to proceed with the Service or transaction.
 
-## 13. Suspension or Termination of Service
+## 13. Discontinuation of Services
 
-13.1. We may suspend or terminate your access to the Services in our sole discretion, immediately and without prior notice, and delete or deactivate your account and all related information and files in such without cost to you, including, for instance, if you breach any term of this Agreement. In the event of termination, your access to the funds in your account will require you access to the Hive blockchain via the command line API or third party tool, and will require you to have access to your backup of your Account data including your Account and Private Keys.
+13.1. We may, in our sole discretion and without cost to you, with or without prior notice and at any time, modify or discontinue, temporarily or permanently, any portion of our Services. You are solely responsible for storing, outside of the Services, a backup of any Account and Private Key that you maintain in your Account.
 
-## 14. User Conduct
+13.2. If you do not maintain a backup of your Account data outside of the Services, you will be may not be able to access HIVE, Hive Dollars and Hive Power associated with any Account maintained in your Account if we discontinue or deprecate the Services.
 
-14.1. When accessing or using the Services, you agree that you will not commit any unlawful act, and that you are solely responsible for your conduct while using our Services. Without limiting the generality of the foregoing, you agree that you will not:
+## 14. Suspension or Termination of Service
 
-14.1.1. Use of our Services in any manner that could interfere with, disrupt, negatively affect, or inhibit other users from fully enjoying our Services, or that could damage, disable, overburden, or impair the functioning of our Services in any manner;
+14.1. We may suspend or terminate your access to the Services in our sole discretion, immediately and without prior notice, and delete or deactivate your account and all related information and files in such without cost to you, including, for instance, if you breach any term of this Agreement. In the event of termination, your access to the funds in your account will require you access to the Hive blockchain via the command line API or third party tool, and will require you to have access to your backup of your Account data including your Account and Private Keys.
 
-14.1.2. Use our Services to pay for, support or otherwise engage in any activity prohibited by law, including, but not limited to illegal gambling, fraud, money-laundering, or terrorist financing activities.
+## 15. User Conduct
 
-14.1.3. Use or attempt to use another user's Account without authorization;
+15.1. When accessing or using the Services, you agree that you will not commit any unlawful act, and that you are solely responsible for your conduct while using our Services. Without limiting the generality of the foregoing, you agree that you will not:
 
-14.1.4. Attempt to circumvent any content filtering techniques we employ, or attempt to access any service or area of our Services that you are not authorized to access;
+15.1.1. Use of our Services in any manner that could interfere with, disrupt, negatively affect, or inhibit other users from fully enjoying our Services, or that could damage, disable, overburden, or impair the functioning of our Services in any manner;
 
-14.1.5. Introduce to the Services any virus, Trojan, worms, logic bombs or other harmful material;
+15.1.2. Use our Services to pay for, support or otherwise engage in any activity prohibited by law, including, but not limited to illegal gambling, fraud, money-laundering, or terrorist financing activities.
 
-14.1.6. Encourage or induce any third-party to engage in any of the activities prohibited under this Section.
+15.1.3. Use or attempt to use another user's Account without authorization;
 
-## 15. Copyright Complaints, the DMCA, and Takedowns
+15.1.4. Attempt to circumvent any content filtering techniques we employ, or attempt to access any service or area of our Services that you are not authorized to access;
 
-15.1. We will respond to legitimate requests under the Digital Millennium Copyright Act ("DMCA"), and we retain the right to remove access to user content provided via the Service that we deem to be infringing the copyright of others. If you become aware of user content on the Service that infringes your copyright rights, you may submit a properly formatted DMCA request (see 17 U.S.C. § 512) to this site's operator(s).
+15.1.5. Introduce to the Services any virus, Trojan, worms, logic bombs or other harmful material;
+
+15.1.6. Encourage or induce any third-party to engage in any of the activities prohibited under this Section.
+
+## 16. Copyright Complaints, the DMCA, and Takedowns
+
+16.1. We will respond to legitimate requests under the Digital Millennium Copyright Act ("DMCA"), and we retain the right to remove access to user content provided via the Service that we deem to be infringing the copyright of others. If you become aware of user content on the Service that infringes your copyright rights, you may submit a properly formatted DMCA request (see 17 U.S.C. § 512) to this site's operator(s).
 
 Misrepresentations of infringement can result in liability for monetary damages. You may want to consult an attorney before taking any action pursuant to the DMCA. A DMCA request can be sent to us via the contact information below:
 
@@ -133,7 +139,7 @@ Please send our Copyright Agent the following information:
 - A statement by you that you have a good faith belief that the disputed use of the material is not authorized by the copyright owner, its agent, or the law; and
 - A statement by you, made under penalty of perjury, that the above information in your notice is accurate and that you are the copyright owner or are authorized to act on the copyright owner's behalf.
 
-15.2. Your right to file a counter-notice. If you believe your user content was wrongly removed due to a mistake or misidentification of the material, you can send a counter-notice to our Copyright Agent (contact information provided above) that includes the following:
+16.2. Your right to file a counter-notice. If you believe your user content was wrongly removed due to a mistake or misidentification of the material, you can send a counter-notice to our Copyright Agent (contact information provided above) that includes the following:
 
 - Your physical or electronic signature;
 - Identification of the material that has been removed or to which access has been disabled and where the material was located online before it was removed or access to it was disabled;
@@ -144,48 +150,48 @@ Upon receiving a counter-notice we will forward it to the complaining party and 
 
 It is our policy to deny use of the Service to users we identify as repeat infringers. We apply this policy at our discretion and in appropriate circumstances, such as when a user has repeatedly been charged with infringing the copyrights or other intellectual property rights of others.
 
-## 16. Indemnity
+## 17. Indemnity
 
 All the things you do and all the information you submit or post to the Service remain your responsibility. Indemnity is basically a way of saying that you will not hold us legally liable for any of your content or actions that infringe the law or the rights of a third party or person in any way.
 
 Specifically, you agree to hold us, our affiliates, officers, directors, employees, agents, and third-party service providers harmless from and defend them against any claims, costs, damages, losses, expenses, and any other liabilities, including attorneys' fees and costs, arising out of or related to your access to or use of the Service, your violation of this user agreement, and/or your violation of the rights of any third-party or person.
 
-## 17. Disclaimers
+## 18. Disclaimers
 
 To the fullest extent permitted by applicable law, the Service and the Hive Content are provided on an "as is" and "as available" basis, without warranties of any kind, either express or implied, including, without limitation, implied warranties of merchantability, fitness for a particular purpose, title and non-infringement and any warranties implied by any course of performance or usage of trade. The company does not represent or warrant that the Service and the Hive Content: (a) will be secure or available at any time or location; (b) are accurate, complete, reliable, current, or error-free or that any defects or errors will be corrected; and (c) are free of viruses or other harmful components. Your use of the Service and Hive Content is solely at your own risk. Some jurisdictions do not allow the disclaimer of implied terms in contracts with consumers, so some or all the disclaimers in this Section may not apply to you.
 
-## 18. Limitation of liability
+## 19. Limitation of liability
 
 To the fullest extent permitted by applicable law, in no event shall this site's operators or any related party, that includes but is not limited to, subsidiaries, vendors, or contractors, be liable for any special, indirect, incidental, consequential, exemplary or punitive damages, or any other damages of any kind, including, but not limited to, loss of use, loss of profits or loss of data, whether in an action in contract, tort (including, but not limited to, negligence) or otherwise, arising out of, or in any way connected with, the use of, or inability to use, the Service or the Hive Content. To the fullest extent permitted by applicable law, in no event shall the aggregate liability of this site's operators or any related party, whether in contract, warranty, tort (including negligence, whether active, passive or imputed), product liability, strict liability or other theory, arising out of or relating to the use of or inability to use of the Service.
 
 Some jurisdictions do not allow the exclusion or limitation of certain damages, so some or all of the exclusions and limitations in this Section may not apply to you.
 
-## 19. Modifications to the Service
+## 20. Modifications to the Service
 
 We reserve the right to modify or discontinue, temporarily or permanently, the Service, or any features or portions of the Service, without prior notice. You agree that we will not be liable for any modification, suspension, or discontinuance of the Service.
 
-## 20. Arbitration
+## 21. Arbitration
 
-Please read the following section carefully because it requires you to arbitrate certain disputes with this site's operators and limits the way you can seek relief from them. If you do not agree with this Section 20, please discontinue using the Service.
+Please read the following section carefully because it requires you to arbitrate certain disputes with this site's operators and limits the way you can seek relief from them. If you do not agree with this Section 21, please discontinue using the Service.
 
-20.1. All claims and disputes arising under or relating to this Agreement are to be settled by binding arbitration in the state of Virginia or another location mutually agreeable to the parties. An award of arbitration may be confirmed in a court of competent jurisdiction.
+21.1. All claims and disputes arising under or relating to this Agreement are to be settled by binding arbitration in the state of Virginia or another location mutually agreeable to the parties. An award of arbitration may be confirmed in a court of competent jurisdiction.
 
-## 21. Applicable Law and Venue
+## 22. Applicable Law and Venue
 
-This Agreement and your access to and use of the Service and the Hive Content will be governed by, and construed in accordance with, the laws of Virginia, without resort to its conflict of law provisions. To the extent the arbitration provision in Section 20 does not apply and the Dispute cannot be heard in small claims court, you agree that any action at law or in equity arising out of, or relating to, this Agreement shall be filed only in the state and federal courts located in Roanoke, Virginia and you hereby irrevocably and unconditionally consent and submit to the exclusive jurisdiction of such courts over any suit, action or proceeding arising out of this Agreement.
+This Agreement and your access to and use of the Service and the Hive Content will be governed by, and construed in accordance with, the laws of Virginia, without resort to its conflict of law provisions. To the extent the arbitration provision in Section 21 does not apply and the Dispute cannot be heard in small claims court, you agree that any action at law or in equity arising out of, or relating to, this Agreement shall be filed only in the state and federal courts located in Roanoke, Virginia and you hereby irrevocably and unconditionally consent and submit to the exclusive jurisdiction of such courts over any suit, action or proceeding arising out of this Agreement.
 
-## 22. Termination
+## 23. Termination
 
 We reserve the right, without notice and in our sole discretion, to terminate your license to access and use of the Service, which includes this site, and to block or prevent your future access to, and use of, the Service that we provide.
 
-## 23. Severability
+## 24. Severability
 
 If any term, clause, or provision of this Agreement is deemed to be unlawful, void or for any reason unenforceable, then that term, clause or provision shall be deemed severable from this Agreement and shall not affect the validity and enforceability of any remaining provisions.
 
-## 24. Changes
+## 25. Changes
 
 This Agreement is the entire agreement between you and us concerning the Service. It supersedes all prior or contemporaneous agreements between you and us. We may modify this user agreement at any time. If we make changes to this agreement that materially affect your rights, we will provide notice and keep this edition available as an archive. By continuing to use the Services after a change to this agreement, you agree to those changes.
 
-## 25. Contact Information
+## 26. Contact Information
 
 Notices to this site's operators should be directed to [legal@hive.io](mailto:legal@hive.io).
