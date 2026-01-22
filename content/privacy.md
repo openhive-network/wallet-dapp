@@ -46,18 +46,24 @@ Our application integrates with Google services. Below is how we handle Google u
 
 When you connect your Google account, we access:
 
-- **Google Drive App Data:** A dedicated, application-specific folder to store your encrypted wallet data.
+- **Google Drive App Data:** A dedicated, application-specific folder to store your encrypted wallet data (this is limited by Google Drive API specific: [drive.appdata scope](https://developers.google.com/workspace/drive/api/guides/appdata#scope)).
 - **Basic Profile Information:** Your email address and display name for authentication purposes.
 
 ### Data Usage
 
-We use your Google user data exclusively for:
+Your Google data is used solely for:
 
-- Storing your encrypted Hive wallet keys in your Google Drive
-- Authenticating you and maintaining your session
-- Displaying which Google account is connected
+- Encrypted Storage: Saving your Hive account name, private keys, and authority roles to your Google Drive. Data is encrypted locally; only you hold the password.
+
+- Session Management: Authenticating your login and maintaining your session.
+
+- Account Identity: Showing the email address of the connected Google account.
+
+Due to client side encryption mentioned above, association between Google and Hive accounts is still known only at your side: by you, unknown for us.
 
 We do not use your Google user data for advertising or marketing purposes.
+
+We do not access any other part of your Google Drive space than the [drive appdata](https://developers.google.com/workspace/drive/api/guides/appdata#scope)
 
 ### Data Sharing
 
@@ -80,7 +86,7 @@ We do not use your Google user data for advertising or marketing purposes.
 
 **Deletion:** You can delete your data by:
 
-- Disconnecting your Google account in the Settings page
+- Disconnecting your Google account in the Settings page available [here](https://auth.openhive.network/settings)
 - Removing the app data folder directly in Google Drive
 - Revoking access at [Google Account Permissions](https://myaccount.google.com/permissions)
 
