@@ -253,17 +253,15 @@ onMounted(async () => {
         <TextTooltip side="right">Commit Hash: {{ commitHash.substring(0, 7) }}</TextTooltip>
         <TextTooltip side="right">Chain ID: {{ chainId }}</TextTooltip>
         <Separator class="my-2 w-3/4 mx-auto" />
-        <a
-          href="https://blog.openhive.network/privacy.html"
-          target="_blank"
-          class="hover:underline"
-        >Privacy Policy</a>
+        <NuxtLink
+          to="/privacy.html"
+          class="hover:underline keychainify-checked"
+        >Privacy Policy</NuxtLink>
         <span class="mx-2">·</span>
-        <a
-          href="https://blog.openhive.network/tos.html"
-          target="_blank"
-          class="hover:underline"
-        >Terms of Service</a>
+        <NuxtLink
+          to="/tos.html"
+          class="hover:underline keychainify-checked"
+        >Terms of Service</NuxtLink>
       </sub>
     </SidebarFooter>
   </Sidebar>
