@@ -185,34 +185,36 @@ async function checkWalletStatus () {
     }
 
     // User is authenticated with Google - now fetch wallet info
-    const info = await GoogleDriveProvider.getWalletInfo(savedAccountName, 'posting');
+    const info = await GoogleDriveProvider.getWalletInfo(savedAccountName);
 
-    if (info.exists && info.accountName && info.role) {
+    if (info.exists && info.accountName) {
       walletStatus.value = {
         exists: true,
         accountName: info.accountName,
-        role: info.role
+        role: undefined
       };
 
-      // Auto-load wallet - it should be automatically unlocked since it's stored in Google Drive
-      try {
-        const result = await GoogleDriveProvider.loadWallet(savedAccountName, info.role);
+      // Check if we have encryption key stored (from previous session on this device)
+      const hasEncryptionKey = GoogleDriveProvider.hasEncryptionKey();
 
-        // Save account name and emit event
-        emit('setaccount', result.accountName);
-        step.value = 'success';
-      } catch (autoLoadErr) {
-        const errorMessage = autoLoadErr instanceof Error ? autoLoadErr.message : String(autoLoadErr);
+      if (hasEncryptionKey) {
+        // Try to auto-load wallet since we have the encryption key
+        try {
+          const result = await GoogleDriveProvider.loadWallet(savedAccountName, 'posting');
 
-        // If wallet exists but is invalid (missing keys), prompt to recreate
-        if (errorMessage.includes('missing all private keys')) {
-          error.value = 'Your wallet file is corrupted or incomplete. Please create a new wallet.';
-          walletStatus.value = { exists: false };
-          step.value = 'create';
-        } else {
-          error.value = `Error loading wallet: ${errorMessage}`;
+          // Save account name and emit event
+          emit('setaccount', result.accountName);
+          step.value = 'success';
+        } catch (_autoLoadErr) {
+          // If auto-load fails, close the dialog and let the user try from settings
+          // This could happen if the stored encryption key is invalid or wallet is corrupted
+          error.value = 'Could not load wallet automatically. Please try loading it from Settings page.';
           step.value = 'check';
         }
+      } else {
+        // No encryption key stored - wallet exists but we can't auto-load it
+        // Close this dialog - the user should load it from Settings page where they can enter password
+        emit('close');
       }
     } else {
       walletStatus.value = { exists: false };

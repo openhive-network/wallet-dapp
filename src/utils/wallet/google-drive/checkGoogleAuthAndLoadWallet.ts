@@ -74,32 +74,49 @@ export default async function (): Promise<GoogleAuthResult> {
 
         if (savedAccount) {
           // Try to load wallet for saved account
-          const walletInfo = await GoogleDriveWalletProvider.getWalletInfo(savedAccount, 'posting');
+          const walletInfo = await GoogleDriveWalletProvider.getWalletInfo(savedAccount);
 
           if (walletInfo.exists && walletInfo.accountName) {
             toast.success('Google Drive connected successfully');
 
-            // Load the wallet
-            const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
+            // Check if we have encryption key stored (from previous session on this device)
+            const hasEncryptionKey = GoogleDriveWalletProvider.hasEncryptionKey();
 
-            // Save settings
-            const settings = {
-              account: loadResult.accountName,
-              wallet: UsedWalletEnum.GOOGLE_DRIVE,
-              googleDriveSync: settingsStore.settings.googleDriveSync || false,
-              lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
-            };
+            if (hasEncryptionKey) {
+              // Try to load the wallet automatically since we have the encryption key
+              try {
+                const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
 
-            settingsStore.setSettings(settings);
-            result.hasUser = true;
+                // Save settings
+                const settings = {
+                  account: loadResult.accountName,
+                  wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                  googleDriveSync: settingsStore.settings.googleDriveSync || false,
+                  lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
+                };
 
-            // Create wallet and load user data
-            await walletStore.createWalletFor(settings, 'posting');
-            await userStore.parseUserData(loadResult.accountName);
+                settingsStore.setSettings(settings);
+                result.hasUser = true;
 
-            // Clear sessionStorage after successful load
-            sessionStorage.removeItem('google_drive_account_name');
-            toast.success(`Wallet loaded: ${loadResult.accountName}`);
+                // Create wallet and load user data
+                await walletStore.createWalletFor(settings, 'posting');
+                await userStore.parseUserData(loadResult.accountName);
+
+                // Clear sessionStorage after successful load
+                sessionStorage.removeItem('google_drive_account_name');
+                toast.success(`Wallet loaded: ${loadResult.accountName}`);
+              } catch (_loadError) {
+                // If auto-load fails, inform user to load from Settings
+                toast.info('Wallet found on Google Drive. Please load it from Settings page.');
+                result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
+                result.prefilledAccountName = savedAccount;
+              }
+            } else {
+              // Wallet exists but no encryption key - user needs to load it from Settings
+              toast.info('Wallet found on Google Drive. Please load it from Settings page to enter your recovery password.');
+              result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
+              result.prefilledAccountName = savedAccount;
+            }
           } else {
             result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
             result.prefilledAccountName = savedAccount;

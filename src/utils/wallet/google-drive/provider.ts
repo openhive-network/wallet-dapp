@@ -180,7 +180,7 @@ export class GoogleDriveWalletProvider {
    * Get wallet info without loading keys into memory
    * @param accountName - The Hive account name to check
    */
-  public static async getWalletInfo (accountName: TAccountName, role: TRole): Promise<{
+  public static async getWalletInfo (accountName: TAccountName): Promise<{
     exists: boolean;
     accountName?: string;
     role?: TRole;
@@ -213,32 +213,14 @@ export class GoogleDriveWalletProvider {
       throw error;
     }
 
-    // Wallet file exists, now try to load it
-    const wallet = await getWallet();
-
-    try {
-      const content = await wallet.loadForHiveKey(accountName, role);
-      const r = [...content.enumStoredHiveKeys(accountName, role)][0]?.role;
-
-      // Extract and store the encryption key WIF if not already stored
-      if (!getStoredEncryptionKey()) {
-        const encryptionKeyWif = wallet.getEncryptionKeyWif();
-        setStoredEncryptionKey(encryptionKeyWif);
-      }
-
-      return {
-        exists: true,
-        accountName,
-        role: r
-      };
-    } catch (error) {
-      // Re-throw PasswordEntryCancelledError so UI can handle it
-      if (error instanceof PasswordEntryCancelledError)
-        throw error;
-
-      // Wallet file doesn't exist or account not found
-      return { exists: false };
-    }
+    // Wallet file exists - return this info immediately
+    // Don't try to load it here, as it may require password prompt
+    // The caller should handle loading separately if needed
+    return {
+      exists: true,
+      accountName,
+      role: undefined
+    };
   }
 
   /**

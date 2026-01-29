@@ -32,6 +32,7 @@ const hasGoogleDriveWallet = ref(false);
 const hiveAccountName = ref<string | undefined>();
 const availableKeyRoles = ref<TRole[]>([]);
 const rolePublicKeys = ref<Record<TRole, string>>({} as Record<TRole, string>);
+const isLoadingKeys = ref(false);
 
 // Dialog state
 const showAddDialog = ref(false);
@@ -115,12 +116,21 @@ const loadWalletInfo = async () => {
     }
 
     hiveAccountName.value = savedAccountName;
-
-    // Try to load wallet info for the saved account
-    const info = await googleDrive.getWalletInfo(savedAccountName, 'posting');
     hasGoogleDriveWallet.value = true; // File exists, so wallet exists
 
-    if (info.exists) {
+    // Check if we have encryption key - if not, we can't load keys automatically
+    const hasEncryptionKey = googleDrive.hasEncryptionKey();
+
+    if (!hasEncryptionKey) {
+      // Wallet exists but we don't have the encryption key cached
+      // Show empty state - keys will be loaded when user adds/interacts with wallet
+      availableKeyRoles.value = [];
+      rolePublicKeys.value = {} as Record<TRole, string>;
+      return;
+    }
+
+    // We have encryption key - try to load keys
+    try {
       // Get all configured roles by probing each one individually
       availableKeyRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
 
@@ -134,10 +144,9 @@ const loadWalletInfo = async () => {
         } catch (_error) {}
       }
       rolePublicKeys.value = publicKeysMap;
-    }
-    else {
-      // Wallet file exists but no keys for this account - still show key management UI
-      // so user can add keys
+    } catch (_keyLoadError) {
+      // If loading keys fails, show empty state
+      // This could happen if encryption key is invalid
       availableKeyRoles.value = [];
       rolePublicKeys.value = {} as Record<TRole, string>;
     }
@@ -147,6 +156,39 @@ const loadWalletInfo = async () => {
     hasGoogleDriveWallet.value = false;
   } finally {
     isLoadingWalletInfo.value = false;
+  }
+};
+
+/**
+ * Check if wallet exists but keys are not loaded (no encryption key)
+ */
+const needsPasswordToLoadKeys = computed(() => {
+  return hasGoogleDriveWallet.value &&
+         hiveAccountName.value &&
+         availableKeyRoles.value.length === 0 &&
+         !isLoadingWalletInfo.value &&
+         !isLoadingKeys.value;
+});
+
+/**
+ * Load keys manually (prompts for password if needed)
+ */
+const loadKeysManually = async () => {
+  if (!hiveAccountName.value) return;
+
+  isLoadingKeys.value = true;
+  try {
+    // Try to load wallet - this will prompt for password if encryption key is not cached
+    await googleDrive.loadWallet(hiveAccountName.value, 'posting');
+
+    // Now reload wallet info to get all keys
+    await loadWalletInfo();
+
+    toast.success('Wallet keys loaded successfully');
+  } catch (error) {
+    toastError('Failed to load wallet keys', error);
+  } finally {
+    isLoadingKeys.value = false;
   }
 };
 
@@ -359,6 +401,37 @@ onMounted(() => {
           <span class="font-mono font-medium">@{{ hiveAccountName }}</span>
         </div>
       </div>
+
+      <!-- Wallet exists but keys not loaded - need password -->
+      <Alert
+        v-if="needsPasswordToLoadKeys"
+        class="border-blue-200 bg-blue-50 dark:bg-blue-950/20"
+      >
+        <AlertTitle class="text-blue-900 dark:text-blue-100">
+          Wallet Found on Google Drive
+        </AlertTitle>
+        <AlertDescription class="text-blue-800 dark:text-blue-200 space-y-3">
+          <p>
+            Your wallet file exists on Google Drive, but the keys are not loaded yet.
+            Enter your recovery password to decrypt and load your keys.
+          </p>
+          <Button
+            size="sm"
+            :disabled="isLoadingKeys"
+            @click="loadKeysManually"
+          >
+            <Loader2
+              v-if="isLoadingKeys"
+              class="w-4 h-4 mr-2 animate-spin"
+            />
+            <Key
+              v-else
+              class="w-4 h-4 mr-2"
+            />
+            {{ isLoadingKeys ? 'Loading Keys...' : 'Load Keys' }}
+          </Button>
+        </AlertDescription>
+      </Alert>
 
       <!-- Key list -->
       <div class="space-y-2">
