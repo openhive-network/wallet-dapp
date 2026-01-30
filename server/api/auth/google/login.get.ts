@@ -21,7 +21,6 @@ export default defineEventHandler((event) => {
     access_type: 'offline', // Get refresh token
     scope: [
       'https://www.googleapis.com/auth/drive.appdata',
-      'https://www.googleapis.com/auth/userinfo.profile',
       'https://www.googleapis.com/auth/userinfo.email'
     ],
     prompt: 'consent', // Force consent screen to always get refresh token

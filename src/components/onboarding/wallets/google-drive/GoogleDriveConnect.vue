@@ -34,9 +34,7 @@ type GoogleDriveWalletStatus = {
 };
 
 type GoogleUser = {
-  name?: string;
   email?: string;
-  picture?: string;
 };
 
 type FormState = {
@@ -472,17 +470,15 @@ onMounted(() => {
       <div v-else-if="step === 'create'" class="space-y-5">
         <!-- Google User Info -->
         <div v-if="googleUser" class="p-4 bg-muted/50 rounded-lg border">
-          <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                  <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                 </svg>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="font-medium text-sm truncate">{{ googleUser.name }}</div>
-                <div class="text-xs text-muted-foreground truncate">{{ googleUser.email }}</div>
-              </div>
+              <span class="text-sm truncate">{{ googleUser.email }}</span>
             </div>
             <Button
               variant="ghost"

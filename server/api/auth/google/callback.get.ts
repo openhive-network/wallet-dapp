@@ -67,9 +67,7 @@ export default defineEventHandler(async (event) => {
 
     // Store user info in a readable cookie (not sensitive)
     setCookie(event, 'google_user', JSON.stringify({
-      name: userInfo.data.name,
-      email: userInfo.data.email,
-      picture: userInfo.data.picture
+      email: userInfo.data.email
     }), {
       httpOnly: false, // Readable by client
       secure: process.env.NODE_ENV === 'production',
