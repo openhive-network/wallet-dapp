@@ -11,6 +11,7 @@ import { UsedWallet, useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
+import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
 
 const route = useRoute();
 
@@ -21,6 +22,8 @@ const hasTokenInRoute = computed(() => {
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 const HTMProvidePassword = defineAsyncComponent(() => import('@/components/htm/HTMProvidePassword.vue'));
 const GoogleDriveConnect = defineAsyncComponent(() => import('@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue'));
+const RecoveryPasswordDialog = defineAsyncComponent(() => import('@/components/RecoveryPasswordDialog.vue'));
+const AccountNamePromptDialog = defineAsyncComponent(() => import('@/components/AccountNamePromptDialog.vue'));
 
 const hasUser = ref(true);
 const settingsStore = useSettingsStore();
@@ -31,6 +34,80 @@ const favoritesStore = useFavoritesStore();
 // Google Drive wallet dialog state
 const showGoogleDriveWalletDialog = ref(false);
 const isCheckingGoogleDriveWallet = ref(false);
+
+/**
+ * Handle Google OAuth callback - called when user returns from Google auth with ?auth=success
+ * Prompts for account name if needed and loads the wallet
+ */
+const handleGoogleOAuthCallback = async () => {
+  // Check if we just returned from Google OAuth
+  const urlParams = new URLSearchParams(window.location.search);
+  const authStatus = urlParams.get('auth');
+
+  if (authStatus !== 'success')
+    return false;
+
+  // Remove the auth parameter from URL
+  const newUrl = window.location.pathname;
+  window.history.replaceState({}, document.title, newUrl);
+
+  try {
+    // Check if authenticated with Google
+    await settingsStore.checkGoogleAuth();
+    if (!settingsStore.isGoogleAuthenticated)
+      return false;
+
+    // Check if wallet file exists
+    const response = await $fetch<{ exists: boolean }>('/api/google-drive/check-wallet-file');
+
+    if (!response.exists) {
+      // No wallet file - show create wallet dialog
+      showGoogleDriveWalletDialog.value = true;
+      return true;
+    }
+
+    // Wallet file exists - check if we have account name
+    let accountName = settingsStore.settings.account;
+
+    if (!accountName) {
+      // Prompt for account name
+      try {
+        accountName = await GoogleDriveWalletProvider.requestAccountName();
+        settingsStore.settings.account = accountName;
+        settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
+        settingsStore.saveSettings();
+      } catch (_promptError) {
+        // User cancelled - don't block app usage
+        return true;
+      }
+    }
+
+    // Try to load the wallet (will prompt for recovery password if needed)
+    try {
+      await GoogleDriveWalletProvider.loadWallet(accountName, 'posting');
+
+      // Update settings
+      settingsStore.settings.account = accountName;
+      settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
+      settingsStore.saveSettings();
+
+      // Load user data
+      hasUser.value = true;
+      await walletStore.createWalletFor(settingsStore.settings, 'posting');
+      await userStore.parseUserData(accountName);
+
+      toast.success(`Wallet loaded for @${accountName}`);
+    } catch (_loadError) {
+      // User cancelled password entry or other error - don't block app usage
+      // Settings are already saved, user can try again from Settings page
+    }
+
+    return true;
+  } catch (_error) {
+    // Silently fail - don't block app usage
+    return false;
+  }
+};
 
 /**
  * Check if user is authenticated with Google but has no wallet file
@@ -75,20 +152,27 @@ const handleGoogleDriveDialogClose = () => {
   showGoogleDriveWalletDialog.value = false;
 };
 
-onMounted(() => {
+onMounted(async () => {
   settingsStore.loadSettings();
   hasUser.value = settingsStore.settings.account !== undefined;
   favoritesStore.loadFromStorage();
-  if (hasUser.value) {
-    walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
-      userStore.parseUserData(settingsStore.settings.account!).catch(error => {
-        toastError('Failed to load user data', error);
-      });
-    });
-  }
 
-  // Check if Google Drive wallet dialog should be shown
-  checkGoogleDriveWalletNeeded();
+  // First, check if this is an OAuth callback - handle it before anything else
+  const wasOAuthCallback = await handleGoogleOAuthCallback();
+
+  if (!wasOAuthCallback) {
+    // Normal app load - not an OAuth callback
+    if (hasUser.value) {
+      walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
+        userStore.parseUserData(settingsStore.settings.account!).catch(error => {
+          toastError('Failed to load user data', error);
+        });
+      });
+    }
+
+    // Check if Google Drive wallet dialog should be shown
+    checkGoogleDriveWalletNeeded();
+  }
 });
 
 // Also check when auth state changes (e.g., after OAuth callback)
@@ -153,5 +237,11 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
         />
       </DialogContent>
     </Dialog>
+
+    <!-- Recovery Password Dialog (global) -->
+    <RecoveryPasswordDialog />
+
+    <!-- Account Name Prompt Dialog (global) -->
+    <AccountNamePromptDialog />
   </SidebarProvider>
 </template>

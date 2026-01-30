@@ -50,57 +50,59 @@ const handleKeydown = (event: KeyboardEvent) => {
     :open="accountNamePromptDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
-    <DialogContent data-testid="account-prompt-dialog" class="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle class="flex items-center gap-2">
-          <User class="w-5 h-5 text-primary" />
-          Hive Account Name Required
-        </DialogTitle>
-        <DialogDescription>
-          Enter your Hive account name to check for an existing wallet on Google Drive.
-        </DialogDescription>
-      </DialogHeader>
+    <DialogContent class="sm:max-w-md">
+      <div data-testid="account-prompt-dialog">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <User class="w-5 h-5 text-primary" />
+            Hive Account Name Required
+          </DialogTitle>
+          <DialogDescription>
+            Enter your Hive account name to check for an existing wallet on Google Drive.
+          </DialogDescription>
+        </DialogHeader>
 
-      <div class="space-y-4 py-4">
-        <div class="space-y-2">
-          <Label for="accountName">Account Name</Label>
-          <Input
-            id="accountName"
-            v-model="accountName"
-            data-testid="account-prompt-input"
-            type="text"
-            placeholder="Enter your Hive account name"
-            autocomplete="off"
-            @keydown="handleKeydown"
-          />
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <Label for="accountName">Account Name</Label>
+            <Input
+              id="accountName"
+              v-model="accountName"
+              data-testid="account-prompt-input"
+              type="text"
+              placeholder="Enter your Hive account name"
+              autocomplete="off"
+              @keydown="handleKeydown"
+            />
+          </div>
+
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            This is the Hive blockchain account name associated with your wallet stored in Google Drive.
+          </p>
         </div>
 
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          This is the Hive blockchain account name associated with your wallet stored in Google Drive.
-        </p>
+        <DialogFooter>
+          <Button
+            data-testid="account-prompt-cancel-btn"
+            variant="outline"
+            :disabled="isSubmitting"
+            @click="handleCancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            data-testid="account-prompt-submit-btn"
+            :disabled="!accountName.trim() || isSubmitting"
+            @click="handleSubmit"
+          >
+            <Loader2
+              v-if="isSubmitting"
+              class="w-4 h-4 animate-spin mr-2"
+            />
+            {{ isSubmitting ? 'Checking...' : 'Continue' }}
+          </Button>
+        </DialogFooter>
       </div>
-
-      <DialogFooter>
-        <Button
-          data-testid="account-prompt-cancel-btn"
-          variant="outline"
-          :disabled="isSubmitting"
-          @click="handleCancel"
-        >
-          Cancel
-        </Button>
-        <Button
-          data-testid="account-prompt-submit-btn"
-          :disabled="!accountName.trim() || isSubmitting"
-          @click="handleSubmit"
-        >
-          <Loader2
-            v-if="isSubmitting"
-            class="w-4 h-4 animate-spin mr-2"
-          />
-          {{ isSubmitting ? 'Checking...' : 'Continue' }}
-        </Button>
-      </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>

@@ -104,29 +104,42 @@ const loadWalletInfo = async () => {
     }
 
     // Wallet file exists - now check account name
-    const savedAccountName = settingsStore.settings.account;
+    let savedAccountName = settingsStore.settings.account;
     if (!savedAccountName) {
-      // File exists but no account name saved - still show key management UI
-      // User can add keys which will prompt for account name
-      hasGoogleDriveWallet.value = true;
-      hiveAccountName.value = undefined;
-      availableKeyRoles.value = [];
-      rolePublicKeys.value = {} as Record<TRole, string>;
-      return;
+      // File exists but no account name saved - prompt user for account name
+      try {
+        savedAccountName = await googleDrive.requestAccountName();
+        // Save the account name for future use
+        settingsStore.settings.account = savedAccountName;
+        settingsStore.saveSettings();
+      } catch (_promptError) {
+        // User cancelled account name entry - show empty state
+        hasGoogleDriveWallet.value = true;
+        hiveAccountName.value = undefined;
+        availableKeyRoles.value = [];
+        rolePublicKeys.value = {} as Record<TRole, string>;
+        return;
+      }
     }
 
     hiveAccountName.value = savedAccountName;
     hasGoogleDriveWallet.value = true; // File exists, so wallet exists
 
-    // Check if we have encryption key - if not, we can't load keys automatically
+    // Check if we have encryption key - if not, try to load wallet which will prompt for password
     const hasEncryptionKey = googleDrive.hasEncryptionKey();
 
     if (!hasEncryptionKey) {
       // Wallet exists but we don't have the encryption key cached
-      // Show empty state - keys will be loaded when user adds/interacts with wallet
-      availableKeyRoles.value = [];
-      rolePublicKeys.value = {} as Record<TRole, string>;
-      return;
+      // Try to load wallet - this will prompt for recovery password via the dialog
+      try {
+        await googleDrive.loadWallet(savedAccountName, 'posting');
+        // After successful load, the encryption key is now cached - continue loading keys
+      } catch (_loadError) {
+        // User cancelled password entry or other error - show empty state
+        availableKeyRoles.value = [];
+        rolePublicKeys.value = {} as Record<TRole, string>;
+        return;
+      }
     }
 
     // We have encryption key - try to load keys

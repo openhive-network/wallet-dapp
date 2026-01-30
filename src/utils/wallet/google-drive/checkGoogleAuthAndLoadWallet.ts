@@ -79,43 +79,56 @@ export default async function (): Promise<GoogleAuthResult> {
           if (walletInfo.exists && walletInfo.accountName) {
             toast.success('Google Drive connected successfully');
 
-            // Check if we have encryption key stored (from previous session on this device)
-            const hasEncryptionKey = GoogleDriveWalletProvider.hasEncryptionKey();
+            // Try to load the wallet - this will prompt for recovery password if needed
+            try {
+              const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
 
-            if (hasEncryptionKey) {
-              // Try to load the wallet automatically since we have the encryption key
-              try {
-                const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
+              // Save settings
+              const settings = {
+                account: loadResult.accountName,
+                wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                googleDriveSync: settingsStore.settings.googleDriveSync || false,
+                lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
+              };
 
-                // Save settings
+              settingsStore.setSettings(settings);
+              result.hasUser = true;
+
+              // Create wallet and load user data
+              await walletStore.createWalletFor(settings, 'posting');
+              await userStore.parseUserData(loadResult.accountName);
+
+              // Clear sessionStorage after successful load
+              sessionStorage.removeItem('google_drive_account_name');
+              toast.success(`Wallet loaded: ${loadResult.accountName}`);
+            } catch (loadError) {
+              // If user cancelled password entry, save basic settings so they can try again from Settings
+              if (loadError instanceof PasswordEntryCancelledError) {
                 const settings = {
-                  account: loadResult.accountName,
+                  account: savedAccount,
                   wallet: UsedWalletEnum.GOOGLE_DRIVE,
                   googleDriveSync: settingsStore.settings.googleDriveSync || false,
                   lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
                 };
-
                 settingsStore.setSettings(settings);
-                result.hasUser = true;
 
-                // Create wallet and load user data
-                await walletStore.createWalletFor(settings, 'posting');
-                await userStore.parseUserData(loadResult.accountName);
+                toast.info('You can load your wallet later from the Settings page.');
+                result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
+                result.prefilledAccountName = savedAccount;
+              } else {
+                // Other error - still save settings and show error
+                const settings = {
+                  account: savedAccount,
+                  wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                  googleDriveSync: settingsStore.settings.googleDriveSync || false,
+                  lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
+                };
+                settingsStore.setSettings(settings);
 
-                // Clear sessionStorage after successful load
-                sessionStorage.removeItem('google_drive_account_name');
-                toast.success(`Wallet loaded: ${loadResult.accountName}`);
-              } catch (_loadError) {
-                // If auto-load fails, inform user to load from Settings
-                toast.info('Wallet found on Google Drive. Please load it from Settings page.');
+                toastError('Failed to load wallet', loadError);
                 result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
                 result.prefilledAccountName = savedAccount;
               }
-            } else {
-              // Wallet exists but no encryption key - user needs to load it from Settings
-              toast.info('Wallet found on Google Drive. Please load it from Settings page to enter your recovery password.');
-              result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
-              result.prefilledAccountName = savedAccount;
             }
           } else {
             result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;

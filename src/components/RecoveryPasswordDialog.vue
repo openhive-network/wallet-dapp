@@ -58,83 +58,85 @@ const handleKeydown = (event: KeyboardEvent) => {
     :open="recoveryPasswordDialog.isOpen.value"
     @update:open="handleOpenChange"
   >
-    <DialogContent data-testid="recovery-password-dialog" class="sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle class="flex items-center gap-2">
-          <KeyRound class="w-5 h-5 text-primary" />
-          Recovery Password Required
-        </DialogTitle>
-        <DialogDescription>
-          Enter your recovery password to unlock and access your Google Drive wallet.
-        </DialogDescription>
-      </DialogHeader>
+    <DialogContent class="sm:max-w-md">
+      <div data-testid="recovery-password-dialog">
+        <DialogHeader>
+          <DialogTitle class="flex items-center gap-2">
+            <KeyRound class="w-5 h-5 text-primary" />
+            Recovery Password Required
+          </DialogTitle>
+          <DialogDescription>
+            Enter your recovery password to unlock and access your Google Drive wallet.
+          </DialogDescription>
+        </DialogHeader>
 
-      <div class="space-y-4 py-4">
-        <div class="space-y-2">
-          <Label for="recoveryPassword">Recovery Password</Label>
-          <div class="relative">
-            <Input
-              id="recoveryPassword"
-              v-model="password"
-              data-testid="recovery-password-input"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="Enter your recovery password"
-              autocomplete="off"
-              class="pr-10"
-              @keydown="handleKeydown"
-            />
-            <Button
-              type="button"
-              data-testid="recovery-password-toggle"
-              variant="ghost"
-              size="sm"
-              class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-              @click="togglePasswordVisibility"
-            >
-              <Eye
-                v-if="!showPassword"
-                class="w-4 h-4 text-gray-500"
+        <div class="space-y-4 py-4">
+          <div class="space-y-2">
+            <Label for="recoveryPassword">Recovery Password</Label>
+            <div class="relative">
+              <Input
+                id="recoveryPassword"
+                v-model="password"
+                data-testid="recovery-password-input"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="Enter your recovery password"
+                autocomplete="off"
+                class="pr-10"
+                @keydown="handleKeydown"
               />
-              <EyeOff
-                v-else
-                class="w-4 h-4 text-gray-500"
-              />
-            </Button>
+              <Button
+                type="button"
+                data-testid="recovery-password-toggle"
+                variant="ghost"
+                size="sm"
+                class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                @click="togglePasswordVisibility"
+              >
+                <Eye
+                  v-if="!showPassword"
+                  class="w-4 h-4 text-gray-500"
+                />
+                <EyeOff
+                  v-else
+                  class="w-4 h-4 text-gray-500"
+                />
+              </Button>
+            </div>
           </div>
+
+          <Alert variant="warning">
+            <AlertDescription>
+              <strong>Important:</strong> If you forget this password, your wallet cannot be recovered. There is no password reset option.
+            </AlertDescription>
+          </Alert>
+
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            This password was set when you created your wallet. It is used to encrypt your private keys stored in Google Drive.
+          </p>
         </div>
 
-        <Alert variant="warning">
-          <AlertDescription>
-            <strong>Important:</strong> If you forget this password, your wallet cannot be recovered. There is no password reset option.
-          </AlertDescription>
-        </Alert>
-
-        <p class="text-xs text-gray-500 dark:text-gray-400">
-          This password was set when you created your wallet. It is used to encrypt your private keys stored in Google Drive.
-        </p>
+        <DialogFooter>
+          <Button
+            data-testid="recovery-cancel-btn"
+            variant="outline"
+            :disabled="isSubmitting"
+            @click="handleCancel"
+          >
+            Cancel
+          </Button>
+          <Button
+            data-testid="recovery-submit-btn"
+            :disabled="!password.trim() || isSubmitting"
+            @click="handleSubmit"
+          >
+            <Loader2
+              v-if="isSubmitting"
+              class="w-4 h-4 animate-spin mr-2"
+            />
+            {{ isSubmitting ? 'Unlocking...' : 'Unlock Wallet' }}
+          </Button>
+        </DialogFooter>
       </div>
-
-      <DialogFooter>
-        <Button
-          data-testid="recovery-cancel-btn"
-          variant="outline"
-          :disabled="isSubmitting"
-          @click="handleCancel"
-        >
-          Cancel
-        </Button>
-        <Button
-          data-testid="recovery-submit-btn"
-          :disabled="!password.trim() || isSubmitting"
-          @click="handleSubmit"
-        >
-          <Loader2
-            v-if="isSubmitting"
-            class="w-4 h-4 animate-spin mr-2"
-          />
-          {{ isSubmitting ? 'Unlocking...' : 'Unlock Wallet' }}
-        </Button>
-      </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>
