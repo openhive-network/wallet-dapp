@@ -24,7 +24,7 @@ export default defineEventHandler((event) => {
       'https://www.googleapis.com/auth/userinfo.email'
     ],
     prompt: 'consent', // Force consent screen to always get refresh token
-    include_granted_scopes: true,
+    include_granted_scopes: false,
     state: returnUrl // Pass returnUrl through OAuth flow
   });
 
