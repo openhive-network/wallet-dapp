@@ -207,11 +207,10 @@ async function checkWalletStatus () {
     // User is authenticated with Google - now fetch wallet info
     const info = await GoogleDriveProvider.getWalletInfo(savedAccountName);
 
-    if (info.exists && info.accountName) {
+    if (info.exists) {
       walletStatus.value = {
         exists: true,
-        accountName: info.accountName,
-        role: undefined
+        accountName: savedAccountName
       };
 
       // Try to load the wallet - this will prompt for recovery password if needed
@@ -231,6 +230,7 @@ async function checkWalletStatus () {
           settingsStore.setSettings({
             account: savedAccountName,
             wallet: UsedWallet.GOOGLE_DRIVE,
+            googleDriveAccounts: settingsStore.settings.googleDriveAccounts || [],
             googleDriveSync: settingsStore.settings.googleDriveSync || false,
             lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
           });
@@ -341,6 +341,9 @@ async function createWallet () {
     }
 
     sessionStorage.removeItem('google_drive_account_name');
+
+    // Register account in settings store
+    settingsStore.addGoogleDriveAccount(accountName);
 
     // Clear form
     form.value = {

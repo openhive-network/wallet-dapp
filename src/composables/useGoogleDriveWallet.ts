@@ -1,5 +1,5 @@
-import type { TAccountName, TPublicKey, TRole } from '@hiveio/wax';
-import type { IExternalWalletContent } from '@hiveio/wax-signers-external';
+import type { TAccountName, TPublicKey, TRole, AEncryptionProvider } from '@hiveio/wax';
+import type { IExternalWalletContent, IExternalWalletCustomKeyInfo } from '@hiveio/wax-signers-external';
 
 import { AccountNameEntryCancelledError } from '@/composables/usePromptDialog';
 import GoogleDriveWalletProvider, { RecoveryPasswordRequiredError } from '@/utils/wallet/google-drive/provider';
@@ -26,12 +26,12 @@ export function useGoogleDriveWallet () {
     return await GoogleDriveWalletProvider.loadWallet(accountName, role);
   };
 
-  const getWalletInfo = async (accountName: TAccountName, role: TRole): Promise<{
+  const getWalletInfo = async (accountName?: TAccountName): Promise<{
     exists: boolean;
     accountName?: string;
-    role?: TRole;
+    accounts?: string[];
   }> => {
-    return await GoogleDriveWalletProvider.getWalletInfo(accountName, role);
+    return await GoogleDriveWalletProvider.getWalletInfo(accountName);
   };
 
   const getAllConfiguredRoles = async (accountName: TAccountName): Promise<TRole[]> => {
@@ -74,6 +74,32 @@ export function useGoogleDriveWallet () {
     return await GoogleDriveWalletProvider.requestAccountName();
   };
 
+  // Multi-account methods
+  const getStoredAccounts = async (): Promise<string[]> => {
+    return await GoogleDriveWalletProvider.getStoredAccounts();
+  };
+
+  const getStoredRolesForAccount = async (accountName: TAccountName): Promise<TRole[]> => {
+    return await GoogleDriveWalletProvider.getStoredRolesForAccount(accountName);
+  };
+
+  // Custom key methods
+  const addCustomKey = async (alias: string, privateKey: string, description?: string): Promise<{ publicKey: TPublicKey }> => {
+    return await GoogleDriveWalletProvider.addCustomKey(alias, privateKey, description);
+  };
+
+  const getAllCustomKeys = async (): Promise<IExternalWalletCustomKeyInfo[]> => {
+    return await GoogleDriveWalletProvider.getAllCustomKeys();
+  };
+
+  const removeCustomKey = async (alias: string): Promise<void> => {
+    return await GoogleDriveWalletProvider.removeCustomKey(alias);
+  };
+
+  const loadCustomKey = async (alias: string): Promise<AEncryptionProvider> => {
+    return await GoogleDriveWalletProvider.loadCustomKey(alias);
+  };
+
   return {
     // State getters
     get isAuthenticated () {
@@ -96,6 +122,16 @@ export function useGoogleDriveWallet () {
     clearEncryptionKey,
     hasEncryptionKey,
     requestAccountName,
+
+    // Multi-account
+    getStoredAccounts,
+    getStoredRolesForAccount,
+
+    // Custom keys
+    addCustomKey,
+    getAllCustomKeys,
+    removeCustomKey,
+    loadCustomKey,
 
     // Errors
     RecoveryPasswordRequiredError,

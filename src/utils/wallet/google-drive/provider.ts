@@ -1,5 +1,5 @@
 import type { TPublicKey, TRole, TAccountName, AEncryptionProvider } from '@hiveio/wax';
-import { createExternalWallet, type IExternalWalletContent, type IExternalWallet, type TStorageEncryptionCredentials } from '@hiveio/wax-signers-external';
+import { createExternalWallet, type IExternalWalletContent, type IExternalWalletCustomKeyInfo, type IExternalWallet, type TStorageEncryptionCredentials } from '@hiveio/wax-signers-external';
 
 import { useAccountNamePromptDialog, useRecoveryPasswordDialog, PasswordEntryCancelledError } from '@/composables/usePromptDialog';
 
@@ -178,12 +178,12 @@ export class GoogleDriveWalletProvider {
 
   /**
    * Get wallet info without loading keys into memory
-   * @param accountName - The Hive account name to check
+   * @param accountName - Optional Hive account name (for backwards compat)
    */
-  public static async getWalletInfo (accountName: TAccountName): Promise<{
+  public static async getWalletInfo (accountName?: TAccountName): Promise<{
     exists: boolean;
     accountName?: string;
-    role?: TRole;
+    accounts?: string[];
   }> {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       return { exists: false };
@@ -218,13 +218,12 @@ export class GoogleDriveWalletProvider {
     // The caller should handle loading separately if needed
     return {
       exists: true,
-      accountName,
-      role: undefined
+      accountName
     };
   }
 
   /**
-   * Get all configured roles for an account by probing each role individually
+   * Get all configured roles for an account
    * @param accountName - The Hive account name to check
    * @returns Array of configured roles
    */
@@ -232,33 +231,16 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       return [];
 
-    const allRoles: TRole[] = ['posting', 'active', 'owner', 'memo'];
-    const configuredRoles: TRole[] = [];
     const wallet = await getWallet();
-    let keyStored = false;
+    const roles = await wallet.enumStoredRolesForAccount(accountName);
 
-    for (const role of allRoles) {
-      try {
-        // Try to load this specific role
-        await wallet.loadForHiveKey(accountName, role);
-        configuredRoles.push(role);
-
-        // Extract and store the encryption key WIF if not already stored (only once)
-        if (!keyStored && !getStoredEncryptionKey()) {
-          const encryptionKeyWif = wallet.getEncryptionKeyWif();
-          setStoredEncryptionKey(encryptionKeyWif);
-          keyStored = true;
-        }
-      } catch (error) {
-        // Re-throw PasswordEntryCancelledError so UI can handle it
-        if (error instanceof PasswordEntryCancelledError)
-          throw error;
-
-        // Role doesn't exist in wallet - continue checking others
-      }
+    // Extract and store the encryption key WIF if not already stored
+    if (roles.length > 0 && !getStoredEncryptionKey()) {
+      const encryptionKeyWif = wallet.getEncryptionKeyWif();
+      setStoredEncryptionKey(encryptionKeyWif);
     }
 
-    return configuredRoles;
+    return roles;
   }
 
   /**
@@ -371,11 +353,11 @@ export class GoogleDriveWalletProvider {
 
       return content;
     } catch {
-      // Fall back to loading any available key for this account
-      const content = await wallet.loadForHiveKey(accountName, role);
-      const roles = [...content.enumStoredHiveKeys(accountName)];
+      // Fall back to loading any available key for this account (no role filter)
+      const content = await wallet.loadForHiveKey(accountName);
+      const keys = [...content.enumStoredHiveKeys(accountName)];
 
-      if (roles.length === 0)
+      if (keys.length === 0)
         throw new Error('No wallet found or wallet has no keys');
 
       // Extract and store the encryption key WIF if not already stored
@@ -460,6 +442,113 @@ export class GoogleDriveWalletProvider {
 
       throw new Error(`Could not load wallet for account ${accountName} to remove key`);
     }
+  }
+
+  /**
+   * Get all Hive accounts stored in the wallet
+   * @returns Array of account names
+   */
+  public static async getStoredAccounts (): Promise<string[]> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      return [];
+
+    const wallet = await getWallet();
+
+    // Extract and store the encryption key WIF if not already stored
+    if (!getStoredEncryptionKey()) {
+      const encryptionKeyWif = wallet.getEncryptionKeyWif();
+      setStoredEncryptionKey(encryptionKeyWif);
+    }
+
+    return await wallet.enumStoredAccounts();
+  }
+
+  /**
+   * Get all configured roles for a specific account
+   * @param accountName - The Hive account name
+   * @returns Array of configured roles
+   */
+  public static async getStoredRolesForAccount (accountName: TAccountName): Promise<TRole[]> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      return [];
+
+    const wallet = await getWallet();
+    return await wallet.enumStoredRolesForAccount(accountName);
+  }
+
+  /**
+   * Add a custom general-purpose key to the wallet
+   * @param alias - The key alias/identifier
+   * @param privateKey - The private key
+   * @param description - Optional description
+   * @returns Object with public key
+   */
+  public static async addCustomKey (alias: string, privateKey: string, description?: string): Promise<{ publicKey: TPublicKey }> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      throw new Error('Not authenticated with Google');
+
+    const wallet = await getWallet();
+    const content = await wallet.createForCustomKey(alias, privateKey, description);
+
+    // Extract and store the encryption key WIF if not already stored
+    if (!getStoredEncryptionKey()) {
+      const encryptionKeyWif = wallet.getEncryptionKeyWif();
+      setStoredEncryptionKey(encryptionKeyWif);
+    }
+
+    const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
+    if (!keyInfo)
+      throw new Error('Failed to add custom key');
+
+    return { publicKey: keyInfo.publicKey };
+  }
+
+  /**
+   * Get all custom keys stored in the wallet
+   * @returns Array of custom key info (alias, publicKey, description)
+   */
+  public static async getAllCustomKeys (): Promise<IExternalWalletCustomKeyInfo[]> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      return [];
+
+    const wallet = await getWallet();
+    return await wallet.enumStoredCustomKeys();
+  }
+
+  /**
+   * Remove a custom key from the wallet
+   * @param alias - The key alias to remove
+   */
+  public static async removeCustomKey (alias: string): Promise<void> {
+    if (!await GoogleDriveWalletProvider.isAuthenticated())
+      throw new Error('Not authenticated with Google');
+
+    const wallet = await getWallet();
+    const content = await wallet.loadForCustomKey(alias);
+    const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
+
+    if (!keyInfo)
+      throw new Error(`Custom key '${alias}' not found`);
+
+    await content.removeKey(keyInfo);
+  }
+
+  /**
+   * Load a custom key for signing
+   * @param alias - The key alias to load
+   * @returns Encryption provider for signing
+   */
+  public static async loadCustomKey (alias: string): Promise<AEncryptionProvider> {
+    const wallet = await getWallet();
+    const content = await wallet.loadForCustomKey(alias);
+
+    // Extract and store the encryption key WIF if not already stored
+    if (!getStoredEncryptionKey()) {
+      const encryptionKeyWif = wallet.getEncryptionKeyWif();
+      setStoredEncryptionKey(encryptionKeyWif);
+    }
+
+    return content as unknown as AEncryptionProvider;
   }
 
   /**

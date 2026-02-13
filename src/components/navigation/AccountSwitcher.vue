@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { mdiSwapHorizontal } from '@mdi/js';
+import { ChevronDown, Check } from 'lucide-vue-next';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -7,6 +8,7 @@ import hiveLogoUrl from '@/assets/icons/hive.svg';
 import cTokensLogoUrl from '@/assets/icons/wallets/ctokens.svg';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSettingsStore, UsedWallet  } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
@@ -39,6 +41,45 @@ const hasHTMAccount = computed(() => tokensStore.wallet !== undefined);
 const isGoogleDriveWallet = computed(() =>
   hasHiveAccount.value && settingsStore.settings.wallet === UsedWallet.GOOGLE_DRIVE
 );
+
+// Multi-account: Google Drive accounts available for switching
+const googleDriveAccounts = computed(() => settingsStore.settings.googleDriveAccounts ?? []);
+const hasMultipleHiveAccounts = computed(() =>
+  isGoogleDriveWallet.value && googleDriveAccounts.value.length > 1
+);
+
+const isAccountPopoverOpen = ref(false);
+const isSwitchingAccount = ref(false);
+
+const switchHiveAccount = async (accountName: string) => {
+  if (accountName === settingsStore.settings.account) {
+    isAccountPopoverOpen.value = false;
+    return;
+  }
+
+  isSwitchingAccount.value = true;
+  try {
+    settingsStore.setActiveGoogleDriveAccount(accountName);
+    userStore.resetSettings();
+
+    const settings = {
+      account: accountName,
+      wallet: UsedWallet.GOOGLE_DRIVE,
+      googleDriveAccounts: settingsStore.settings.googleDriveAccounts,
+      googleDriveSync: settingsStore.settings.googleDriveSync,
+      lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
+    };
+
+    await walletStore.createWalletFor(settings, 'posting');
+    await userStore.parseUserData(accountName);
+
+    isAccountPopoverOpen.value = false;
+  } catch (error) {
+    toastError('Failed to switch account', error);
+  } finally {
+    isSwitchingAccount.value = false;
+  }
+};
 
 const htmUserMetadata = ref<{
   displayName: string;
@@ -208,24 +249,77 @@ const otherAccount = computed(() => {
       v-if="displayedAccount"
       class="inline-flex items-center relative"
     >
-      <Avatar class="w-8 h-8 mr-2 border">
-        <AvatarImage
-          v-if="displayedAccount.profileImage"
-          :src="displayedAccount.profileImage"
-        />
-        <AvatarFallback>
-          {{ displayedAccount.displayName?.slice(1, 3) }}
-        </AvatarFallback>
-      </Avatar>
-      <img
-        :src="displayedAccount.icon"
-        class="h-[16px] w-[16px] absolute top-5 left-5 rounded-full border bg-background"
-      >
-      <span class="font-bold max-w-[150px] md:max-w-full truncate">
-        {{ displayedAccount.displayName }}
-      </span>
+      <!-- Account selector popover (multi-account Google Drive) -->
+      <Popover v-if="hasMultipleHiveAccounts && displayedAccount.type === 'hive'" v-model:open="isAccountPopoverOpen">
+        <PopoverTrigger as-child>
+          <button
+            class="inline-flex items-center relative cursor-pointer hover:opacity-80 transition-opacity rounded-md px-1 -mx-1"
+            :disabled="isSwitchingAccount"
+          >
+            <Avatar class="w-8 h-8 mr-2 border">
+              <AvatarImage
+                v-if="displayedAccount.profileImage"
+                :src="displayedAccount.profileImage"
+              />
+              <AvatarFallback>
+                {{ displayedAccount.displayName?.slice(1, 3) }}
+              </AvatarFallback>
+            </Avatar>
+            <img
+              :src="displayedAccount.icon"
+              class="h-[16px] w-[16px] absolute top-5 left-1.5 rounded-full border bg-background"
+            >
+            <span class="font-bold max-w-[120px] md:max-w-full truncate">
+              {{ displayedAccount.displayName }}
+            </span>
+            <ChevronDown class="w-3.5 h-3.5 ml-0.5 opacity-60 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent class="w-56 p-1" align="start">
+          <div class="text-xs font-medium text-muted-foreground px-2 py-1.5">
+            Hive Accounts
+          </div>
+          <button
+            v-for="account in googleDriveAccounts"
+            :key="account"
+            class="flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded-md hover:bg-accent transition-colors cursor-pointer"
+            :disabled="isSwitchingAccount"
+            @click="switchHiveAccount(account)"
+          >
+            <img
+              :src="hiveLogoUrl"
+              class="h-4 w-4 shrink-0"
+            >
+            <span class="truncate font-medium">@{{ account }}</span>
+            <Check
+              v-if="account === settingsStore.settings.account"
+              class="w-3.5 h-3.5 ml-auto text-primary shrink-0"
+            />
+          </button>
+        </PopoverContent>
+      </Popover>
 
-      <!-- Dropdown for disconnect current account -->
+      <!-- Single account display (no dropdown) -->
+      <template v-else>
+        <Avatar class="w-8 h-8 mr-2 border">
+          <AvatarImage
+            v-if="displayedAccount.profileImage"
+            :src="displayedAccount.profileImage"
+          />
+          <AvatarFallback>
+            {{ displayedAccount.displayName?.slice(1, 3) }}
+          </AvatarFallback>
+        </Avatar>
+        <img
+          :src="displayedAccount.icon"
+          class="h-[16px] w-[16px] absolute top-5 left-5 rounded-full border bg-background"
+        >
+        <span class="font-bold max-w-[150px] md:max-w-full truncate">
+          {{ displayedAccount.displayName }}
+        </span>
+      </template>
+
+      <!-- Disconnect button -->
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger as-child>
