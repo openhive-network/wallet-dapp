@@ -176,11 +176,11 @@ onMounted(async () => {
           toastError('Failed to load user data', error);
         });
       }).catch(error => {
-        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError) {
+        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
           toast.warning('Your wallet is empty. Please go to Settings to add keys.');
-        } else {
+        else
           toastError('Failed to load wallet', error);
-        }
+
       });
     }
 
@@ -209,11 +209,11 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
 
     await userStore.parseUserData(settingsStore.settings.account!);
   } catch (error) {
-    if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError) {
+    if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
       toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
-    } else {
+    else
       toastError('Failed to create wallet', error);
-    }
+
   }
 };
 </script>
