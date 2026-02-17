@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog, mdiShieldStarOutline } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -50,6 +50,11 @@ const tokenItems: Array<{ title: string; url: string; icon: string; badge?: stri
     title: 'Register HTM Account',
     url: '/tokens/register-account',
     icon: mdiAccountPlusOutline
+  },
+  {
+    title: 'Badge Builder',
+    url: '/tokens/badges',
+    icon: mdiShieldStarOutline
   }
 ];
 
