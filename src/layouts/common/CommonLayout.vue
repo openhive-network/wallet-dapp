@@ -11,7 +11,7 @@ import { UsedWallet, useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
-import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
+import GoogleDriveWalletProvider, { EmptyWalletError, AccountNotInWalletError } from '@/utils/wallet/google-drive/provider';
 
 const route = useRoute();
 
@@ -97,7 +97,15 @@ const handleGoogleOAuthCallback = async () => {
       await userStore.parseUserData(accountName);
 
       toast.success(`Wallet loaded for @${accountName}`);
-    } catch (_loadError) {
+    } catch (loadError) {
+      if (loadError instanceof EmptyWalletError || loadError instanceof AccountNotInWalletError) {
+        // Wallet exists but has no keys for this account - save settings and inform user
+        settingsStore.settings.account = accountName;
+        settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
+        settingsStore.saveSettings();
+        hasUser.value = true;
+        toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
+      }
       // User cancelled password entry or other error - don't block app usage
       // Settings are already saved, user can try again from Settings page
     }
@@ -167,6 +175,12 @@ onMounted(async () => {
         userStore.parseUserData(settingsStore.settings.account!).catch(error => {
           toastError('Failed to load user data', error);
         });
+      }).catch(error => {
+        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError) {
+          toast.warning('Your wallet is empty. Please go to Settings to add keys.');
+        } else {
+          toastError('Failed to load wallet', error);
+        }
       });
     }
 
@@ -195,7 +209,11 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
 
     await userStore.parseUserData(settingsStore.settings.account!);
   } catch (error) {
-    toastError('Failed to create wallet', error);
+    if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError) {
+      toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
+    } else {
+      toastError('Failed to create wallet', error);
+    }
   }
 };
 </script>
