@@ -32,6 +32,7 @@ const isLoadingWalletInfo = ref(true);
 const isGoogleDriveConnected = ref(false);
 const hasGoogleDriveWallet = ref(false);
 const isLoadingKeys = ref(false);
+const isWalletEmpty = ref(false);
 
 // Multi-account state
 const storedAccounts = ref<string[]>([]);
@@ -133,6 +134,9 @@ const loadWalletInfo = async () => {
     const accounts = await googleDrive.getStoredAccounts();
     storedAccounts.value = accounts;
 
+    // Check if wallet is empty (decrypted successfully but has no accounts/keys)
+    isWalletEmpty.value = accounts.length === 0 && googleDrive.hasEncryptionKey();
+
     // Sync to settings store
     settingsStore.syncGoogleDriveAccounts(accounts);
 
@@ -155,6 +159,7 @@ const loadWalletInfo = async () => {
 const needsPasswordToLoadKeys = computed(() => {
   return hasGoogleDriveWallet.value &&
          storedAccounts.value.length === 0 &&
+         !isWalletEmpty.value &&
          !isLoadingWalletInfo.value &&
          !isLoadingKeys.value;
 });
@@ -348,6 +353,23 @@ onMounted(() => {
           </Button>
         </AlertDescription>
       </Alert>
+
+      <!-- Wallet is empty - no keys stored -->
+      <div v-if="isWalletEmpty" class="flex flex-col items-center justify-center py-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+          <KeyRound class="w-8 h-8 text-amber-600 dark:text-amber-500" />
+        </div>
+        <h4 class="text-lg font-semibold mb-2">
+          Wallet is Empty
+        </h4>
+        <p class="text-sm text-muted-foreground max-w-sm mb-6">
+          Your wallet file exists on Google Drive but has no keys stored. Add an account with keys to start using the wallet.
+        </p>
+        <Button size="lg" @click="showAddAccountDialog = true">
+          <Plus class="w-4 h-4 mr-2" />
+          Add Account
+        </Button>
+      </div>
 
       <!-- Tabbed account management -->
       <template v-if="storedAccounts.length > 0">
