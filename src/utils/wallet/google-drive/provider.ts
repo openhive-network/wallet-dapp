@@ -16,6 +16,23 @@ export class RecoveryPasswordRequiredError extends Error {
   }
 }
 
+export class EmptyWalletError extends Error {
+  public constructor () {
+    super('No wallet found or wallet has no keys');
+    this.name = 'EmptyWalletError';
+  }
+}
+
+export class AccountNotInWalletError extends Error {
+  public readonly availableAccounts: string[];
+
+  public constructor (requestedAccount: string, availableAccounts: string[]) {
+    super(`No keys found for @${requestedAccount}`);
+    this.name = 'AccountNotInWalletError';
+    this.availableAccounts = availableAccounts;
+  }
+}
+
 const tokenProvider = async (): Promise<string> => {
   const response = await $fetch<{ success: boolean; token: string }>('/api/google-drive/token');
   return response.token;
@@ -162,18 +179,50 @@ export class GoogleDriveWalletProvider {
       throw new Error('Not authenticated with Google');
 
     const wallet = await getWallet();
-    const content = await wallet.loadForHiveKey(accountName, role);
 
-    // Extract and store the encryption key WIF if not already stored
-    if (!getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
+    try {
+      const content = await wallet.loadForHiveKey(accountName, role);
+
+      // Extract and store the encryption key WIF if not already stored
+      if (!getStoredEncryptionKey()) {
+        const encryptionKeyWif = wallet.getEncryptionKeyWif();
+        setStoredEncryptionKey(encryptionKeyWif);
+      }
+
+      // Get all roles from enumerated keys
+      const r = [...content.enumStoredHiveKeys(accountName, role)][0]?.role;
+
+      return { accountName, role: r };
+    } catch (error) {
+      // Re-throw user-initiated cancellations
+      if (error instanceof PasswordEntryCancelledError)
+        throw error;
+
+      // Check if the wallet is simply empty or the account doesn't exist in it
+      try {
+        const accounts = await wallet.enumStoredAccounts();
+        if (!accounts.includes(accountName)) {
+          // Cache encryption key if available (wallet was decrypted even though load failed)
+          if (!getStoredEncryptionKey()) {
+            try {
+              const encryptionKeyWif = wallet.getEncryptionKeyWif();
+              setStoredEncryptionKey(encryptionKeyWif);
+            } catch { /* encryption key not available yet */ }
+          }
+
+          if (accounts.length > 0)
+            throw new AccountNotInWalletError(accountName, accounts);
+
+          throw new EmptyWalletError();
+        }
+      } catch (enumError) {
+        if (enumError instanceof EmptyWalletError || enumError instanceof AccountNotInWalletError)
+          throw enumError;
+      }
+
+      // Re-throw original error if not an empty wallet issue
+      throw error;
     }
-
-    // Get all roles from enumerated keys
-    const r = [...content.enumStoredHiveKeys(accountName, role)][0]?.role;
-
-    return { accountName, role: r };
   }
 
   /**
@@ -358,7 +407,7 @@ export class GoogleDriveWalletProvider {
       const keys = [...content.enumStoredHiveKeys(accountName)];
 
       if (keys.length === 0)
-        throw new Error('No wallet found or wallet has no keys');
+        throw new EmptyWalletError();
 
       // Extract and store the encryption key WIF if not already stored
       if (!getStoredEncryptionKey()) {
