@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax';
 import { KeyRound, Plus, Trash2, Loader2, Key } from 'lucide-vue-next';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import GoogleDriveConnect from '@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue';
@@ -142,8 +142,22 @@ const loadWalletInfo = async () => {
     // Check if wallet is empty (decrypted successfully but has no accounts/keys)
     isWalletEmpty.value = accounts.length === 0 && googleDrive.hasEncryptionKey();
 
-    // Sync to settings store
+    // Sync to settings store (replaces account list and handles active account fallback)
+    const previousAccount = settingsStore.settings.account;
     settingsStore.syncGoogleDriveAccounts(accounts);
+
+    // If active account was removed from wallet, switch wallet + user data
+    if (previousAccount && previousAccount !== settingsStore.settings.account) {
+      const newAccount = settingsStore.settings.account;
+      if (newAccount) {
+        userStore.resetSettings();
+        await walletStore.createWalletFor({ account: newAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+        await userStore.parseUserData(newAccount);
+      } else {
+        walletStore.resetWallet();
+        userStore.resetSettings();
+      }
+    }
 
     // Set active tab
     if (accounts.length > 0 && !activeTab.value)
@@ -218,9 +232,16 @@ const handleRemoveAccount = async (accountName: string) => {
     settingsStore.removeGoogleDriveAccount(accountName);
     toast.success(`Account @${accountName} removed from wallet`);
 
+    // Update local state directly (avoid loadWalletInfo re-adding the account via sync)
+    storedAccounts.value = storedAccounts.value.filter(a => a !== accountName);
+    const { [accountName]: _roles, ...remainingRoles } = accountRoles.value;
+    accountRoles.value = remainingRoles;
+    const { [accountName]: _keys, ...remainingKeys } = accountPublicKeys.value;
+    accountPublicKeys.value = remainingKeys;
+    isWalletEmpty.value = storedAccounts.value.length === 0 && googleDrive.hasEncryptionKey();
+
     // Switch tab to first remaining account or custom keys
-    const remaining = storedAccounts.value.filter(a => a !== accountName);
-    activeTab.value = remaining[0] ?? 'custom-keys';
+    activeTab.value = storedAccounts.value[0] ?? 'custom-keys';
 
     // If removed account was the active one, switch wallet + user data to the new active account
     if (wasActiveAccount) {
@@ -234,8 +255,6 @@ const handleRemoveAccount = async (accountName: string) => {
         userStore.resetSettings();
       }
     }
-
-    await loadWalletInfo();
   } catch (error) {
     toastError('Failed to remove account', error);
   } finally {
@@ -276,6 +295,11 @@ defineExpose({ reloadWalletInfo });
 
 onMounted(() => {
   loadWalletInfo();
+});
+
+watch(() => settingsStore.settings.account, (newAccount) => {
+  if (newAccount && storedAccounts.value.includes(newAccount))
+    activeTab.value = newAccount;
 });
 </script>
 

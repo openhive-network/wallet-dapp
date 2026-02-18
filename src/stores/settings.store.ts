@@ -229,11 +229,12 @@ export const useSettingsStore = defineStore('settings', {
     },
 
     syncGoogleDriveAccounts (accounts: string[]) {
-      // Union merge: add any new accounts from wallet that aren't already tracked
-      for (const account of accounts) {
-        if (!this.settings.googleDriveAccounts.includes(account))
-          this.settings.googleDriveAccounts.push(account);
-      }
+      this.settings.googleDriveAccounts = [...accounts];
+
+      // If active account was removed from wallet, switch to first available
+      if (this.settings.account && !accounts.includes(this.settings.account))
+        this.settings.account = accounts[0] ?? undefined;
+
       this.saveSettings();
     },
 
