@@ -24,6 +24,7 @@ const props = defineProps<{
   configuredRoles: TRole[];
   rolePublicKeys: Record<string, string>;
   isLoadingKeys: boolean;
+  isRemovingAccount: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -135,10 +136,12 @@ const handleDeleteKey = async () => {
         variant="ghost"
         size="sm"
         class="text-destructive hover:text-destructive hover:bg-destructive/10"
+        :disabled="isRemovingAccount"
         @click="emit('removeAccount', accountName)"
       >
-        <Trash2 class="w-4 h-4 mr-1" />
-        Remove
+        <Loader2 v-if="isRemovingAccount" class="w-4 h-4 mr-1 animate-spin" />
+        <Trash2 v-else class="w-4 h-4 mr-1" />
+        {{ isRemovingAccount ? 'Removing...' : 'Remove' }}
       </Button>
     </div>
 

@@ -21,11 +21,15 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
-import { useSettingsStore } from '@/stores/settings.store';
+import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
+import { useUserStore } from '@/stores/user.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 
 const googleDrive = useGoogleDriveWallet();
 const settingsStore = useSettingsStore();
+const walletStore = useWalletStore();
+const userStore = useUserStore();
 
 // State
 const isLoadingWalletInfo = ref(true);
@@ -45,6 +49,7 @@ const showCreateWalletDialog = ref(false);
 const showDeleteWalletDialog = ref(false);
 const showAddAccountDialog = ref(false);
 const isSavingKey = ref(false);
+const isRemovingAccount = ref(false);
 
 /**
  * Check if wallet file exists on Google Drive (without loading it)
@@ -199,7 +204,10 @@ const handleAccountAdded = async (accountName: string) => {
 };
 
 const handleRemoveAccount = async (accountName: string) => {
+  isRemovingAccount.value = true;
   try {
+    const wasActiveAccount = settingsStore.settings.account === accountName;
+
     // Remove all keys for this account
     const roles = accountRoles.value[accountName] ?? [];
     for (const role of roles) {
@@ -214,9 +222,24 @@ const handleRemoveAccount = async (accountName: string) => {
     const remaining = storedAccounts.value.filter(a => a !== accountName);
     activeTab.value = remaining[0] ?? 'custom-keys';
 
+    // If removed account was the active one, switch wallet + user data to the new active account
+    if (wasActiveAccount) {
+      const newAccount = settingsStore.settings.account;
+      if (newAccount) {
+        userStore.resetSettings();
+        await walletStore.createWalletFor({ account: newAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+        await userStore.parseUserData(newAccount);
+      } else {
+        walletStore.resetWallet();
+        userStore.resetSettings();
+      }
+    }
+
     await loadWalletInfo();
   } catch (error) {
     toastError('Failed to remove account', error);
+  } finally {
+    isRemovingAccount.value = false;
   }
 };
 
@@ -404,6 +427,7 @@ onMounted(() => {
               :configured-roles="accountRoles[account] ?? []"
               :role-public-keys="accountPublicKeys[account] ?? {}"
               :is-loading-keys="isLoadingKeys"
+              :is-removing-account="isRemovingAccount"
               @reload="loadWalletInfo"
               @remove-account="handleRemoveAccount"
             />
