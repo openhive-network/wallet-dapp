@@ -7,7 +7,6 @@ settings:
 overrides:
   vue: 3.5.22
   '@vue/server-renderer': 3.5.22
-  '@hiveio/beekeeper': 1.28.6-260213074321
 
 importers:
 
@@ -45,8 +44,8 @@ importers:
         specifier: ^9.32.0
         version: 9.32.0
       '@hiveio/beekeeper':
-        specifier: 1.28.6-260213074321
-        version: 1.28.6-260213074321
+        specifier: 1.28.4
+        version: 1.28.4
       '@hiveio/wax':
         specifier: 2.0.1-260213104251
         version: 2.0.1-260213104251
@@ -942,8 +941,8 @@ packages:
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
 
-  '@hiveio/beekeeper@1.28.6-260213074321':
-    resolution: {integrity: sha1-qrMliGIDMgMazBposlccWKks/jk=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.6-260213074321.tgz}
+  '@hiveio/beekeeper@1.28.4':
+    resolution: {integrity: sha1-X+2VqUKItQPk4Dr+t+/sfQ+84YY=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
@@ -6964,16 +6963,16 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@hiveio/beekeeper@1.28.6-260213074321': {}
+  '@hiveio/beekeeper@1.28.4': {}
 
   '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
     dependencies:
-      '@hiveio/beekeeper': 1.28.6-260213074321
+      '@hiveio/beekeeper': 1.28.4
       '@hiveio/wax': 2.0.1-260213104251
 
   '@hiveio/wax-signers-external@2.0.1-260213104251':
     dependencies:
-      '@hiveio/beekeeper': 1.28.6-260213074321
+      '@hiveio/beekeeper': 1.28.4
       '@hiveio/wax': 2.0.1-260213104251
       '@hiveio/wax-signers-beekeeper': 2.0.1-260213104251
       zod: 4.3.6

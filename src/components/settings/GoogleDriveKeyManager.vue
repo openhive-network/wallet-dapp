@@ -212,9 +212,18 @@ const handleCreateDialogClose = () => {
 };
 
 const handleAccountAdded = async (accountName: string) => {
+  const shouldActivate = !settingsStore.settings.account;
+
   settingsStore.addGoogleDriveAccount(accountName);
   activeTab.value = accountName;
   await loadWalletInfo();
+
+  // If no account was active (e.g. after removing all accounts), activate the new one
+  if (shouldActivate) {
+    settingsStore.setActiveGoogleDriveAccount(accountName);
+    await walletStore.createWalletFor({ account: accountName, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+    await userStore.parseUserData(accountName);
+  }
 };
 
 const handleRemoveAccount = async (accountName: string) => {

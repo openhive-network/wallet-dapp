@@ -157,6 +157,7 @@ const disconnectFromHive = async () => {
 
     walletStore.resetWallet();
     userStore.resetSettings();
+    settingsStore.resetSettings();
     // If only Hive was connected, also reset tokens
     if (!hasHTMAccount.value)
       await tokensStore.reset();
