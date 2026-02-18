@@ -280,9 +280,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+  <div class="space-y-4 sm:p-4 sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:rounded-lg">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="hidden sm:flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="p-2 bg-primary/10 rounded-lg">
           <KeyRound class="w-5 h-5 text-primary" />
@@ -397,8 +397,8 @@ onMounted(() => {
       <!-- Tabbed account management -->
       <template v-if="storedAccounts.length > 0">
         <Tabs v-model="activeTab" class="w-full">
-          <div class="flex items-center justify-between mb-2">
-            <TabsList>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <TabsList class="flex-1 overflow-x-auto sm:flex-none">
               <TabsTrigger
                 v-for="account in storedAccounts"
                 :key="account"
@@ -410,9 +410,9 @@ onMounted(() => {
                 Custom Keys
               </TabsTrigger>
             </TabsList>
-            <Button variant="outline" size="sm" @click="showAddAccountDialog = true">
-              <Plus class="w-4 h-4 mr-1" />
-              Add Account
+            <Button variant="outline" size="sm" class="shrink-0" aria-label="Add account" @click="showAddAccountDialog = true">
+              <Plus class="w-4 h-4 sm:mr-1" />
+              <span class="hidden sm:inline">Add Account</span>
             </Button>
           </div>
 
@@ -441,7 +441,7 @@ onMounted(() => {
       </template>
 
       <!-- Info box -->
-      <div class="text-xs text-gray-500 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+      <div class="hidden sm:block text-xs text-gray-500 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <p class="font-medium mb-1">
           About Wallet Keys:
         </p>
@@ -454,18 +454,19 @@ onMounted(() => {
       </div>
 
       <!-- Delete Wallet Section -->
-      <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-        <div class="p-3 border border-destructive/30 rounded-lg bg-destructive/5">
-          <div class="flex items-center justify-between">
-            <div>
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4 mt-3 sm:mt-4">
+        <div class="sm:p-3 sm:border sm:border-destructive/30 sm:rounded-lg sm:bg-destructive/5">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
               <p class="text-sm font-medium">Delete Wallet</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Clear wallet data and remove file from Google Drive
+              <p class="text-xs text-muted-foreground mt-0.5">
+                Remove wallet file from Google Drive
               </p>
             </div>
             <Button
               variant="destructive"
               size="sm"
+              class="shrink-0"
               @click="showDeleteWalletDialog = true"
             >
               <Trash2 class="w-4 h-4 mr-1" />

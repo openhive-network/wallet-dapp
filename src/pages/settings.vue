@@ -74,8 +74,8 @@ watch(() => settingsStore.isGoogleAuthenticated, async (newValue, oldValue) => {
 </script>
 
 <template>
-  <div class="container mx-auto p-4 max-w-4xl">
-    <h1 class="text-3xl text-center font-bold my-12">
+  <div class="container mx-auto px-3 py-4 sm:p-4 max-w-4xl">
+    <h1 class="text-xl sm:text-3xl text-center font-bold my-4 sm:my-12">
       Google Drive Wallet Management
     </h1>
 

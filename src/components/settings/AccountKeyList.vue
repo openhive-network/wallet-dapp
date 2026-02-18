@@ -127,15 +127,14 @@ const handleDeleteKey = async () => {
 <template>
   <div class="space-y-4">
     <!-- Account header -->
-    <div class="flex items-center justify-between p-3 bg-muted rounded-lg">
-      <div class="flex items-center gap-2">
-        <span class="text-sm text-gray-600 dark:text-gray-400">Account:</span>
-        <span class="font-mono font-medium">@{{ accountName }}</span>
-      </div>
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-medium text-muted-foreground">
+        @{{ accountName }}
+      </p>
       <Button
         variant="ghost"
         size="sm"
-        class="text-destructive hover:text-destructive hover:bg-destructive/10"
+        class="text-destructive hover:text-destructive hover:bg-destructive/10 -mr-2"
         :disabled="isRemovingAccount"
         @click="emit('removeAccount', accountName)"
       >
@@ -147,7 +146,7 @@ const handleDeleteKey = async () => {
 
     <!-- Key list -->
     <div class="space-y-2">
-      <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+      <p class="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">
         Configured Keys
       </p>
 
@@ -155,7 +154,7 @@ const handleDeleteKey = async () => {
       <div
         v-for="role in configuredRoles"
         :key="role"
-        class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 bg-white dark:bg-gray-900/50"
+        class="p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-2 sm:space-y-3 bg-white dark:bg-gray-900/50"
       >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -187,7 +186,7 @@ const handleDeleteKey = async () => {
             <Key class="w-3.5 h-3.5 text-muted-foreground" />
             <span class="text-xs font-medium text-muted-foreground">Public Key</span>
           </div>
-          <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
+          <div class="p-2 sm:p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
             <code class="font-mono text-xs break-all leading-relaxed text-foreground">
               {{ rolePublicKeys[role] }}
             </code>
@@ -199,7 +198,7 @@ const handleDeleteKey = async () => {
       <div
         v-for="role in availableRolesToAdd"
         :key="role"
-        class="flex items-center justify-between p-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-800/50"
+        class="flex items-center justify-between p-2.5 sm:p-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-800/50"
       >
         <div class="flex items-center gap-3">
           <span
@@ -310,7 +309,7 @@ const handleDeleteKey = async () => {
             <Key class="w-3.5 h-3.5 text-muted-foreground" />
             <span class="text-xs font-medium text-muted-foreground">Public Key to Remove</span>
           </div>
-          <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
+          <div class="p-2 sm:p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
             <code class="font-mono text-xs break-all leading-relaxed text-foreground">
               {{ rolePublicKeys[roleToDelete] }}
             </code>
