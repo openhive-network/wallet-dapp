@@ -146,8 +146,15 @@ const loadWalletInfo = async () => {
     const previousAccount = settingsStore.settings.account;
     settingsStore.syncGoogleDriveAccounts(accounts);
 
+    // If no account was active but wallet has accounts (e.g. after reconnecting), activate the first one
+    if (!previousAccount && accounts.length > 0) {
+      const firstAccount = accounts[0]!;
+      settingsStore.setActiveGoogleDriveAccount(firstAccount);
+      await walletStore.createWalletFor({ account: firstAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+      await userStore.parseUserData(firstAccount);
+    }
     // If active account was removed from wallet, switch wallet + user data
-    if (previousAccount && previousAccount !== settingsStore.settings.account) {
+    else if (previousAccount && previousAccount !== settingsStore.settings.account) {
       const newAccount = settingsStore.settings.account;
       if (newAccount) {
         userStore.resetSettings();
