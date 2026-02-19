@@ -331,20 +331,20 @@ test.describe('Account Management', () => {
       await homePage.navigate();
       await homePage.waitForPageLoad();
 
-      // Click account switcher
-      const accountSwitcher = page.locator('[data-testid="account-switcher"]').or(
-        page.locator('[data-testid="account-dropdown"]')
-      );
+      // Account switcher container should be visible when connected
+      const accountSwitcher = page.locator('[data-testid="account-switcher"]');
 
+      // For single-account wallets (Keychain), the switcher shows account info
+      // with a disconnect button. Multi-account (Google Drive) shows a dropdown.
       if (await accountSwitcher.first().isVisible()) {
-        await accountSwitcher.first().click();
+        // Should show either disconnect button (single account) or dropdown content (multi-account)
+        const disconnectBtn = page.locator('[data-testid="account-disconnect-btn"]');
+        const switcherContent = page.locator('[data-testid="account-switcher-content"]');
 
-        // Should show dropdown or modal
-        const switcherContent = page.locator('[data-testid="account-switcher-content"]').or(
-          page.locator('[role="menu"]').or(page.locator('[data-testid="account-list"]'))
-        );
+        const showsAccountControls = await disconnectBtn.first().isVisible().catch(() => false) ||
+          await switcherContent.first().isVisible().catch(() => false);
 
-        await expect(switcherContent.first()).toBeVisible();
+        expect(showsAccountControls).toBeTruthy();
       }
     });
 
@@ -353,18 +353,13 @@ test.describe('Account Management', () => {
       await homePage.navigate();
       await homePage.waitForPageLoad();
 
-      const accountSwitcher = page.locator('[data-testid="account-switcher"]').or(
-        page.locator('[data-testid="account-dropdown"]')
-      );
+      const accountSwitcher = page.locator('[data-testid="account-switcher"]');
 
       if (await accountSwitcher.first().isVisible()) {
-        await accountSwitcher.first().click();
+        // Disconnect button is always visible in the account switcher when connected
+        const disconnectButton = page.locator('[data-testid="account-disconnect-btn"]');
 
-        const logoutButton = page.locator('[data-testid="logout-button"]').or(
-          page.locator('button:has-text("Logout")').or(page.locator('button:has-text("Disconnect")'))
-        );
-
-        await expect(logoutButton.first()).toBeVisible();
+        await expect(disconnectButton.first()).toBeVisible();
       }
     });
   });

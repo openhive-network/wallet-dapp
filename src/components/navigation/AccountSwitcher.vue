@@ -276,7 +276,7 @@ const otherAccount = computed(() => {
             <ChevronDown class="w-3.5 h-3.5 ml-0.5 opacity-60 shrink-0" />
           </button>
         </PopoverTrigger>
-        <PopoverContent class="w-56 p-1" align="start">
+        <PopoverContent data-testid="account-switcher-content" class="w-56 p-1" align="start">
           <div class="text-xs font-medium text-muted-foreground px-2 py-1.5">
             Hive Accounts
           </div>
