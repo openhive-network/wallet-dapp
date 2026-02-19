@@ -115,7 +115,7 @@ const loadWalletInfo = async () => {
       const savedAccount = settingsStore.settings.account;
       if (savedAccount) {
         try {
-          await googleDrive.loadWallet(savedAccount, 'posting');
+          await googleDrive.loadWallet(savedAccount);
         } catch {
           // User cancelled or error - show wallet exists but keys not loaded
           storedAccounts.value = [];
@@ -127,7 +127,7 @@ const loadWalletInfo = async () => {
           const accountName = await googleDrive.requestAccountName();
           settingsStore.settings.account = accountName;
           settingsStore.saveSettings();
-          await googleDrive.loadWallet(accountName, 'posting');
+          await googleDrive.loadWallet(accountName);
         } catch {
           storedAccounts.value = [];
           return;
@@ -195,7 +195,7 @@ const loadKeysManually = async () => {
   try {
     const savedAccount = settingsStore.settings.account;
     if (savedAccount)
-      await googleDrive.loadWallet(savedAccount, 'posting');
+      await googleDrive.loadWallet(savedAccount);
 
     await loadWalletInfo();
     toast.success('Wallet keys loaded successfully');

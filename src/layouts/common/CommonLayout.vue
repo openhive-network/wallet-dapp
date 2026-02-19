@@ -83,8 +83,9 @@ const handleGoogleOAuthCallback = async () => {
     }
 
     // Try to load the wallet (will prompt for recovery password if needed)
+    // loadWallet will automatically fallback to any available role if 'posting' is not found
     try {
-      await GoogleDriveWalletProvider.loadWallet(accountName, 'posting');
+      await GoogleDriveWalletProvider.loadWallet(accountName);
 
       // Update settings
       settingsStore.settings.account = accountName;
@@ -98,16 +99,16 @@ const handleGoogleOAuthCallback = async () => {
 
       toast.success(`Wallet loaded for @${accountName}`);
     } catch (loadError) {
+      // Save settings regardless so user can retry from Settings page
+      settingsStore.settings.account = accountName;
+      settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
+      settingsStore.saveSettings();
+
       if (loadError instanceof EmptyWalletError || loadError instanceof AccountNotInWalletError) {
-        // Wallet exists but has no keys for this account - save settings and inform user
-        settingsStore.settings.account = accountName;
-        settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
-        settingsStore.saveSettings();
         hasUser.value = true;
         toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
       }
       // User cancelled password entry or other error - don't block app usage
-      // Settings are already saved, user can try again from Settings page
     }
 
     return true;

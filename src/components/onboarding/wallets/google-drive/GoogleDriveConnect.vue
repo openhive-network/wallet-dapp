@@ -158,7 +158,7 @@ async function selectExistingAccount (accountName: string) {
   error.value = null;
 
   try {
-    await GoogleDriveProvider.loadWallet(accountName, 'posting');
+    await GoogleDriveProvider.loadWallet(accountName);
     emit('setaccount', accountName);
     step.value = 'success';
   } catch (err) {
@@ -248,7 +248,7 @@ async function checkWalletStatus () {
 
       // Try to load the wallet - this will prompt for recovery password if needed
       try {
-        const result = await GoogleDriveProvider.loadWallet(savedAccountName, 'posting');
+        const result = await GoogleDriveProvider.loadWallet(savedAccountName);
 
         // Save account name and emit event
         emit('setaccount', result.accountName);

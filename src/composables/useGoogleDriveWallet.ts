@@ -22,7 +22,7 @@ export function useGoogleDriveWallet () {
     return await GoogleDriveWalletProvider.createWallet(accountName, key, role, recoveryPassword);
   };
 
-  const loadWallet = async (accountName: TAccountName, role: TRole): Promise<{ accountName: string; role?: TRole }> => {
+  const loadWallet = async (accountName: TAccountName, role?: TRole): Promise<{ accountName: string; role?: TRole }> => {
     return await GoogleDriveWalletProvider.loadWallet(accountName, role);
   };
 

@@ -174,14 +174,16 @@ export class GoogleDriveWalletProvider {
    * Load wallet from Google Drive
    * @param accountName - The Hive account name to load wallet for
    */
-  public static async loadWallet (accountName: TAccountName, role: TRole): Promise<{ accountName: string; role?: TRole }> {
+  public static async loadWallet (accountName: TAccountName, role?: TRole): Promise<{ accountName: string; role?: TRole }> {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
     const wallet = await getWallet();
 
     try {
-      const content = await wallet.loadForHiveKey(accountName, role);
+      const content = role
+        ? await wallet.loadForHiveKey(accountName, role)
+        : await wallet.loadForHiveKey(accountName);
 
       // Extract and store the encryption key WIF if not already stored
       if (!getStoredEncryptionKey()) {
@@ -189,14 +191,38 @@ export class GoogleDriveWalletProvider {
         setStoredEncryptionKey(encryptionKeyWif);
       }
 
-      // Get all roles from enumerated keys
-      const r = [...content.enumStoredHiveKeys(accountName, role)][0]?.role;
+      // Get the loaded role from enumerated keys
+      const keyInfo = role
+        ? [...content.enumStoredHiveKeys(accountName, role)][0]
+        : [...content.enumStoredHiveKeys(accountName)][0];
 
-      return { accountName, role: r };
+      return { accountName, role: keyInfo?.role };
     } catch (error) {
       // Re-throw user-initiated cancellations
       if (error instanceof PasswordEntryCancelledError)
         throw error;
+
+      // If a specific role was requested and failed, try loading without role filter
+      // (same fallback pattern as the for() method)
+      if (role) {
+        try {
+          const content = await wallet.loadForHiveKey(accountName);
+          const keyInfo = [...content.enumStoredHiveKeys(accountName)][0];
+
+          if (keyInfo) {
+            if (!getStoredEncryptionKey()) {
+              const encryptionKeyWif = wallet.getEncryptionKeyWif();
+              setStoredEncryptionKey(encryptionKeyWif);
+            }
+
+            return { accountName, role: keyInfo.role };
+          }
+        } catch (fallbackError) {
+          if (fallbackError instanceof PasswordEntryCancelledError)
+            throw fallbackError;
+          // Fall through to original error handling
+        }
+      }
 
       // Check if the wallet is simply empty or the account doesn't exist in it
       try {

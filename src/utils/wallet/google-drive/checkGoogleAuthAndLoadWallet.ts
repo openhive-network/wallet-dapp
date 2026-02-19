@@ -81,7 +81,7 @@ export default async function (): Promise<GoogleAuthResult> {
 
             // Try to load the wallet - this will prompt for recovery password if needed
             try {
-              const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
+              const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount);
 
               // Sync stored accounts from wallet
               try {
