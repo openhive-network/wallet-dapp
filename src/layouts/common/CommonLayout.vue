@@ -85,6 +85,10 @@ const handleGoogleOAuthCallback = async () => {
     try {
       await GoogleDriveWalletProvider.loadWallet(accountName);
 
+      // Sync all stored accounts so header dropdown shows immediately
+      const storedAccounts = await GoogleDriveWalletProvider.getStoredAccounts();
+      settingsStore.syncGoogleDriveAccounts(storedAccounts);
+
       // Update settings
       settingsStore.settings.account = accountName;
       settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
@@ -139,6 +143,13 @@ const checkGoogleDriveWalletNeeded = async () => {
 
 const handleGoogleDriveWalletCreated = async (accountName: string) => {
   showGoogleDriveWalletDialog.value = false;
+
+  // Sync all stored accounts so header dropdown shows immediately
+  try {
+    const storedAccounts = await GoogleDriveWalletProvider.getStoredAccounts();
+    settingsStore.syncGoogleDriveAccounts(storedAccounts);
+  } catch { /* non-critical */ }
+
   settingsStore.settings.account = accountName;
   settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
   settingsStore.saveSettings();
