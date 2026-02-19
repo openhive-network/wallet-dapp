@@ -71,6 +71,14 @@ watch(() => settingsStore.isGoogleAuthenticated, async (newValue, oldValue) => {
     googleDriveKeyManagerRef.value?.reloadWalletInfo();
   }
 });
+
+// Watch for wallet type changes from outside (e.g., wallet created via CommonLayout dialog)
+watch(() => settingsStore.wallet, async (newWallet, oldWallet) => {
+  if (newWallet !== undefined && oldWallet === undefined && isGoogleDriveConnected.value) {
+    await nextTick();
+    googleDriveKeyManagerRef.value?.reloadWalletInfo();
+  }
+});
 </script>
 
 <template>
