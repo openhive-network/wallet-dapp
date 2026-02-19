@@ -225,6 +225,7 @@ export const useSettingsStore = defineStore('settings', {
 
     setActiveGoogleDriveAccount (accountName: string) {
       this.settings.account = accountName;
+      this.settings.wallet = UsedWallet.GOOGLE_DRIVE;
       this.saveSettings();
     },
 

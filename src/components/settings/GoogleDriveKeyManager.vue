@@ -125,8 +125,7 @@ const loadWalletInfo = async () => {
         // No saved account and no encryption key - prompt for account name
         try {
           const accountName = await googleDrive.requestAccountName();
-          settingsStore.settings.account = accountName;
-          settingsStore.saveSettings();
+          settingsStore.setActiveGoogleDriveAccount(accountName);
           await googleDrive.loadWallet(accountName);
         } catch {
           storedAccounts.value = [];
@@ -208,7 +207,7 @@ const loadKeysManually = async () => {
 
 const handleWalletCreated = async (accountName: string) => {
   showCreateWalletDialog.value = false;
-  settingsStore.settings.account = accountName;
+  settingsStore.setActiveGoogleDriveAccount(accountName);
   settingsStore.addGoogleDriveAccount(accountName);
   toast.success(`Wallet created for @${accountName}`);
   await loadWalletInfo();
