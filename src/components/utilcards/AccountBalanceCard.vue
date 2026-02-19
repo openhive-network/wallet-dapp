@@ -25,7 +25,7 @@ const totalBalanceUSD = computed(() => {
 </script>
 
 <template>
-  <Card class="w-full">
+  <Card data-testid="account-balances-card" class="w-full">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Account Balances</span>
@@ -143,7 +143,7 @@ const totalBalanceUSD = computed(() => {
         </div>
         <Separator />
         <!-- HP Balances -->
-        <div>
+        <div data-testid="hp-balance">
           <h3 class="text-md font-semibold flex items-center">
             <div class="w-3 h-3 rounded-full bg-blue-500 mr-2" />
             HP (HIVE Power)
@@ -178,7 +178,7 @@ const totalBalanceUSD = computed(() => {
         </div>
       </div>
     </CardContent>
-    <CardFooter class="flex justify-between items-baseline pt-4 border-t">
+    <CardFooter data-testid="total-value" class="flex justify-between items-baseline pt-4 border-t">
       <span class="text-muted-foreground">Total Estimated Value</span>
       <div
         v-if="userStore.isReady"

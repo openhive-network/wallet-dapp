@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { UsedWallet, getWalletIcon, useSettingsStore } from '@/stores/settings.store';
 import { getWax } from '@/stores/wax.store';
-import { GoogleDriveWalletProvider as GoogleDriveProvider } from '@/utils/wallet/google-drive/provider';
+import { GoogleDriveWalletProvider as GoogleDriveProvider, EmptyWalletError, AccountNotInWalletError } from '@/utils/wallet/google-drive/provider';
 
 interface Props {
   accountName?: string;
@@ -117,7 +117,13 @@ const toggleKeyVisibility = (index: number) => {
   keyVisibility.value[index] = !keyVisibility.value[index];
 };
 
-const step = ref<'check' | 'connect' | 'create' | 'success'>('check');
+const step = ref<'check' | 'connect' | 'create' | 'pick-account' | 'success'>('check');
+
+// Whether we're adding keys to an existing (empty) wallet rather than creating a new one
+const isAddingToExistingWallet = computed(() => walletStatus.value.exists && step.value === 'create');
+
+// Available accounts in wallet (when the entered account wasn't found)
+const availableAccountsInWallet = ref<string[]>([]);
 
 const close = () => {
   emit('close');
@@ -143,6 +149,33 @@ const logoutFromGoogle = async () => {
     isProcessing.value = false;
   }
 };
+
+/**
+ * Select an existing account from the wallet and load it
+ */
+async function selectExistingAccount (accountName: string) {
+  isProcessing.value = true;
+  error.value = null;
+
+  try {
+    await GoogleDriveProvider.loadWallet(accountName);
+    emit('setaccount', accountName);
+    step.value = 'success';
+  } catch (err) {
+    error.value = `Failed to load wallet for @${accountName}: ${err instanceof Error ? err.message : String(err)}`;
+  } finally {
+    isProcessing.value = false;
+  }
+}
+
+/**
+ * Switch from pick-account to add-keys flow for a new account
+ */
+function addKeysForNewAccount () {
+  form.value.accountName = walletStatus.value.accountName || '';
+  walletStatus.value = { exists: true, accountName: walletStatus.value.accountName };
+  step.value = 'create';
+}
 
 /**
  * Check if wallet exists on Google Drive
@@ -207,45 +240,58 @@ async function checkWalletStatus () {
     // User is authenticated with Google - now fetch wallet info
     const info = await GoogleDriveProvider.getWalletInfo(savedAccountName);
 
-    if (info.exists && info.accountName) {
+    if (info.exists) {
       walletStatus.value = {
         exists: true,
-        accountName: info.accountName,
-        role: undefined
+        accountName: savedAccountName
       };
 
       // Try to load the wallet - this will prompt for recovery password if needed
       try {
-        const result = await GoogleDriveProvider.loadWallet(savedAccountName, 'posting');
+        const result = await GoogleDriveProvider.loadWallet(savedAccountName);
 
         // Save account name and emit event
         emit('setaccount', result.accountName);
         step.value = 'success';
       } catch (loadErr) {
-        // Check if user cancelled password entry
-        const errorMessage = loadErr instanceof Error ? loadErr.message : String(loadErr);
-        const isCancelled = errorMessage.includes('cancelled') || errorMessage.includes('canceled');
-
-        if (isCancelled) {
-          // User cancelled - save basic settings so they can try later from Settings
-          settingsStore.setSettings({
-            account: savedAccountName,
-            wallet: UsedWallet.GOOGLE_DRIVE,
-            googleDriveSync: settingsStore.settings.googleDriveSync || false,
-            lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
-          });
-
-          // Close dialog - user can try again from Settings
-          emit('close');
-        } else if (errorMessage.includes('missing all private keys')) {
-          // Wallet file is corrupted - prompt to recreate
-          error.value = 'Your wallet file is corrupted or incomplete. Please create a new wallet.';
-          walletStatus.value = { exists: false };
+        if (loadErr instanceof AccountNotInWalletError) {
+          // Wallet has keys for other accounts but not for the entered one
+          availableAccountsInWallet.value = loadErr.availableAccounts;
+          walletStatus.value = { exists: true, accountName: savedAccountName };
+          step.value = 'pick-account';
+        } else if (loadErr instanceof EmptyWalletError) {
+          // Wallet exists but has no keys at all - show create form with account name prefilled
+          error.value = 'Your wallet is empty. Please add at least one key to continue.';
+          form.value.accountName = savedAccountName || '';
+          walletStatus.value = { exists: true, accountName: savedAccountName };
           step.value = 'create';
         } else {
-          // Other error - show it
-          error.value = `Error loading wallet: ${errorMessage}`;
-          step.value = 'check';
+          // Check if user cancelled password entry
+          const errorMessage = loadErr instanceof Error ? loadErr.message : String(loadErr);
+          const isCancelled = errorMessage.includes('cancelled') || errorMessage.includes('canceled');
+
+          if (isCancelled) {
+            // User cancelled - save basic settings so they can try later from Settings
+            settingsStore.setSettings({
+              account: savedAccountName,
+              wallet: UsedWallet.GOOGLE_DRIVE,
+              googleDriveAccounts: settingsStore.settings.googleDriveAccounts || [],
+              googleDriveSync: settingsStore.settings.googleDriveSync || false,
+              lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
+            });
+
+            // Close dialog - user can try again from Settings
+            emit('close');
+          } else if (errorMessage.includes('missing all private keys')) {
+            // Wallet file is corrupted - prompt to recreate
+            error.value = 'Your wallet file is corrupted or incomplete. Please create a new wallet.';
+            walletStatus.value = { exists: false };
+            step.value = 'create';
+          } else {
+            // Other error - show it
+            error.value = `Error loading wallet: ${errorMessage}`;
+            step.value = 'check';
+          }
         }
       }
     } else {
@@ -276,9 +322,9 @@ async function checkWalletStatus () {
 }
 
 /**
- * Create new wallet
+ * Create new wallet or add keys to existing empty wallet
  */
-async function createWallet () {
+async function createOrAddKeys () {
   isProcessing.value = true;
   error.value = null;
 
@@ -292,15 +338,6 @@ async function createWallet () {
     const keysToAdd = form.value.keys.filter(k => k.privateKey.trim());
     if (keysToAdd.length === 0)
       throw new Error('At least one private key is required');
-
-    if (!recoveryPassword.value)
-      throw new Error('Recovery password is required');
-
-    if (recoveryPassword.value.length < 8)
-      throw new Error('Recovery password must be at least 8 characters');
-
-    if (!passwordsMatch.value)
-      throw new Error('Recovery passwords do not match');
 
     // Validate all private keys format BEFORE creating wallet file
     // Use wax.calculatePublicKey which throws an error for invalid WIF keys
@@ -316,31 +353,54 @@ async function createWallet () {
 
     const accountName = form.value.accountName;
 
-    // Create wallet with first key
-    const firstKey = keysToAdd[0];
-    if (!firstKey)
-      throw new Error('At least one private key is required');
+    if (isAddingToExistingWallet.value) {
+      // Adding keys to an existing (empty) wallet - no recovery password needed
+      for (const keyData of keysToAdd) {
+        await GoogleDriveProvider.addKey(
+          accountName,
+          keyData.role,
+          keyData.privateKey.trim()
+        );
+      }
+    } else {
+      // Creating a brand new wallet - recovery password required
+      if (!recoveryPassword.value)
+        throw new Error('Recovery password is required');
 
-    await GoogleDriveProvider.createWallet(
-      accountName,
-      firstKey.privateKey.trim(),
-      firstKey.role,
-      recoveryPassword.value
-    );
+      if (recoveryPassword.value.length < 8)
+        throw new Error('Recovery password must be at least 8 characters');
 
-    // Add remaining keys if any
-    for (let i = 1; i < keysToAdd.length; i++) {
-      const keyData = keysToAdd[i];
-      if (!keyData) continue;
+      if (!passwordsMatch.value)
+        throw new Error('Recovery passwords do not match');
 
-      await GoogleDriveProvider.addKey(
+      const firstKey = keysToAdd[0];
+      if (!firstKey)
+        throw new Error('At least one private key is required');
+
+      await GoogleDriveProvider.createWallet(
         accountName,
-        keyData.role,
-        keyData.privateKey.trim()
+        firstKey.privateKey.trim(),
+        firstKey.role,
+        recoveryPassword.value
       );
+
+      // Add remaining keys if any
+      for (let i = 1; i < keysToAdd.length; i++) {
+        const keyData = keysToAdd[i];
+        if (!keyData) continue;
+
+        await GoogleDriveProvider.addKey(
+          accountName,
+          keyData.role,
+          keyData.privateKey.trim()
+        );
+      }
     }
 
     sessionStorage.removeItem('google_drive_account_name');
+
+    // Register account in settings store
+    settingsStore.addGoogleDriveAccount(accountName);
 
     // Clear form
     form.value = {
@@ -361,7 +421,7 @@ async function createWallet () {
       error.value = 'Your Google authentication has expired. Please log in again.';
       step.value = 'connect';
     } else
-      error.value = `Error creating wallet: ${errorMessage}`;
+      error.value = `Error: ${errorMessage}`;
 
   } finally {
     isProcessing.value = false;
@@ -410,8 +470,11 @@ onMounted(() => {
       <CardDescription v-else-if="step === 'connect'" class="pt-1">
         Connect your Google account to continue
       </CardDescription>
+      <CardDescription v-else-if="step === 'pick-account'" class="pt-1">
+        Choose an account from your wallet
+      </CardDescription>
       <CardDescription v-else-if="step === 'create'" class="pt-1">
-        Set up a new wallet backed by Google Drive
+        {{ isAddingToExistingWallet ? 'Add keys to your existing wallet' : 'Set up a new wallet backed by Google Drive' }}
       </CardDescription>
       <CardDescription v-else-if="step === 'success'" class="pt-1">
         Your wallet is ready to use
@@ -420,8 +483,8 @@ onMounted(() => {
 
     <!-- Content -->
     <CardContent class="space-y-5">
-      <!-- Error display (global) -->
-      <Alert v-if="error && !isLoading" variant="destructive">
+      <!-- Error/info display (global) -->
+      <Alert v-if="error && !isLoading && step !== 'pick-account'" :variant="isAddingToExistingWallet ? 'warning' : 'destructive'">
         <AlertDescription>{{ error }}</AlertDescription>
       </Alert>
 
@@ -464,6 +527,53 @@ onMounted(() => {
             Cancel
           </Button>
         </div>
+      </div>
+
+      <!-- Pick account - wallet has keys for other accounts -->
+      <div v-else-if="step === 'pick-account'" class="space-y-4">
+        <Alert variant="warning">
+          <AlertDescription>
+            No keys found for <strong>@{{ walletStatus.accountName }}</strong> in your wallet.
+            Select an existing account or add keys for a new one.
+          </AlertDescription>
+        </Alert>
+
+        <div class="space-y-2">
+          <Label class="text-sm font-medium">Accounts in your wallet:</Label>
+          <div class="space-y-2">
+            <Button
+              v-for="account in availableAccountsInWallet"
+              :key="account"
+              variant="outline"
+              class="w-full justify-start h-auto py-3"
+              :disabled="isProcessing"
+              @click="selectExistingAccount(account)"
+            >
+              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mr-3">
+                <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <span class="font-medium">@{{ account }}</span>
+            </Button>
+          </div>
+        </div>
+
+        <div class="relative flex items-center py-2">
+          <div class="flex-grow border-t border-muted" />
+          <span class="mx-4 text-xs text-muted-foreground">or</span>
+          <div class="flex-grow border-t border-muted" />
+        </div>
+
+        <Button
+          variant="secondary"
+          class="w-full"
+          :disabled="isProcessing"
+          @click="addKeysForNewAccount"
+        >
+          <Plus class="w-4 h-4 mr-2" />
+          Add keys for @{{ walletStatus.accountName }}
+        </Button>
       </div>
 
       <!-- Create new wallet -->
@@ -620,8 +730,8 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Step 3: Recovery Password -->
-        <div class="space-y-3">
+        <!-- Step 3: Recovery Password (only for new wallet creation) -->
+        <div v-if="!isAddingToExistingWallet" class="space-y-3">
           <div class="flex items-center gap-2">
             <div class="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">
               3
@@ -733,11 +843,11 @@ onMounted(() => {
           isProcessing ||
           !form.accountName ||
           !hasAtLeastOneKey ||
-          !isPasswordValid
+          (!isAddingToExistingWallet && !isPasswordValid)
         "
         size="lg"
         class="flex-1"
-        @click="createWallet"
+        @click="createOrAddKeys"
       >
         <svg
           v-if="isProcessing"
@@ -748,7 +858,12 @@ onMounted(() => {
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
         </svg>
-        {{ isProcessing ? 'Creating Wallet...' : 'Create Wallet' }}
+        <template v-if="isAddingToExistingWallet">
+          {{ isProcessing ? 'Adding Keys...' : 'Add Keys' }}
+        </template>
+        <template v-else>
+          {{ isProcessing ? 'Creating Wallet...' : 'Create Wallet' }}
+        </template>
       </Button>
       <Button
         variant="outline"

@@ -11,7 +11,7 @@ import { UsedWallet, useSettingsStore } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
-import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
+import GoogleDriveWalletProvider, { EmptyWalletError, AccountNotInWalletError } from '@/utils/wallet/google-drive/provider';
 
 const route = useRoute();
 
@@ -70,12 +70,9 @@ const handleGoogleOAuthCallback = async () => {
     let accountName = settingsStore.settings.account;
 
     if (!accountName) {
-      // Prompt for account name
+      // Prompt for account name - don't save to settings yet, validate first via loadWallet
       try {
         accountName = await GoogleDriveWalletProvider.requestAccountName();
-        settingsStore.settings.account = accountName;
-        settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
-        settingsStore.saveSettings();
       } catch (_promptError) {
         // User cancelled - don't block app usage
         return true;
@@ -83,8 +80,14 @@ const handleGoogleOAuthCallback = async () => {
     }
 
     // Try to load the wallet (will prompt for recovery password if needed)
+    // loadWallet will automatically fallback to any available role if 'posting' is not found
+    const loadingToastId = toast.loading('Loading wallet...');
     try {
-      await GoogleDriveWalletProvider.loadWallet(accountName, 'posting');
+      await GoogleDriveWalletProvider.loadWallet(accountName);
+
+      // Sync all stored accounts so header dropdown shows immediately
+      const storedAccounts = await GoogleDriveWalletProvider.getStoredAccounts();
+      settingsStore.syncGoogleDriveAccounts(storedAccounts);
 
       // Update settings
       settingsStore.settings.account = accountName;
@@ -96,10 +99,16 @@ const handleGoogleOAuthCallback = async () => {
       await walletStore.createWalletFor(settingsStore.settings, 'posting');
       await userStore.parseUserData(accountName);
 
-      toast.success(`Wallet loaded for @${accountName}`);
-    } catch (_loadError) {
+      toast.success(`Wallet loaded for @${accountName}`, { id: loadingToastId });
+    } catch (loadError) {
+      toast.dismiss(loadingToastId);
+      if (loadError instanceof AccountNotInWalletError || loadError instanceof EmptyWalletError) {
+        // Account not found or wallet empty - show GoogleDriveConnect dialog
+        // which has pick-account / add-keys UI built in
+        sessionStorage.setItem('google_drive_account_name', accountName);
+        showGoogleDriveWalletDialog.value = true;
+      }
       // User cancelled password entry or other error - don't block app usage
-      // Settings are already saved, user can try again from Settings page
     }
 
     return true;
@@ -134,10 +143,18 @@ const checkGoogleDriveWalletNeeded = async () => {
 
 const handleGoogleDriveWalletCreated = async (accountName: string) => {
   showGoogleDriveWalletDialog.value = false;
+
+  // Sync all stored accounts so header dropdown shows immediately
+  try {
+    const storedAccounts = await GoogleDriveWalletProvider.getStoredAccounts();
+    settingsStore.syncGoogleDriveAccounts(storedAccounts);
+  } catch { /* non-critical */ }
+
   settingsStore.settings.account = accountName;
   settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
   settingsStore.saveSettings();
-  toast.success(`Wallet created for @${accountName}`);
+  hasUser.value = true;
+  toast.success(`Wallet loaded for @${accountName}`);
 
   // Reload user data
   try {
@@ -167,6 +184,12 @@ onMounted(async () => {
         userStore.parseUserData(settingsStore.settings.account!).catch(error => {
           toastError('Failed to load user data', error);
         });
+      }).catch(error => {
+        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
+          toast.warning('Your wallet is empty. Please go to Settings to add keys.');
+        else
+          toastError('Failed to load wallet', error);
+
       });
     }
 
@@ -195,7 +218,11 @@ const complete = async (data: { account: string; wallet: UsedWallet }) => {
 
     await userStore.parseUserData(settingsStore.settings.account!);
   } catch (error) {
-    toastError('Failed to create wallet', error);
+    if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
+      toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
+    else
+      toastError('Failed to create wallet', error);
+
   }
 };
 </script>

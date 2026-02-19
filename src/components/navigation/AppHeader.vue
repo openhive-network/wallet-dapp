@@ -4,6 +4,7 @@ import { computed } from 'vue';
 import AccountSwitcher from '@/components/navigation/AccountSwitcher.vue';
 import ToggleSidebar from '@/components/navigation/ToggleSidebar.vue';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import ThemeSwitch from '@/components/ui/theme-switch';
 import { useSettingsStore } from '@/stores/settings.store';
 import { useTokensStore } from '@/stores/tokens.store';
@@ -17,6 +18,10 @@ const hasAnyAccount = computed(() =>
   (settingsStore.settings.account !== undefined && walletStore.hasWallet) ||
   tokensStore.wallet !== undefined
 );
+
+const isAccountLoading = computed(() =>
+  settingsStore.settings.account !== undefined && !walletStore.hasWallet
+);
 </script>
 
 <template>
@@ -24,10 +29,14 @@ const hasAnyAccount = computed(() =>
     <div class="fixed top-0 z-10 bg-background/60 backdrop-blur-sm px-4 h-[60px] border-b w-full md:w-[calc(100%-var(--sidebar-width))] flex items-center justify-between">
       <ToggleSidebar />
       <AccountSwitcher v-if="settingsStore.isLoaded && hasAnyAccount" />
+      <div v-else-if="isAccountLoading" class="inline-flex items-center gap-2">
+        <Skeleton class="w-8 h-8 rounded-full" />
+        <Skeleton class="w-24 h-4 rounded" />
+      </div>
       <div class="ml-auto inline-flex items-center space-x-4 md:space-x-6">
         <ThemeSwitch class="w-6 h-6" />
         <Button
-          v-if="!hasAnyAccount"
+          v-if="!hasAnyAccount && !isAccountLoading"
           variant="outline"
           class="px-2 md:px-4 font-bold"
           @click="walletStore.openWalletSelectModal()"

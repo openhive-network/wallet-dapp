@@ -28,7 +28,7 @@ const rcPercentage = computed(() => {
 </script>
 
 <template>
-  <Card class="w-full">
+  <Card data-testid="account-details-card" class="w-full">
     <CardHeader>
       <CardTitle class="inline-flex items-center justify-between">
         <span>Account details</span>
@@ -52,6 +52,7 @@ const rcPercentage = computed(() => {
           <div>
             <Avatar
               v-if="userStore.isReady"
+              data-testid="account-avatar"
               shape="square"
               class="border rounded-xl w-20 h-20 mr-2"
             >
