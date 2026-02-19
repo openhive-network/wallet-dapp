@@ -70,12 +70,9 @@ const handleGoogleOAuthCallback = async () => {
     let accountName = settingsStore.settings.account;
 
     if (!accountName) {
-      // Prompt for account name
+      // Prompt for account name - don't save to settings yet, validate first via loadWallet
       try {
         accountName = await GoogleDriveWalletProvider.requestAccountName();
-        settingsStore.settings.account = accountName;
-        settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
-        settingsStore.saveSettings();
       } catch (_promptError) {
         // User cancelled - don't block app usage
         return true;
@@ -84,6 +81,7 @@ const handleGoogleOAuthCallback = async () => {
 
     // Try to load the wallet (will prompt for recovery password if needed)
     // loadWallet will automatically fallback to any available role if 'posting' is not found
+    const loadingToastId = toast.loading('Loading wallet...');
     try {
       await GoogleDriveWalletProvider.loadWallet(accountName);
 
@@ -97,26 +95,14 @@ const handleGoogleOAuthCallback = async () => {
       await walletStore.createWalletFor(settingsStore.settings, 'posting');
       await userStore.parseUserData(accountName);
 
-      toast.success(`Wallet loaded for @${accountName}`);
+      toast.success(`Wallet loaded for @${accountName}`, { id: loadingToastId });
     } catch (loadError) {
-      // Save settings so user can retry from Settings page
-      settingsStore.settings.account = accountName;
-      settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
-      settingsStore.saveSettings();
-
-      if (loadError instanceof EmptyWalletError || loadError instanceof AccountNotInWalletError) {
-        toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
-
-        // Load public account data from blockchain to prevent infinite loading state
-        try {
-          await userStore.parseUserData(accountName);
-          hasUser.value = true;
-        } catch {
-          // Account doesn't exist on blockchain - reset to show connect card
-          hasUser.value = false;
-          settingsStore.settings.account = undefined;
-          settingsStore.saveSettings();
-        }
+      toast.dismiss(loadingToastId);
+      if (loadError instanceof AccountNotInWalletError || loadError instanceof EmptyWalletError) {
+        // Account not found or wallet empty - show GoogleDriveConnect dialog
+        // which has pick-account / add-keys UI built in
+        sessionStorage.setItem('google_drive_account_name', accountName);
+        showGoogleDriveWalletDialog.value = true;
       }
       // User cancelled password entry or other error - don't block app usage
     }
@@ -156,7 +142,8 @@ const handleGoogleDriveWalletCreated = async (accountName: string) => {
   settingsStore.settings.account = accountName;
   settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
   settingsStore.saveSettings();
-  toast.success(`Wallet created for @${accountName}`);
+  hasUser.value = true;
+  toast.success(`Wallet loaded for @${accountName}`);
 
   // Reload user data
   try {
