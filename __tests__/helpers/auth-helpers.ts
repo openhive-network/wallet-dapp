@@ -15,12 +15,13 @@ import { primaryTestAccount, googleTestUser } from '../fixtures/test-accounts';
 // Local enum to avoid importing from main app (which imports SVGs)
 // ===========================================
 
+// Must match the numeric values from src/stores/settings.store.ts
 export enum UsedWallet {
-  METAMASK = 'metamask',
-  KEYCHAIN = 'keychain',
-  PEAKVAULT = 'peakvault',
-  CTOKENS_IMPLEMENTATION = 'ctokens_implementation',
-  GOOGLE_DRIVE = 'google_drive'
+  METAMASK,
+  KEYCHAIN,
+  PEAKVAULT,
+  CTOKENS_IMPLEMENTATION,
+  GOOGLE_DRIVE
 }
 
 // ===========================================
