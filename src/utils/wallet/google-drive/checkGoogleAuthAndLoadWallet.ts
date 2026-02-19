@@ -76,17 +76,24 @@ export default async function (): Promise<GoogleAuthResult> {
           // Try to load wallet for saved account
           const walletInfo = await GoogleDriveWalletProvider.getWalletInfo(savedAccount);
 
-          if (walletInfo.exists && walletInfo.accountName) {
+          if (walletInfo.exists) {
             toast.success('Google Drive connected successfully');
 
             // Try to load the wallet - this will prompt for recovery password if needed
             try {
-              const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount, 'posting');
+              const loadResult = await GoogleDriveWalletProvider.loadWallet(savedAccount);
+
+              // Sync stored accounts from wallet
+              try {
+                const storedAccounts = await GoogleDriveWalletProvider.getStoredAccounts();
+                settingsStore.syncGoogleDriveAccounts(storedAccounts);
+              } catch {}
 
               // Save settings
               const settings = {
                 account: loadResult.accountName,
                 wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                googleDriveAccounts: settingsStore.settings.googleDriveAccounts || [],
                 googleDriveSync: settingsStore.settings.googleDriveSync || false,
                 lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
               };
@@ -107,6 +114,7 @@ export default async function (): Promise<GoogleAuthResult> {
                 const settings = {
                   account: savedAccount,
                   wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                  googleDriveAccounts: settingsStore.settings.googleDriveAccounts || [],
                   googleDriveSync: settingsStore.settings.googleDriveSync || false,
                   lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
                 };
@@ -120,6 +128,7 @@ export default async function (): Promise<GoogleAuthResult> {
                 const settings = {
                   account: savedAccount,
                   wallet: UsedWalletEnum.GOOGLE_DRIVE,
+                  googleDriveAccounts: settingsStore.settings.googleDriveAccounts || [],
                   googleDriveSync: settingsStore.settings.googleDriveSync || false,
                   lastGoogleSyncTime: settingsStore.settings.lastGoogleSyncTime
                 };

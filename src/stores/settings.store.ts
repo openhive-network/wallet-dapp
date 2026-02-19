@@ -48,6 +48,7 @@ export const getWalletIcon = (wallet: UsedWallet) => {
 const settings = {
   wallet: undefined as UsedWallet | undefined,
   account: undefined as string | undefined,
+  googleDriveAccounts: [] as string[],
   googleDriveSync: false as boolean,
   lastGoogleSyncTime: undefined as number | undefined
 };
@@ -83,7 +84,7 @@ export const useSettingsStore = defineStore('settings', {
       const localSettings = localStorage.getItem('hivebridge_settings');
 
       if (localSettings)
-        this.setSettings(JSON.parse(localSettings));
+        this.setSettings({ ...settings, ...JSON.parse(localSettings) });
 
       this.isLoaded = true;
 
@@ -98,8 +99,8 @@ export const useSettingsStore = defineStore('settings', {
       if (this.settings.googleDriveSync && this.isGoogleAuthenticated)
         void this.syncToGoogleDrive();
     },
-    setSettings (data: typeof settings) {
-      this.settings = data;
+    setSettings (data: Partial<typeof settings>) {
+      this.settings = { ...settings, ...data };
 
       this.saveSettings();
     },
@@ -203,6 +204,39 @@ export const useSettingsStore = defineStore('settings', {
       } finally {
         this.isSyncing = false;
       }
+    },
+
+    addGoogleDriveAccount (accountName: string) {
+      if (!this.settings.googleDriveAccounts.includes(accountName)) {
+        this.settings.googleDriveAccounts.push(accountName);
+        this.saveSettings();
+      }
+    },
+
+    removeGoogleDriveAccount (accountName: string) {
+      this.settings.googleDriveAccounts = this.settings.googleDriveAccounts.filter(a => a !== accountName);
+
+      // If the removed account was the active one, switch to first available or clear
+      if (this.settings.account === accountName)
+        this.settings.account = this.settings.googleDriveAccounts[0] ?? undefined;
+
+      this.saveSettings();
+    },
+
+    setActiveGoogleDriveAccount (accountName: string) {
+      this.settings.account = accountName;
+      this.settings.wallet = UsedWallet.GOOGLE_DRIVE;
+      this.saveSettings();
+    },
+
+    syncGoogleDriveAccounts (accounts: string[]) {
+      this.settings.googleDriveAccounts = [...accounts];
+
+      // If active account was removed from wallet, switch to first available
+      if (this.settings.account && !accounts.includes(this.settings.account))
+        this.settings.account = accounts[0] ?? undefined;
+
+      this.saveSettings();
     },
 
     toggleGoogleDriveSync (enabled: boolean) {

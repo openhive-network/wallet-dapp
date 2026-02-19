@@ -112,7 +112,7 @@ export const useWalletStore = defineStore('wallet', {
     closeWalletSelectModal () {
       this.isWalletSelectModalOpen = false;
     },
-    async createWalletFor (settings: Settings, role: TRole) {
+    async createWalletFor (settings: Pick<Settings, 'wallet' | 'account'>, role: TRole) {
       const isL1ProxyDisabled = !useRuntimeConfig().public.enableL1Proxy;
 
       switch(settings.wallet) {

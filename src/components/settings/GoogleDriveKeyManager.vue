@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { TRole } from '@hiveio/wax';
-import { KeyRound, Plus, Trash2, Check, Loader2, Eye, EyeOff, Key } from 'lucide-vue-next';
-import { ref, onMounted, computed } from 'vue';
+import { KeyRound, Plus, Trash2, Loader2, Key } from 'lucide-vue-next';
+import { ref, onMounted, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
 
 import GoogleDriveConnect from '@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue';
+import AccountKeyList from '@/components/settings/AccountKeyList.vue';
+import AddAccountDialog from '@/components/settings/AddAccountDialog.vue';
+import CustomKeyList from '@/components/settings/CustomKeyList.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,61 +18,41 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
-import { useSettingsStore } from '@/stores/settings.store';
+import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
+import { useUserStore } from '@/stores/user.store';
+import { useWalletStore } from '@/stores/wallet.store';
 import { toastError } from '@/utils/parse-error';
 
 const googleDrive = useGoogleDriveWallet();
 const settingsStore = useSettingsStore();
+const walletStore = useWalletStore();
+const userStore = useUserStore();
 
 // State
 const isLoadingWalletInfo = ref(true);
 const isGoogleDriveConnected = ref(false);
 const hasGoogleDriveWallet = ref(false);
-const hiveAccountName = ref<string | undefined>();
-const availableKeyRoles = ref<TRole[]>([]);
-const rolePublicKeys = ref<Record<TRole, string>>({} as Record<TRole, string>);
 const isLoadingKeys = ref(false);
+const isWalletEmpty = ref(false);
+
+// Multi-account state
+const storedAccounts = ref<string[]>([]);
+const activeTab = ref('');
+const accountRoles = ref<Record<string, TRole[]>>({});
+const accountPublicKeys = ref<Record<string, Record<string, string>>>({});
 
 // Dialog state
-const showAddDialog = ref(false);
-const showDeleteWalletDialog = ref(false);
-const showDeleteKeyDialog = ref(false);
 const showCreateWalletDialog = ref(false);
-const roleToAdd = ref<TRole | null>(null);
-const roleToDelete = ref<TRole | null>(null);
-const newPrivateKey = ref('');
-const showPrivateKey = ref(false);
+const showDeleteWalletDialog = ref(false);
+const showAddAccountDialog = ref(false);
 const isSavingKey = ref(false);
-const isDeletingKey = ref(false);
-
-// Available roles
-const allRoles: TRole[] = ['posting', 'active', 'owner', 'memo'];
-
-const availableRolesToAdd = computed(() =>
-  allRoles.filter(role => !availableKeyRoles.value.includes(role))
-);
-
-const roleDescriptions: Record<TRole, string> = {
-  posting: 'Used for social actions: posting, commenting, voting',
-  active: 'Used for financial operations: transfers, market orders',
-  owner: 'Master key - can change all other keys (use with caution)',
-  memo: 'Used for encrypting and decrypting private messages'
-};
-
-const roleColors: Record<TRole, string> = {
-  posting: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  active: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  owner: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  memo: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-};
+const isRemovingAccount = ref(false);
 
 /**
  * Check if wallet file exists on Google Drive (without loading it)
- * This is a quick check that doesn't require password/decryption
  */
 const checkWalletFileExists = async (): Promise<boolean> => {
   try {
@@ -80,7 +63,32 @@ const checkWalletFileExists = async (): Promise<boolean> => {
   }
 };
 
-// Load wallet info
+/**
+ * Load roles and public keys for a specific account
+ */
+const loadAccountKeys = async (accountName: string) => {
+  try {
+    const roles = await googleDrive.getAllConfiguredRoles(accountName);
+    accountRoles.value[accountName] = roles;
+
+    const publicKeys: Record<string, string> = {};
+    for (const role of roles) {
+      try {
+        const keyInfo = await googleDrive.getPublicKeyForRole(accountName, role);
+        if (keyInfo?.publicKey)
+          publicKeys[role] = keyInfo.publicKey;
+      } catch {}
+    }
+    accountPublicKeys.value[accountName] = publicKeys;
+  } catch {
+    accountRoles.value[accountName] = [];
+    accountPublicKeys.value[accountName] = {};
+  }
+};
+
+/**
+ * Load wallet info: accounts, roles, keys
+ */
 const loadWalletInfo = async () => {
   isLoadingWalletInfo.value = true;
   try {
@@ -91,80 +99,81 @@ const loadWalletInfo = async () => {
       return;
     }
 
-    // First do a quick check if wallet file exists on Drive
     const walletFileExists = await checkWalletFileExists();
 
     if (!walletFileExists) {
-      // No wallet file on Google Drive - show UI with button to create wallet
       hasGoogleDriveWallet.value = false;
-      hiveAccountName.value = undefined;
-      availableKeyRoles.value = [];
-      rolePublicKeys.value = {} as Record<TRole, string>;
+      storedAccounts.value = [];
       return;
     }
 
-    // Wallet file exists - now check account name
-    let savedAccountName = settingsStore.settings.account;
-    if (!savedAccountName) {
-      // File exists but no account name saved - prompt user for account name
-      try {
-        savedAccountName = await googleDrive.requestAccountName();
-        // Save the account name for future use
-        settingsStore.settings.account = savedAccountName;
-        settingsStore.saveSettings();
-      } catch (_promptError) {
-        // User cancelled account name entry - show empty state
-        hasGoogleDriveWallet.value = true;
-        hiveAccountName.value = undefined;
-        availableKeyRoles.value = [];
-        rolePublicKeys.value = {} as Record<TRole, string>;
-        return;
-      }
-    }
-
-    hiveAccountName.value = savedAccountName;
-    hasGoogleDriveWallet.value = true; // File exists, so wallet exists
+    hasGoogleDriveWallet.value = true;
 
     // Check if we have encryption key - if not, try to load wallet which will prompt for password
-    const hasEncryptionKey = googleDrive.hasEncryptionKey();
-
-    if (!hasEncryptionKey) {
-      // Wallet exists but we don't have the encryption key cached
-      // Try to load wallet - this will prompt for recovery password via the dialog
-      try {
-        await googleDrive.loadWallet(savedAccountName, 'posting');
-        // After successful load, the encryption key is now cached - continue loading keys
-      } catch (_loadError) {
-        // User cancelled password entry or other error - show empty state
-        availableKeyRoles.value = [];
-        rolePublicKeys.value = {} as Record<TRole, string>;
-        return;
-      }
-    }
-
-    // We have encryption key - try to load keys
-    try {
-      // Get all configured roles by probing each one individually
-      availableKeyRoles.value = await googleDrive.getAllConfiguredRoles(savedAccountName);
-
-      // Get public keys for each configured role
-      const publicKeysMap: Record<TRole, string> = {} as Record<TRole, string>;
-      for (const role of availableKeyRoles.value) {
+    if (!googleDrive.hasEncryptionKey()) {
+      // Need to load any account to trigger password prompt
+      const savedAccount = settingsStore.settings.account;
+      if (savedAccount) {
         try {
-          const keyInfo = await googleDrive.getPublicKeyForRole(savedAccountName, role);
-          if (keyInfo?.publicKey)
-            publicKeysMap[role] = keyInfo.publicKey;
-        } catch (_error) {}
+          await googleDrive.loadWallet(savedAccount);
+        } catch {
+          // User cancelled or error - show wallet exists but keys not loaded
+          storedAccounts.value = [];
+          return;
+        }
+      } else {
+        // No saved account and no encryption key - prompt for account name
+        try {
+          const accountName = await googleDrive.requestAccountName();
+          settingsStore.setActiveGoogleDriveAccount(accountName);
+          await googleDrive.loadWallet(accountName);
+        } catch {
+          storedAccounts.value = [];
+          return;
+        }
       }
-      rolePublicKeys.value = publicKeysMap;
-    } catch (_keyLoadError) {
-      // If loading keys fails, show empty state
-      // This could happen if encryption key is invalid
-      availableKeyRoles.value = [];
-      rolePublicKeys.value = {} as Record<TRole, string>;
     }
+
+    // Load stored accounts from wallet
+    const accounts = await googleDrive.getStoredAccounts();
+    storedAccounts.value = accounts;
+
+    // Check if wallet is empty (decrypted successfully but has no accounts/keys)
+    isWalletEmpty.value = accounts.length === 0 && googleDrive.hasEncryptionKey();
+
+    // Sync to settings store (replaces account list and handles active account fallback)
+    const previousAccount = settingsStore.settings.account;
+    settingsStore.syncGoogleDriveAccounts(accounts);
+
+    // If no account was active but wallet has accounts (e.g. after reconnecting), activate the first one
+    if (!previousAccount && accounts.length > 0) {
+      const firstAccount = accounts[0]!;
+      settingsStore.setActiveGoogleDriveAccount(firstAccount);
+      await walletStore.createWalletFor({ account: firstAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+      await userStore.parseUserData(firstAccount);
+    }
+    // If active account was removed from wallet, switch wallet + user data
+    else if (previousAccount && previousAccount !== settingsStore.settings.account) {
+      const newAccount = settingsStore.settings.account;
+      if (newAccount) {
+        userStore.resetSettings();
+        await walletStore.createWalletFor({ account: newAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+        await userStore.parseUserData(newAccount);
+      } else {
+        walletStore.resetWallet();
+        userStore.resetSettings();
+      }
+    }
+
+    // Set active tab
+    if (accounts.length > 0 && !activeTab.value)
+      activeTab.value = settingsStore.settings.account ?? accounts[0] ?? '';
+
+    // Load keys for all accounts
+    for (const account of accounts)
+      await loadAccountKeys(account);
   } catch (error) {
-    toastError('Failed to load wallet information. Please try refreshing the page.', error);
+    toastError('Failed to load wallet information', error);
     isGoogleDriveConnected.value = false;
     hasGoogleDriveWallet.value = false;
   } finally {
@@ -172,31 +181,22 @@ const loadWalletInfo = async () => {
   }
 };
 
-/**
- * Check if wallet exists but keys are not loaded (no encryption key)
- */
 const needsPasswordToLoadKeys = computed(() => {
   return hasGoogleDriveWallet.value &&
-         hiveAccountName.value &&
-         availableKeyRoles.value.length === 0 &&
+         storedAccounts.value.length === 0 &&
+         !isWalletEmpty.value &&
          !isLoadingWalletInfo.value &&
          !isLoadingKeys.value;
 });
 
-/**
- * Load keys manually (prompts for password if needed)
- */
 const loadKeysManually = async () => {
-  if (!hiveAccountName.value) return;
-
   isLoadingKeys.value = true;
   try {
-    // Try to load wallet - this will prompt for password if encryption key is not cached
-    await googleDrive.loadWallet(hiveAccountName.value, 'posting');
+    const savedAccount = settingsStore.settings.account;
+    if (savedAccount)
+      await googleDrive.loadWallet(savedAccount);
 
-    // Now reload wallet info to get all keys
     await loadWalletInfo();
-
     toast.success('Wallet keys loaded successfully');
   } catch (error) {
     toastError('Failed to load wallet keys', error);
@@ -205,145 +205,123 @@ const loadKeysManually = async () => {
   }
 };
 
-/**
- * Public method to reload wallet info - called from parent component after OAuth
- */
-const reloadWalletInfo = () => {
-  loadWalletInfo();
-};
-
-/**
- * Handle wallet created from GoogleDriveConnect dialog
- */
 const handleWalletCreated = async (accountName: string) => {
   showCreateWalletDialog.value = false;
-  settingsStore.settings.account = accountName;
-  settingsStore.saveSettings();
+  settingsStore.setActiveGoogleDriveAccount(accountName);
+  settingsStore.addGoogleDriveAccount(accountName);
   toast.success(`Wallet created for @${accountName}`);
   await loadWalletInfo();
 };
 
-/**
- * Handle close of create wallet dialog
- */
 const handleCreateDialogClose = () => {
   showCreateWalletDialog.value = false;
 };
 
-// Expose methods for parent component
-defineExpose({
-  reloadWalletInfo
-});
+const handleAccountAdded = async (accountName: string) => {
+  const shouldActivate = !settingsStore.settings.account;
 
-// Add key dialog
-const openAddDialog = (role: TRole) => {
-  roleToAdd.value = role;
-  newPrivateKey.value = '';
-  showAddDialog.value = true;
-};
+  settingsStore.addGoogleDriveAccount(accountName);
+  activeTab.value = accountName;
+  await loadWalletInfo();
 
-const closeAddDialog = () => {
-  showAddDialog.value = false;
-  roleToAdd.value = null;
-  newPrivateKey.value = '';
-  showPrivateKey.value = false;
-};
-
-const handleAddKey = async () => {
-  if (!roleToAdd.value || !newPrivateKey.value.trim() || !hiveAccountName.value) return;
-
-  isSavingKey.value = true;
-  try {
-    await googleDrive.addKey(hiveAccountName.value, roleToAdd.value, newPrivateKey.value.trim());
-    toast.success(`${roleToAdd.value} key added successfully`);
-    closeAddDialog();
-    await loadWalletInfo();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to add key';
-    toastError(message, error);
-  } finally {
-    isSavingKey.value = false;
+  // If no account was active (e.g. after removing all accounts), activate the new one
+  if (shouldActivate) {
+    settingsStore.setActiveGoogleDriveAccount(accountName);
+    await walletStore.createWalletFor({ account: accountName, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+    await userStore.parseUserData(accountName);
   }
 };
 
-// Delete wallet
-const openDeleteWalletDialog = () => {
-  showDeleteWalletDialog.value = true;
-};
+const handleRemoveAccount = async (accountName: string) => {
+  isRemovingAccount.value = true;
+  try {
+    const wasActiveAccount = settingsStore.settings.account === accountName;
 
-const closeDeleteWalletDialog = () => {
-  showDeleteWalletDialog.value = false;
+    // Remove all keys for this account
+    const roles = accountRoles.value[accountName] ?? [];
+    for (const role of roles) {
+      const publicKey = accountPublicKeys.value[accountName]?.[role];
+      await googleDrive.removeKey(accountName, publicKey, role);
+    }
+
+    settingsStore.removeGoogleDriveAccount(accountName);
+    toast.success(`Account @${accountName} removed from wallet`);
+
+    // Update local state directly (avoid loadWalletInfo re-adding the account via sync)
+    storedAccounts.value = storedAccounts.value.filter(a => a !== accountName);
+    const { [accountName]: _roles, ...remainingRoles } = accountRoles.value;
+    accountRoles.value = remainingRoles;
+    const { [accountName]: _keys, ...remainingKeys } = accountPublicKeys.value;
+    accountPublicKeys.value = remainingKeys;
+    isWalletEmpty.value = storedAccounts.value.length === 0 && googleDrive.hasEncryptionKey();
+
+    // Switch tab to first remaining account or custom keys
+    activeTab.value = storedAccounts.value[0] ?? 'custom-keys';
+
+    // If removed account was the active one, switch wallet + user data to the new active account
+    if (wasActiveAccount) {
+      const newAccount = settingsStore.settings.account;
+      if (newAccount) {
+        userStore.resetSettings();
+        await walletStore.createWalletFor({ account: newAccount, wallet: UsedWallet.GOOGLE_DRIVE }, 'posting');
+        await userStore.parseUserData(newAccount);
+      } else {
+        walletStore.resetWallet();
+        userStore.resetSettings();
+      }
+    }
+  } catch (error) {
+    toastError('Failed to remove account', error);
+  } finally {
+    isRemovingAccount.value = false;
+  }
 };
 
 const handleDeleteWallet = async () => {
   isSavingKey.value = true;
   try {
-    // Clear localStorage encryption key
     googleDrive.clearEncryptionKey();
-
-    // Clear settings account
     settingsStore.settings.account = undefined;
+    settingsStore.settings.googleDriveAccounts = [];
+    settingsStore.saveSettings();
 
-    // If authenticated with Google, try to delete from Drive
     if (isGoogleDriveConnected.value) {
       try {
         await $fetch('/api/google-drive/delete-wallet', { method: 'DELETE' });
-      } catch (_error) {}
+      } catch {}
     }
 
     toast.success('Wallet data cleared successfully');
-    closeDeleteWalletDialog();
-
-    // Reset state
+    showDeleteWalletDialog.value = false;
     hasGoogleDriveWallet.value = false;
-    hiveAccountName.value = undefined;
-    availableKeyRoles.value = [];
+    storedAccounts.value = [];
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to delete wallet';
-    toastError(message, error);
+    toastError('Failed to delete wallet', error);
   } finally {
     isSavingKey.value = false;
   }
 };
 
-// Delete key dialog
-const openDeleteKeyDialog = (role: TRole) => {
-  roleToDelete.value = role;
-  showDeleteKeyDialog.value = true;
+const reloadWalletInfo = () => {
+  loadWalletInfo();
 };
 
-const closeDeleteKeyDialog = () => {
-  showDeleteKeyDialog.value = false;
-  roleToDelete.value = null;
-};
-
-const handleDeleteKey = async () => {
-  if (!roleToDelete.value || !hiveAccountName.value) return;
-
-  isDeletingKey.value = true;
-  try {
-    const publicKey = rolePublicKeys.value[roleToDelete.value];
-    await googleDrive.removeKey(hiveAccountName.value, publicKey, roleToDelete.value);
-    toast.success(`${roleToDelete.value} key removed successfully`);
-    closeDeleteKeyDialog();
-    await loadWalletInfo();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to remove key';
-    toastError(message, error);
-  } finally {
-    isDeletingKey.value = false;
-  }
-};
+defineExpose({ reloadWalletInfo });
 
 onMounted(() => {
   loadWalletInfo();
 });
+
+watch(() => settingsStore.settings.account, (newAccount) => {
+  if (newAccount && storedAccounts.value.includes(newAccount))
+    activeTab.value = newAccount;
+});
 </script>
 
 <template>
-  <div class="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+  <div class="space-y-4 sm:p-4 sm:border sm:border-gray-200 sm:dark:border-gray-700 sm:rounded-lg">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="hidden sm:flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="p-2 bg-primary/10 rounded-lg">
           <KeyRound class="w-5 h-5 text-primary" />
@@ -407,14 +385,6 @@ onMounted(() => {
 
     <!-- Wallet exists - show key management -->
     <template v-else>
-      <!-- Account info -->
-      <div class="p-3 bg-muted rounded-lg">
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600 dark:text-gray-400">Account:</span>
-          <span class="font-mono font-medium">@{{ hiveAccountName }}</span>
-        </div>
-      </div>
-
       <!-- Wallet exists but keys not loaded - need password -->
       <Alert
         v-if="needsPasswordToLoadKeys"
@@ -446,85 +416,71 @@ onMounted(() => {
         </AlertDescription>
       </Alert>
 
-      <!-- Key list -->
-      <div class="space-y-2">
-        <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Configured Keys
+      <!-- Wallet is empty - no keys stored -->
+      <div v-if="isWalletEmpty" class="flex flex-col items-center justify-center py-8 text-center">
+        <div class="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+          <KeyRound class="w-8 h-8 text-amber-600 dark:text-amber-500" />
+        </div>
+        <h4 class="text-lg font-semibold mb-2">
+          Wallet is Empty
+        </h4>
+        <p class="text-sm text-muted-foreground max-w-sm mb-6">
+          Your wallet file exists on Google Drive but has no keys stored. Add an account with keys to start using the wallet.
         </p>
+        <Button size="lg" @click="showAddAccountDialog = true">
+          <Plus class="w-4 h-4 mr-2" />
+          Add Account
+        </Button>
+      </div>
 
-        <!-- Configured roles -->
-        <div
-          v-for="role in availableKeyRoles"
-          :key="role"
-          class="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-3 bg-white dark:bg-gray-900/50"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span
-                :class="[
-                  'px-2.5 py-1 text-xs font-medium rounded-full capitalize',
-                  roleColors[role]
-                ]"
+      <!-- Tabbed account management -->
+      <template v-if="storedAccounts.length > 0">
+        <Tabs v-model="activeTab" class="w-full">
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <TabsList class="flex-1 overflow-x-auto sm:flex-none">
+              <TabsTrigger
+                v-for="account in storedAccounts"
+                :key="account"
+                :value="account"
               >
-                {{ role }}
-              </span>
-              <div class="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                <Check class="w-4 h-4" />
-                <span class="text-sm font-medium">Configured</span>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="text-destructive hover:text-destructive hover:bg-destructive/10"
-              @click="openDeleteKeyDialog(role)"
-            >
-              <Trash2 class="w-4 h-4" />
+                @{{ account }}
+              </TabsTrigger>
+              <TabsTrigger value="custom-keys">
+                Custom Keys
+              </TabsTrigger>
+            </TabsList>
+            <Button variant="outline" size="sm" class="shrink-0" aria-label="Add account" @click="showAddAccountDialog = true">
+              <Plus class="w-4 h-4 sm:mr-1" />
+              <span class="hidden sm:inline">Add Account</span>
             </Button>
           </div>
 
-          <div v-if="rolePublicKeys[role]" class="space-y-2">
-            <div class="flex items-center gap-2">
-              <Key class="w-3.5 h-3.5 text-muted-foreground" />
-              <span class="text-xs font-medium text-muted-foreground">Public Key</span>
-            </div>
-            <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
-              <code class="font-mono text-xs break-all leading-relaxed text-foreground">
-                {{ rolePublicKeys[role] }}
-              </code>
-            </div>
-          </div>
-        </div>
-
-        <!-- Not configured roles -->
-        <div
-          v-for="role in availableRolesToAdd"
-          :key="role"
-          class="flex items-center justify-between p-3 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-800/50"
-        >
-          <div class="flex items-center gap-3">
-            <span
-              class="px-2.5 py-1 text-xs font-medium rounded-full capitalize bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-            >
-              {{ role }}
-            </span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-              Not configured
-            </span>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            @click="openAddDialog(role)"
+          <!-- Account tabs -->
+          <TabsContent
+            v-for="account in storedAccounts"
+            :key="account"
+            :value="account"
           >
-            <Plus class="w-4 h-4" />
-            Add Key
-          </Button>
-        </div>
-      </div>
+            <AccountKeyList
+              :account-name="account"
+              :configured-roles="accountRoles[account] ?? []"
+              :role-public-keys="accountPublicKeys[account] ?? {}"
+              :is-loading-keys="isLoadingKeys"
+              :is-removing-account="isRemovingAccount"
+              @reload="loadWalletInfo"
+              @remove-account="handleRemoveAccount"
+            />
+          </TabsContent>
+
+          <!-- Custom Keys tab -->
+          <TabsContent value="custom-keys">
+            <CustomKeyList />
+          </TabsContent>
+        </Tabs>
+      </template>
 
       <!-- Info box -->
-      <div class="text-xs text-gray-500 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+      <div class="hidden sm:block text-xs text-gray-500 dark:text-gray-400 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
         <p class="font-medium mb-1">
           About Wallet Keys:
         </p>
@@ -537,19 +493,20 @@ onMounted(() => {
       </div>
 
       <!-- Delete Wallet Section -->
-      <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-        <div class="p-3 border border-destructive/30 rounded-lg bg-destructive/5">
-          <div class="flex items-center justify-between">
-            <div>
+      <div class="border-t border-gray-200 dark:border-gray-700 pt-3 sm:pt-4 mt-3 sm:mt-4">
+        <div class="sm:p-3 sm:border sm:border-destructive/30 sm:rounded-lg sm:bg-destructive/5">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
               <p class="text-sm font-medium">Delete Wallet</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Clear wallet data and remove file from Google Drive
+              <p class="text-xs text-muted-foreground mt-0.5">
+                Remove wallet file from Google Drive
               </p>
             </div>
             <Button
               variant="destructive"
               size="sm"
-              @click="openDeleteWalletDialog"
+              class="shrink-0"
+              @click="showDeleteWalletDialog = true"
             >
               <Trash2 class="w-4 h-4 mr-1" />
               Delete
@@ -559,87 +516,10 @@ onMounted(() => {
       </div>
     </template>
 
-    <!-- Add Key Dialog -->
-    <Dialog
-      :open="showAddDialog"
-      @update:open="(open: boolean) => !open && closeAddDialog()"
-    >
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle class="flex items-center gap-2">
-            <Plus class="w-5 h-5" />
-            Add {{ roleToAdd }} Key
-          </DialogTitle>
-          <DialogDescription>
-            {{ roleToAdd ? roleDescriptions[roleToAdd] : '' }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div class="space-y-4 py-4">
-          <div class="space-y-2">
-            <Label for="privateKey">Private Key</Label>
-            <div class="relative">
-              <Input
-                id="privateKey"
-                v-model="newPrivateKey"
-                :type="showPrivateKey ? 'text' : 'password'"
-                placeholder="Enter your private key"
-                autocomplete="off"
-                class="pr-10"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                class="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                @click="showPrivateKey = !showPrivateKey"
-              >
-                <Eye
-                  v-if="!showPrivateKey"
-                  class="w-4 h-4 text-gray-500"
-                />
-                <EyeOff
-                  v-else
-                  class="w-4 h-4 text-gray-500"
-                />
-              </Button>
-            </div>
-          </div>
-
-          <Alert variant="warning">
-            <AlertDescription>
-              Your key will be encrypted and stored securely in Google Drive.
-              Never share your private keys with anyone.
-            </AlertDescription>
-          </Alert>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            :disabled="isSavingKey"
-            @click="closeAddDialog"
-          >
-            Cancel
-          </Button>
-          <Button
-            :disabled="!newPrivateKey.trim() || isSavingKey"
-            @click="handleAddKey"
-          >
-            <Loader2
-              v-if="isSavingKey"
-              class="w-4 h-4 animate-spin"
-            />
-            {{ isSavingKey ? 'Adding...' : 'Add Key' }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
     <!-- Delete Wallet Dialog -->
     <Dialog
       :open="showDeleteWalletDialog"
-      @update:open="(open: boolean) => !open && closeDeleteWalletDialog()"
+      @update:open="(open: boolean) => !open && (showDeleteWalletDialog = false)"
     >
       <DialogContent class="sm:max-w-md">
         <DialogHeader>
@@ -665,8 +545,10 @@ onMounted(() => {
           <p>This will:</p>
           <ul class="list-disc list-inside space-y-1 ml-2">
             <li>Clear your locally stored recovery password</li>
-            <li>Remove account information from settings</li>
-            <li v-if="isGoogleDriveConnected">Delete the encrypted wallet file from Google Drive</li>
+            <li>Remove all account information from settings</li>
+            <li v-if="isGoogleDriveConnected">
+              Delete the encrypted wallet file from Google Drive
+            </li>
           </ul>
         </div>
 
@@ -674,7 +556,7 @@ onMounted(() => {
           <Button
             variant="outline"
             :disabled="isSavingKey"
-            @click="closeDeleteWalletDialog"
+            @click="showDeleteWalletDialog = false"
           >
             Cancel
           </Button>
@@ -693,62 +575,12 @@ onMounted(() => {
       </DialogContent>
     </Dialog>
 
-    <!-- Delete Key Dialog -->
-    <Dialog
-      :open="showDeleteKeyDialog"
-      @update:open="(open: boolean) => !open && closeDeleteKeyDialog()"
-    >
-      <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle class="flex items-center gap-2 text-destructive">
-            <Trash2 class="w-5 h-5" />
-            Remove {{ roleToDelete }} Key?
-          </DialogTitle>
-          <DialogDescription>
-            This will remove the {{ roleToDelete }} key from your wallet.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Alert variant="warning" class="my-4">
-          <AlertDescription>
-            Make sure you have a backup of this key before removing it. Once removed, you'll need to add it again to use {{ roleToDelete }} permissions.
-          </AlertDescription>
-        </Alert>
-
-        <div v-if="roleToDelete && rolePublicKeys[roleToDelete]" class="space-y-2">
-          <div class="flex items-center gap-2">
-            <Key class="w-3.5 h-3.5 text-muted-foreground" />
-            <span class="text-xs font-medium text-muted-foreground">Public Key to Remove</span>
-          </div>
-          <div class="p-2.5 bg-muted/50 rounded border border-gray-200 dark:border-gray-700">
-            <code class="font-mono text-xs break-all leading-relaxed text-foreground">
-              {{ rolePublicKeys[roleToDelete] }}
-            </code>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            :disabled="isDeletingKey"
-            @click="closeDeleteKeyDialog"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            :disabled="isDeletingKey"
-            @click="handleDeleteKey"
-          >
-            <Loader2
-              v-if="isDeletingKey"
-              class="w-4 h-4 animate-spin"
-            />
-            {{ isDeletingKey ? 'Removing...' : 'Remove Key' }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <!-- Add Account Dialog -->
+    <AddAccountDialog
+      :open="showAddAccountDialog"
+      @update:open="showAddAccountDialog = $event"
+      @account-added="handleAccountAdded"
+    />
 
     <!-- Create Wallet Dialog -->
     <Dialog
@@ -757,7 +589,6 @@ onMounted(() => {
     >
       <DialogContent class="sm:max-w-[500px] p-0 border-0 bg-transparent shadow-none [&>button]:hidden">
         <GoogleDriveConnect
-          :account-name="hiveAccountName"
           @setaccount="handleWalletCreated"
           @close="handleCreateDialogClose"
         />

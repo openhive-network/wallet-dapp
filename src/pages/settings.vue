@@ -71,11 +71,20 @@ watch(() => settingsStore.isGoogleAuthenticated, async (newValue, oldValue) => {
     googleDriveKeyManagerRef.value?.reloadWalletInfo();
   }
 });
+
+// Watch for wallet/account changes from outside (e.g., wallet created or account selected via CommonLayout dialog)
+watch(() => [settingsStore.wallet, settingsStore.settings.account] as const, async ([newWallet, newAccount], [oldWallet, oldAccount]) => {
+  if (!isGoogleDriveConnected.value) return;
+  if ((newWallet !== undefined && oldWallet === undefined) || (newAccount && newAccount !== oldAccount)) {
+    await nextTick();
+    googleDriveKeyManagerRef.value?.reloadWalletInfo();
+  }
+});
 </script>
 
 <template>
-  <div class="container mx-auto p-4 max-w-4xl">
-    <h1 class="text-3xl text-center font-bold my-12">
+  <div class="container mx-auto px-3 py-4 sm:p-4 max-w-4xl">
+    <h1 class="text-xl sm:text-3xl text-center font-bold my-4 sm:my-12">
       Google Drive Wallet Management
     </h1>
 
