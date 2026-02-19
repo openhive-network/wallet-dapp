@@ -99,14 +99,24 @@ const handleGoogleOAuthCallback = async () => {
 
       toast.success(`Wallet loaded for @${accountName}`);
     } catch (loadError) {
-      // Save settings regardless so user can retry from Settings page
+      // Save settings so user can retry from Settings page
       settingsStore.settings.account = accountName;
       settingsStore.settings.wallet = UsedWallet.GOOGLE_DRIVE;
       settingsStore.saveSettings();
 
       if (loadError instanceof EmptyWalletError || loadError instanceof AccountNotInWalletError) {
-        hasUser.value = true;
         toast.warning('Your wallet has no keys for this account. Please go to Settings to add keys.');
+
+        // Load public account data from blockchain to prevent infinite loading state
+        try {
+          await userStore.parseUserData(accountName);
+          hasUser.value = true;
+        } catch {
+          // Account doesn't exist on blockchain - reset to show connect card
+          hasUser.value = false;
+          settingsStore.settings.account = undefined;
+          settingsStore.saveSettings();
+        }
       }
       // User cancelled password entry or other error - don't block app usage
     }
