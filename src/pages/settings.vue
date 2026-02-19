@@ -72,9 +72,10 @@ watch(() => settingsStore.isGoogleAuthenticated, async (newValue, oldValue) => {
   }
 });
 
-// Watch for wallet type changes from outside (e.g., wallet created via CommonLayout dialog)
-watch(() => settingsStore.wallet, async (newWallet, oldWallet) => {
-  if (newWallet !== undefined && oldWallet === undefined && isGoogleDriveConnected.value) {
+// Watch for wallet/account changes from outside (e.g., wallet created or account selected via CommonLayout dialog)
+watch(() => [settingsStore.wallet, settingsStore.settings.account] as const, async ([newWallet, newAccount], [oldWallet, oldAccount]) => {
+  if (!isGoogleDriveConnected.value) return;
+  if ((newWallet !== undefined && oldWallet === undefined) || (newAccount && newAccount !== oldAccount)) {
     await nextTick();
     googleDriveKeyManagerRef.value?.reloadWalletInfo();
   }
