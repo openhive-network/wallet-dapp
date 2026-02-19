@@ -432,6 +432,15 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
+    // Validate the private key format before persisting to Google Drive
+    const { getWax } = await import('@/stores/wax.store');
+    const wax = await getWax();
+    try {
+      wax.calculatePublicKey(privateKey);
+    } catch {
+      throw new Error('Invalid private key format. Please provide a valid Hive WIF private key.');
+    }
+
     const wallet = await getWallet();
     const content = await wallet.createForHiveKey(role, accountName, privateKey);
 
@@ -535,6 +544,15 @@ export class GoogleDriveWalletProvider {
   public static async addCustomKey (alias: string, privateKey: string, description?: string): Promise<{ publicKey: TPublicKey }> {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
+
+    // Validate the private key format before persisting to Google Drive
+    const { getWax } = await import('@/stores/wax.store');
+    const wax = await getWax();
+    try {
+      wax.calculatePublicKey(privateKey);
+    } catch {
+      throw new Error('Invalid private key format. Please provide a valid Hive WIF private key.');
+    }
 
     const wallet = await getWallet();
     const content = await wallet.createForCustomKey(alias, privateKey, description);
