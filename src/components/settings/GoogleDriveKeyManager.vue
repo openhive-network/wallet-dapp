@@ -165,9 +165,14 @@ const loadWalletInfo = async () => {
       }
     }
 
-    // Set active tab
-    if (accounts.length > 0 && !activeTab.value)
-      activeTab.value = settingsStore.settings.account ?? accounts[0] ?? '';
+    // Sync active tab with active account
+    if (accounts.length > 0) {
+      const activeAccount = settingsStore.settings.account;
+      if (activeAccount && accounts.includes(activeAccount))
+        activeTab.value = activeAccount;
+      else if (!accounts.includes(activeTab.value) && activeTab.value !== 'custom-keys')
+        activeTab.value = accounts[0] ?? '';
+    }
 
     // Load keys for all accounts
     for (const account of accounts)
@@ -209,6 +214,7 @@ const handleWalletCreated = async (accountName: string) => {
   showCreateWalletDialog.value = false;
   settingsStore.setActiveGoogleDriveAccount(accountName);
   settingsStore.addGoogleDriveAccount(accountName);
+  activeTab.value = accountName;
   toast.success(`Wallet created for @${accountName}`);
   await loadWalletInfo();
 };
