@@ -264,7 +264,7 @@ const registerHTMAccount = async () => {
       };
     }
 
-    const explicitWallet = autoImport.value
+    const explicitWalletOwner = autoImport.value
       ? await CTokensProvider.for(wax, 'owner', false)
       : undefined;
 
@@ -276,7 +276,19 @@ const registerHTMAccount = async () => {
           management_key: keys.management!,
           operational_key: keys.operational
         }
-      } satisfies htm_operation, {
+      } satisfies htm_operation]),
+      'HTM account registration',
+      true,
+      explicitWalletOwner
+    );
+
+    const explicitWalletPosting = autoImport.value
+      ? await CTokensProvider.for(wax, 'posting', false)
+      : undefined;
+
+    // Wait for transaction status
+    await waitForTransactionStatus(
+      () => ([{
         user_metadata_update_operation: {
           user: keys.operational,
           metadata: {
@@ -289,9 +301,9 @@ const registerHTMAccount = async () => {
           }
         }
       } satisfies htm_operation]),
-      'HTM account registration',
+      'HTM account settings update',
       true,
-      explicitWallet
+      explicitWalletPosting
     );
 
     // Only handle login if auto-import is enabled

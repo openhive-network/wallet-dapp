@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CTokenBalanceDisplay, CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { copyText } from '@/utils/copy';
+import { BUILTIN_METADATA_KEYS } from '@/utils/htm-metadata';
 import { toastError } from '@/utils/parse-error';
 
 const props = defineProps<{
@@ -30,6 +31,25 @@ const copyOwnerAddress = () => {
     }, 1000);
   } catch (error) {
     toastError('Failed to copy address', error);
+  }
+};
+
+// Custom metadata entries (non-builtin keys)
+const customMetadataEntries = computed(() =>
+  Object.entries(props.token.metadata || {})
+    .filter(([key]) => !BUILTIN_METADATA_KEYS.has(key))
+    .map(([key, value]) => ({ key, value: String(value ?? '') }))
+);
+
+const copyCustomMetadataJson = () => {
+  const customObj: Record<string, string> = {};
+  for (const entry of customMetadataEntries.value)
+    customObj[entry.key] = entry.value;
+  try {
+    copyText(JSON.stringify(customObj, null, 2));
+    toast.success('Custom metadata JSON copied!');
+  } catch {
+    toastError('Failed to copy JSON');
   }
 };
 
@@ -110,6 +130,41 @@ const copyAssetNum = () => {
           >
             {{ props.token.description }}
           </p>
+
+          <!-- Custom Metadata -->
+          <div
+            v-if="customMetadataEntries.length > 0"
+            class="mb-4"
+          >
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              <div
+                v-for="entry in customMetadataEntries"
+                :key="entry.key"
+                class="flex items-center gap-1"
+              >
+                <span class="text-muted-foreground font-medium">{{ entry.key }}:</span>
+                <span class="text-foreground">{{ entry.value }}</span>
+              </div>
+              <button
+                type="button"
+                class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                @click="copyCustomMetadataJson"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiContentCopy"
+                  />
+                </svg>
+                Copy JSON
+              </button>
+            </div>
+          </div>
 
           <!-- Technical Details - Compact -->
           <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">

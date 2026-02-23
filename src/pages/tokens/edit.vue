@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSettingsStore } from '@/stores/settings.store';
 import type { CTokenDefinitionDisplay, CTokenDisplayBase } from '@/stores/tokens.store';
 import { useTokensStore } from '@/stores/tokens.store';
+import { BUILTIN_METADATA_KEYS } from '@/utils/htm-metadata';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
 import { validateTokenSymbol } from '@/utils/validators';
@@ -90,11 +91,29 @@ const previewToken = computed(() => {
 const hasChanges = computed(() => {
   if (!token.value) return false;
 
-  return formToken.value.name !== (token.value.name || '') ||
+  const builtinChanged = formToken.value.name !== (token.value.name || '') ||
          formToken.value.symbol !== (token.value.symbol || '') ||
          formToken.value.description !== (token.value.description || '') ||
          formToken.value.image !== (token.value.image || '') ||
          formToken.value.website !== (token.value.website || '');
+
+  if (builtinChanged) return true;
+
+  // Check custom metadata changes
+  const originalCustom: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(token.value.metadata || {})) {
+    if (!BUILTIN_METADATA_KEYS.has(key))
+      originalCustom[key] = value;
+  }
+
+  const currentCustom = formToken.value.metadata || {};
+  const originalKeys = Object.keys(originalCustom);
+  const currentKeys = Object.keys(currentCustom);
+
+  if (originalKeys.length !== currentKeys.length) return true;
+
+  return originalKeys.some(key => String(originalCustom[key] ?? '') !== String(currentCustom[key] ?? '')) ||
+         currentKeys.some(key => !(key in originalCustom));
 });
 
 // Load token details
@@ -103,6 +122,13 @@ const loadTokenDetails = async () => {
     // Fetch token details by Asset Num
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
 
+    // Extract custom metadata (non-builtin keys)
+    const customMetadata: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(token.value.metadata || {})) {
+      if (!BUILTIN_METADATA_KEYS.has(key))
+        customMetadata[key] = value;
+    }
+
     // Populate form token
     formToken.value = {
       isNft: token.value.isNft,
@@ -110,7 +136,7 @@ const loadTokenDetails = async () => {
       assetNum: token.value.assetNum,
       isStaked: token.value.isStaked,
       precision: token.value.precision,
-      metadata: token.value.metadata,
+      metadata: customMetadata,
       name: token.value.name,
       symbol: token.value.symbol,
       description: token.value.description,
@@ -140,14 +166,21 @@ const handleSaveChanges = async () => {
   try {
     isUpdating.value = true;
 
-    // Prepare metadata
-    const metadata = {
-      name: (formToken.value.name || '').trim(),
-      symbol: (formToken.value.symbol || '').trim().toUpperCase(),
-      description: (formToken.value.description || '').trim(),
-      image: (formToken.value.image || '').trim(),
-      website: (formToken.value.website || '').trim()
-    };
+    // Prepare metadata items
+    const metadataItems = [
+      { key: 'name', value: (formToken.value.name || '').trim() },
+      { key: 'symbol', value: (formToken.value.symbol || '').trim().toUpperCase() },
+      { key: 'description', value: (formToken.value.description || '').trim() },
+      { key: 'image', value: (formToken.value.image || '').trim() },
+      { key: 'website', value: (formToken.value.website || '').trim() }
+    ];
+
+    // Add custom metadata entries
+    for (const [key, value] of Object.entries(formToken.value.metadata || {})) {
+      const trimmedKey = key.trim();
+      if (trimmedKey && !BUILTIN_METADATA_KEYS.has(trimmedKey))
+        metadataItems.push({ key: trimmedKey, value: String(value ?? '').trim() });
+    }
 
     // Wait for transaction status
     await waitForTransactionStatus(
@@ -160,10 +193,7 @@ const handleSaveChanges = async () => {
           },
           owner: tokensStore.getUserPublicKey()!,
           metadata: {
-            items: Object.entries(metadata).map(([key, value]) => ({
-              key,
-              value
-            }))
+            items: metadataItems
           }
         }
       } satisfies htm_operation]),

@@ -15,6 +15,7 @@ import { useTokensStore } from '@/stores/tokens.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { debounce } from '@/utils/debouncers';
+import { BUILTIN_METADATA_KEYS } from '@/utils/htm-metadata';
 import { generateNAI as generateHTMNAI, parseAssetAmount, toVesting, assetNumFromNAI, naiFromAssetNum } from '@/utils/nai-tokens';
 import { toastError } from '@/utils/parse-error';
 import { waitForTransactionStatus } from '@/utils/transaction-status';
@@ -42,6 +43,7 @@ const othersCanStake = ref(true);
 const othersCanUnstake = ref(true);
 const capped = ref(true);
 const agreedToDisclaimer = ref(false);
+const customMetadata = ref<Record<string, unknown>>({});
 
 // Loading states
 const isCreatingToken = ref(false);
@@ -126,6 +128,13 @@ const createToken = async () => {
     if (trimmedWebsite)
       metadataItems.push({ key: 'website', value: trimmedWebsite });
 
+    // Add custom metadata entries
+    for (const [key, value] of Object.entries(customMetadata.value)) {
+      const trimmedKey = key.trim();
+      if (trimmedKey && !BUILTIN_METADATA_KEYS.has(trimmedKey))
+        metadataItems.push({ key: trimmedKey, value: String(value ?? '').trim() });
+    }
+
     // Prepare HTM asset definition data
     const assetDefinition: asset_definition = {
       identifier,
@@ -189,7 +198,7 @@ const formToken = computed(() => ({
   assetNum: generatedAssetNum.value ? Number(generatedAssetNum.value) : 0,
   isStaked: false,
   precision: parseInt(precision.value),
-  metadata: {},
+  metadata: { ...customMetadata.value },
   name: tokenName.value,
   symbol: tokenSymbol.value,
   description: tokenDescription.value,
@@ -228,6 +237,7 @@ const resetForm = () => {
   othersCanUnstake.value = true;
   agreedToDisclaimer.value = false;
   generatedAssetNum.value = '';
+  customMetadata.value = {};
 };
 
 // Handle symbol input - transform to uppercase letters only
@@ -297,6 +307,14 @@ const handleTokenUpdate = (updatedToken: CTokenDisplayBase & { othersCanStake: b
   precision.value = String(updatedToken.precision);
   othersCanStake.value = updatedToken.othersCanStake;
   othersCanUnstake.value = updatedToken.othersCanUnstake;
+
+  // Sync custom metadata (non-builtin keys)
+  const newCustomMetadata: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(updatedToken.metadata || {})) {
+    if (!BUILTIN_METADATA_KEYS.has(key))
+      newCustomMetadata[key] = value;
+  }
+  customMetadata.value = newCustomMetadata;
 };
 </script>
 

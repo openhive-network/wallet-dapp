@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCurrencyUsd, mdiRefresh, mdiContentCopy } from '@mdi/js';
+import { mdiCurrencyUsd, mdiRefresh, mdiContentCopy, mdiPlus, mdiClose, mdiCodeJson } from '@mdi/js';
 import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import type { CTokenDisplayBase } from '@/stores/tokens.store';
 import { copyText } from '@/utils/copy';
+import { BUILTIN_METADATA_KEYS } from '@/utils/htm-metadata';
 import { toastError } from '@/utils/parse-error';
 import type { validateTokenSymbol } from '@/utils/validators';
 
@@ -68,6 +69,111 @@ const copyAssetNum = async () => {
     toastError('Failed to copy Asset Num');
   }
 };
+
+// Custom metadata entries derived from token.metadata
+const customMetadataEntries = computed(() => {
+  const metadata = props.token.metadata || {};
+  return Object.entries(metadata)
+    .filter(([key]) => !BUILTIN_METADATA_KEYS.has(key))
+    .map(([key, value]) => ({ key, value: String(value ?? '') }));
+});
+
+// JSON view toggle
+const isJsonMode = ref(false);
+const jsonInput = ref('');
+const jsonError = ref('');
+
+// Sync JSON textarea when switching to JSON mode
+watch(isJsonMode, (enabled) => {
+  if (enabled) {
+    const customObj: Record<string, string> = {};
+    for (const entry of customMetadataEntries.value)
+      customObj[entry.key] = entry.value;
+    jsonInput.value = Object.keys(customObj).length > 0 ? JSON.stringify(customObj, null, 2) : '';
+    jsonError.value = '';
+  }
+});
+
+const applyJson = () => {
+  const trimmed = jsonInput.value.trim();
+  if (!trimmed) {
+    // Clear all custom metadata
+    const builtinOnly = Object.fromEntries(
+      Object.entries(props.token.metadata).filter(([k]) => BUILTIN_METADATA_KEYS.has(k))
+    );
+    emit('update:token', { ...props.token, metadata: builtinOnly });
+    jsonError.value = '';
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      jsonError.value = 'JSON must be a flat object, e.g. {"key": "value"}';
+      return;
+    }
+
+    // Keep builtin keys, replace custom with parsed
+    const builtinOnly = Object.fromEntries(
+      Object.entries(props.token.metadata).filter(([k]) => BUILTIN_METADATA_KEYS.has(k))
+    );
+    const newMetadata: Record<string, unknown> = { ...builtinOnly };
+    for (const [key, value] of Object.entries(parsed)) {
+      const trimmedKey = String(key).trim();
+      if (trimmedKey && !BUILTIN_METADATA_KEYS.has(trimmedKey))
+        newMetadata[trimmedKey] = String(value ?? '');
+    }
+    emit('update:token', { ...props.token, metadata: newMetadata });
+    jsonError.value = '';
+    isJsonMode.value = false;
+  } catch {
+    jsonError.value = 'Invalid JSON';
+  }
+};
+
+const copyCustomMetadataJson = () => {
+  const customObj: Record<string, string> = {};
+  for (const entry of customMetadataEntries.value)
+    customObj[entry.key] = entry.value;
+  try {
+    copyText(JSON.stringify(customObj, null, 2));
+    toast.success('Custom metadata JSON copied!');
+  } catch {
+    toastError('Failed to copy JSON');
+  }
+};
+
+const addCustomMetadataEntry = () => {
+  const currentMetadata = { ...props.token.metadata };
+  // Find a unique placeholder key
+  let index = 1;
+  while (currentMetadata[`key${index}`] !== undefined)
+    index++;
+  currentMetadata[`key${index}`] = '';
+  emit('update:token', { ...props.token, metadata: currentMetadata });
+};
+
+const removeCustomMetadataEntry = (key: string) => {
+  const currentMetadata = Object.fromEntries(
+    Object.entries(props.token.metadata).filter(([k]) => k !== key)
+  );
+  emit('update:token', { ...props.token, metadata: currentMetadata });
+};
+
+const updateCustomMetadataKey = (oldKey: string, newKey: string) => {
+  const currentMetadata = Object.fromEntries(
+    Object.entries(props.token.metadata).map(([k, v]) => k === oldKey ? [newKey, v] : [k, v])
+  );
+  emit('update:token', { ...props.token, metadata: currentMetadata });
+};
+
+const updateCustomMetadataValue = (key: string, value: string) => {
+  const currentMetadata = { ...props.token.metadata };
+  currentMetadata[key] = value;
+  emit('update:token', { ...props.token, metadata: currentMetadata });
+};
+
+const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLowerCase());
 </script>
 
 <template>
@@ -175,6 +281,170 @@ const copyAssetNum = async () => {
         <p class="text-xs text-muted-foreground">
           Optional: Official website for your token project
         </p>
+      </div>
+
+      <!-- Custom Metadata -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <Label>Custom Metadata</Label>
+          <div class="flex items-center gap-1">
+            <Button
+              v-if="customMetadataEntries.length > 0"
+              variant="ghost"
+              size="sm"
+              :disabled="isSubmitting"
+              @click="copyCustomMetadataJson"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-1"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiContentCopy"
+                />
+              </svg>
+              Copy JSON
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              :disabled="isSubmitting"
+              :class="{ 'bg-accent': isJsonMode }"
+              @click="isJsonMode = !isJsonMode"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-1"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiCodeJson"
+                />
+              </svg>
+              JSON
+            </Button>
+            <Button
+              v-if="!isJsonMode"
+              variant="outline"
+              size="sm"
+              :disabled="isSubmitting"
+              @click="addCustomMetadataEntry"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="mr-1"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiPlus"
+                />
+              </svg>
+              Add field
+            </Button>
+          </div>
+        </div>
+
+        <!-- JSON Mode -->
+        <div
+          v-if="isJsonMode"
+          class="space-y-2"
+        >
+          <Textarea
+            v-model="jsonInput"
+            placeholder='{"twitter": "@handle", "discord": "server_id"}'
+            :disabled="isSubmitting"
+            rows="5"
+            class="font-mono text-sm"
+            data-testid="custom-metadata-json"
+          />
+          <p
+            v-if="jsonError"
+            class="text-xs text-red-500"
+          >
+            {{ jsonError }}
+          </p>
+          <Button
+            size="sm"
+            :disabled="isSubmitting"
+            @click="applyJson"
+          >
+            Apply JSON
+          </Button>
+        </div>
+
+        <!-- Fields Mode -->
+        <template v-else>
+          <div
+            v-if="customMetadataEntries.length === 0"
+            class="text-sm text-muted-foreground"
+          >
+            No custom metadata fields. Click "Add field" or paste JSON via "JSON" button.
+          </div>
+
+          <div
+            v-for="(entry, index) in customMetadataEntries"
+            :key="index"
+            class="flex items-start gap-2"
+          >
+            <div class="flex-1 space-y-1">
+              <Input
+                :model-value="entry.key"
+                placeholder="Key"
+                :disabled="isSubmitting"
+                class="font-mono text-sm"
+                :class="{ 'border-red-500': isReservedKey(entry.key) }"
+                data-testid="custom-metadata-key"
+                @update:model-value="updateCustomMetadataKey(entry.key, $event as string)"
+              />
+              <p
+                v-if="isReservedKey(entry.key)"
+                class="text-xs text-red-500"
+              >
+                Reserved key. Use the dedicated field above.
+              </p>
+            </div>
+            <div class="flex-1">
+              <Input
+                :model-value="entry.value"
+                placeholder="Value"
+                :disabled="isSubmitting"
+                class="text-sm"
+                data-testid="custom-metadata-value"
+                @update:model-value="updateCustomMetadataValue(entry.key, $event as string)"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-9 w-9 flex-shrink-0"
+              :disabled="isSubmitting"
+              @click="removeCustomMetadataEntry(entry.key)"
+            >
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                class="text-muted-foreground hover:text-destructive"
+              >
+                <path
+                  style="fill: currentColor"
+                  :d="mdiClose"
+                />
+              </svg>
+            </Button>
+          </div>
+        </template>
       </div>
 
       <Separator />
