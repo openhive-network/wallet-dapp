@@ -106,7 +106,11 @@ const hasChanges = computed(() => {
       originalCustom[key] = value;
   }
 
-  const currentCustom = formToken.value.metadata || {};
+  const currentCustom: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(formToken.value.metadata || {})) {
+    if (!key.startsWith('__new_'))
+      currentCustom[key] = value;
+  }
   const originalKeys = Object.keys(originalCustom);
   const currentKeys = Object.keys(currentCustom);
 
@@ -175,10 +179,10 @@ const handleSaveChanges = async () => {
       { key: 'website', value: (formToken.value.website || '').trim() }
     ];
 
-    // Add custom metadata entries
+    // Add custom metadata entries (skip empty placeholder keys)
     for (const [key, value] of Object.entries(formToken.value.metadata || {})) {
       const trimmedKey = key.trim();
-      if (trimmedKey && !BUILTIN_METADATA_KEYS.has(trimmedKey))
+      if (trimmedKey && !trimmedKey.startsWith('__new_') && !BUILTIN_METADATA_KEYS.has(trimmedKey))
         metadataItems.push({ key: trimmedKey, value: String(value ?? '').trim() });
     }
 

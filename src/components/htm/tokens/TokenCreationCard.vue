@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiCurrencyUsd, mdiRefresh, mdiContentCopy, mdiPlus, mdiClose, mdiCodeJson } from '@mdi/js';
+import { mdiCurrencyUsd, mdiRefresh, mdiContentCopy, mdiPlus, mdiClose, mdiCodeJson, mdiChevronDown } from '@mdi/js';
 import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -143,13 +143,22 @@ const copyCustomMetadataJson = () => {
   }
 };
 
+const isMetadataExpanded = ref(false);
+
+// Auto-expand if there are already custom metadata entries
+watch(() => customMetadataEntries.value.length, (len) => {
+  if (len > 0)
+    isMetadataExpanded.value = true;
+}, { immediate: true });
+
 const addCustomMetadataEntry = () => {
   const currentMetadata = { ...props.token.metadata };
-  // Find a unique placeholder key
+  // Find a unique temporary placeholder key
   let index = 1;
-  while (currentMetadata[`key${index}`] !== undefined)
+  while (currentMetadata[`__new_${index}`] !== undefined)
     index++;
-  currentMetadata[`key${index}`] = '';
+  currentMetadata[`__new_${index}`] = '';
+  isMetadataExpanded.value = true;
   emit('update:token', { ...props.token, metadata: currentMetadata });
 };
 
@@ -283,21 +292,88 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
         </p>
       </div>
 
+      <Separator />
+
       <!-- Custom Metadata -->
       <div class="space-y-3">
-        <div class="flex items-center justify-between">
-          <Label>Custom Metadata</Label>
-          <div class="flex items-center gap-1">
+        <button
+          type="button"
+          class="flex w-full items-center justify-between rounded-md py-1 text-left transition-colors hover:text-foreground/80"
+          :disabled="isSubmitting"
+          @click="isMetadataExpanded = !isMetadataExpanded"
+        >
+          <div>
+            <Label
+              as="span"
+              class="pointer-events-none"
+            >Custom Metadata</Label>
+            <p class="text-xs text-muted-foreground">
+              Add extra properties like social links or tags
+            </p>
+          </div>
+          <svg
+            width="20"
+            height="20"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="text-muted-foreground transition-transform duration-200 flex-shrink-0"
+            :class="{ 'rotate-180': isMetadataExpanded }"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiChevronDown"
+            />
+          </svg>
+        </button>
+
+        <div
+          v-if="isMetadataExpanded"
+          class="space-y-3"
+        >
+          <!-- Mode toggle -->
+          <div class="flex items-center gap-2">
+            <div class="flex rounded-md border">
+              <button
+                type="button"
+                class="px-3 py-1.5 text-xs font-medium transition-colors rounded-l-md"
+                :class="!isJsonMode ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
+                :disabled="isSubmitting"
+                @click="isJsonMode = false"
+              >
+                Fields
+              </button>
+              <button
+                type="button"
+                class="flex items-center gap-1 px-3 py-1.5 text-xs font-medium transition-colors rounded-r-md border-l"
+                :class="isJsonMode ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'"
+                :disabled="isSubmitting"
+                @click="isJsonMode = true"
+              >
+                <svg
+                  width="14"
+                  height="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiCodeJson"
+                  />
+                </svg>
+                JSON
+              </button>
+            </div>
             <Button
               v-if="customMetadataEntries.length > 0"
               variant="ghost"
               size="sm"
+              class="ml-auto h-8"
               :disabled="isSubmitting"
               @click="copyCustomMetadataJson"
             >
               <svg
-                width="16"
-                height="16"
+                width="14"
+                height="14"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
                 class="mr-1"
@@ -307,33 +383,107 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
                   :d="mdiContentCopy"
                 />
               </svg>
-              Copy JSON
+              Copy
             </Button>
+          </div>
+
+          <!-- JSON Mode -->
+          <div
+            v-if="isJsonMode"
+            class="space-y-2"
+          >
+            <Textarea
+              v-model="jsonInput"
+              placeholder='{"twitter": "@handle", "discord": "server_id"}'
+              :disabled="isSubmitting"
+              rows="5"
+              class="font-mono text-sm"
+              data-testid="custom-metadata-json"
+            />
+            <p
+              v-if="jsonError"
+              class="text-xs text-red-500"
+            >
+              {{ jsonError }}
+            </p>
             <Button
-              variant="ghost"
               size="sm"
               :disabled="isSubmitting"
-              :class="{ 'bg-accent': isJsonMode }"
-              @click="isJsonMode = !isJsonMode"
+              @click="applyJson"
             >
-              <svg
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="mr-1"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiCodeJson"
-                />
-              </svg>
-              JSON
+              Apply JSON
             </Button>
+          </div>
+
+          <!-- Fields Mode -->
+          <template v-else>
+            <!-- Column headers -->
+            <div
+              v-if="customMetadataEntries.length > 0"
+              class="flex items-center gap-2 px-1"
+            >
+              <span class="flex-1 text-xs font-medium text-muted-foreground">Key</span>
+              <span class="flex-1 text-xs font-medium text-muted-foreground">Value</span>
+              <span class="w-9 flex-shrink-0" />
+            </div>
+
+            <div
+              v-for="(entry, index) in customMetadataEntries"
+              :key="index"
+              class="flex items-start gap-2"
+            >
+              <div class="flex-1 space-y-1">
+                <Input
+                  :model-value="entry.key.startsWith('__new_') ? '' : entry.key"
+                  placeholder="e.g. twitter"
+                  :disabled="isSubmitting"
+                  class="font-mono text-sm"
+                  :class="{ 'border-red-500': isReservedKey(entry.key) }"
+                  data-testid="custom-metadata-key"
+                  @update:model-value="updateCustomMetadataKey(entry.key, $event as string)"
+                />
+                <p
+                  v-if="isReservedKey(entry.key)"
+                  class="text-xs text-red-500"
+                >
+                  Reserved key. Use the dedicated field above.
+                </p>
+              </div>
+              <div class="flex-1">
+                <Input
+                  :model-value="entry.value"
+                  placeholder="e.g. @handle"
+                  :disabled="isSubmitting"
+                  class="text-sm"
+                  data-testid="custom-metadata-value"
+                  @update:model-value="updateCustomMetadataValue(entry.key, $event as string)"
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-9 w-9 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                :disabled="isSubmitting"
+                @click="removeCustomMetadataEntry(entry.key)"
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    style="fill: currentColor"
+                    :d="mdiClose"
+                  />
+                </svg>
+              </Button>
+            </div>
+
             <Button
-              v-if="!isJsonMode"
               variant="outline"
               size="sm"
+              class="w-full border-dashed"
               :disabled="isSubmitting"
               @click="addCustomMetadataEntry"
             >
@@ -351,100 +501,8 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
               </svg>
               Add field
             </Button>
-          </div>
+          </template>
         </div>
-
-        <!-- JSON Mode -->
-        <div
-          v-if="isJsonMode"
-          class="space-y-2"
-        >
-          <Textarea
-            v-model="jsonInput"
-            placeholder='{"twitter": "@handle", "discord": "server_id"}'
-            :disabled="isSubmitting"
-            rows="5"
-            class="font-mono text-sm"
-            data-testid="custom-metadata-json"
-          />
-          <p
-            v-if="jsonError"
-            class="text-xs text-red-500"
-          >
-            {{ jsonError }}
-          </p>
-          <Button
-            size="sm"
-            :disabled="isSubmitting"
-            @click="applyJson"
-          >
-            Apply JSON
-          </Button>
-        </div>
-
-        <!-- Fields Mode -->
-        <template v-else>
-          <div
-            v-if="customMetadataEntries.length === 0"
-            class="text-sm text-muted-foreground"
-          >
-            No custom metadata fields. Click "Add field" or paste JSON via "JSON" button.
-          </div>
-
-          <div
-            v-for="(entry, index) in customMetadataEntries"
-            :key="index"
-            class="flex items-start gap-2"
-          >
-            <div class="flex-1 space-y-1">
-              <Input
-                :model-value="entry.key"
-                placeholder="Key"
-                :disabled="isSubmitting"
-                class="font-mono text-sm"
-                :class="{ 'border-red-500': isReservedKey(entry.key) }"
-                data-testid="custom-metadata-key"
-                @update:model-value="updateCustomMetadataKey(entry.key, $event as string)"
-              />
-              <p
-                v-if="isReservedKey(entry.key)"
-                class="text-xs text-red-500"
-              >
-                Reserved key. Use the dedicated field above.
-              </p>
-            </div>
-            <div class="flex-1">
-              <Input
-                :model-value="entry.value"
-                placeholder="Value"
-                :disabled="isSubmitting"
-                class="text-sm"
-                data-testid="custom-metadata-value"
-                @update:model-value="updateCustomMetadataValue(entry.key, $event as string)"
-              />
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-9 w-9 flex-shrink-0"
-              :disabled="isSubmitting"
-              @click="removeCustomMetadataEntry(entry.key)"
-            >
-              <svg
-                width="16"
-                height="16"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                class="text-muted-foreground hover:text-destructive"
-              >
-                <path
-                  style="fill: currentColor"
-                  :d="mdiClose"
-                />
-              </svg>
-            </Button>
-          </div>
-        </template>
       </div>
 
       <Separator />

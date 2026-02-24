@@ -128,10 +128,10 @@ const createToken = async () => {
     if (trimmedWebsite)
       metadataItems.push({ key: 'website', value: trimmedWebsite });
 
-    // Add custom metadata entries
+    // Add custom metadata entries (skip empty placeholder keys)
     for (const [key, value] of Object.entries(customMetadata.value)) {
       const trimmedKey = key.trim();
-      if (trimmedKey && !BUILTIN_METADATA_KEYS.has(trimmedKey))
+      if (trimmedKey && !trimmedKey.startsWith('__new_') && !BUILTIN_METADATA_KEYS.has(trimmedKey))
         metadataItems.push({ key: trimmedKey, value: String(value ?? '').trim() });
     }
 
