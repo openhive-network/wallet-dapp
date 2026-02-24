@@ -123,12 +123,8 @@ const broadcastHtmOperation = async (
     await walletStore.wallet!.signTransaction(l1Transaction);
 
     // Broadcast the transaction
-    // eslint-disable-next-line no-console
-    console.log('[HTM] Broadcasting L1 transaction:', JSON.parse(JSON.stringify(l1Transaction.transaction)));
     await wax.broadcast(l1Transaction);
   } else { // Use proxy
-    // eslint-disable-next-line no-console
-    console.log('[HTM] Broadcasting proxy L2 transaction:', JSON.parse(JSON.stringify(l2Transaction.transaction)));
     const { 'ref-id': refId } = await wax.restApi.ctokensApi.broadcastProxy({
       trx: l2Transaction.transaction
     });
