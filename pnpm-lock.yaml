@@ -44,8 +44,8 @@ importers:
         specifier: ^9.32.0
         version: 9.32.0
       '@hiveio/beekeeper':
-        specifier: 1.28.4
-        version: 1.28.4
+        specifier: 1.28.6-rc10-stable.260317081625
+        version: 1.28.6-rc10-stable.260317081625
       '@hiveio/wax':
         specifier: 2.0.1-260213104251
         version: 2.0.1-260213104251
@@ -943,6 +943,10 @@ packages:
 
   '@hiveio/beekeeper@1.28.4':
     resolution: {integrity: sha1-X+2VqUKItQPk4Dr+t+/sfQ+84YY=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4.tgz}
+    engines: {node: ^20.11 || >= 21.2}
+
+  '@hiveio/beekeeper@1.28.6-rc10-stable.260317081625':
+    resolution: {integrity: sha1-+yve67Q2j4Tt2ptc9tGDhHBErjE=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.6-rc10-stable.260317081625.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
@@ -6964,6 +6968,8 @@ snapshots:
       - vue
 
   '@hiveio/beekeeper@1.28.4': {}
+
+  '@hiveio/beekeeper@1.28.6-rc10-stable.260317081625': {}
 
   '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
     dependencies:
