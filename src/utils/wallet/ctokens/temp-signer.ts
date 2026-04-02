@@ -28,7 +28,6 @@ export class TempCTokensSigner extends AEncryptionProvider {
       const bk = await import('@hiveio/beekeeper');
       TempCTokensSigner.beekeeper = bk.default({
         inMemory: true,
-        enableLogs: false,
         unlockTimeout: 120 // Very short timeout - just for this transaction - two minutes
       });
     }
@@ -58,7 +57,7 @@ export class TempCTokensSigner extends AEncryptionProvider {
     if (!TempCTokensSigner.beekeeper)
       throw new Error('Beekeeper not initialized');
 
-    const signature = this.#wallet.signDigest(this.publicKey, transaction.sigDigest);
+    const signature = await this.#wallet.signDigest(this.publicKey, transaction.sigDigest);
 
     await this.destroy(); // Clean up directly after use
 

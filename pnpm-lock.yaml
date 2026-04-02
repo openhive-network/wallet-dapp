@@ -47,20 +47,20 @@ importers:
         specifier: 1.28.6-rc10-stable.260317081625
         version: 1.28.6-rc10-stable.260317081625
       '@hiveio/wax':
-        specifier: 2.0.1-260213104251
-        version: 2.0.1-260213104251
+        specifier: 1.28.6-rc10-stable.260326112051
+        version: 1.28.6-rc10-stable.260326112051
       '@hiveio/wax-signers-external':
-        specifier: 2.0.1-260213104251
-        version: 2.0.1-260213104251
+        specifier: 1.28.6-rc10-stable.260326112051
+        version: 1.28.6-rc10-stable.260326112051
       '@hiveio/wax-signers-keychain':
-        specifier: 2.0.1-260213104251
-        version: 2.0.1-260213104251
+        specifier: 1.28.6-rc10-stable.260326112051
+        version: 1.28.6-rc10-stable.260326112051
       '@hiveio/wax-signers-metamask':
-        specifier: 2.0.1-260213104251
-        version: 2.0.1-260213104251(webextension-polyfill@0.12.0)
+        specifier: 1.28.6-rc10-stable.260326112051
+        version: 1.28.6-rc10-stable.260326112051(webextension-polyfill@0.12.0)
       '@hiveio/wax-signers-peakvault':
-        specifier: 2.0.1-260213104251
-        version: 2.0.1-260213104251
+        specifier: 1.28.6-rc10-stable.260326112051
+        version: 1.28.6-rc10-stable.260326112051
       '@mdi/js':
         specifier: ^7.4.47
         version: 7.4.47
@@ -69,7 +69,7 @@ importers:
         version: 16.1.0
       '@mtyszczak-cargo/htm':
         specifier: ^1.4.0
-        version: 1.4.0(@hiveio/wax@2.0.1-260213104251)
+        version: 1.4.0(@hiveio/wax@1.28.6-rc10-stable.260326112051)
       '@nabla/vite-plugin-eslint':
         specifier: ^2.0.6
         version: 2.0.6(eslint@9.32.0(jiti@2.6.1))(vite@6.2.0(@types/node@22.13.9)(jiti@2.6.1)(terser@5.39.0)(tsx@4.19.3)(yaml@2.8.1))
@@ -941,31 +941,27 @@ packages:
   '@floating-ui/vue@1.1.6':
     resolution: {integrity: sha512-XFlUzGHGv12zbgHNk5FN2mUB7ROul3oG2ENdTpWdE+qMFxyNxWSRmsoyhiEnpmabNm6WnUvR1OvJfUfN4ojC1A==}
 
-  '@hiveio/beekeeper@1.28.4':
-    resolution: {integrity: sha1-X+2VqUKItQPk4Dr+t+/sfQ+84YY=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.4.tgz}
-    engines: {node: ^20.11 || >= 21.2}
-
   '@hiveio/beekeeper@1.28.6-rc10-stable.260317081625':
     resolution: {integrity: sha1-+yve67Q2j4Tt2ptc9tGDhHBErjE=, tarball: https://gitlab.syncad.com/api/v4/projects/558/packages/npm/@hiveio/beekeeper/-/@hiveio/beekeeper-1.28.6-rc10-stable.260317081625.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
-  '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
-    resolution: {integrity: sha1-ARmpZqW3XuQjEKcERGOVoLFGLNM=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-beekeeper/-/@hiveio/wax-signers-beekeeper-2.0.1-260213104251.tgz}
+  '@hiveio/wax-signers-beekeeper@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-v81VpWUFnEobM2KTMZvIVK009Fw=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-beekeeper/-/@hiveio/wax-signers-beekeeper-1.28.6-rc10-stable.260326112051.tgz}
 
-  '@hiveio/wax-signers-external@2.0.1-260213104251':
-    resolution: {integrity: sha1-cGBONqBf25cpkxp3afoeYioFaqw=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-external/-/@hiveio/wax-signers-external-2.0.1-260213104251.tgz}
+  '@hiveio/wax-signers-external@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-EMQoMVGCUjxhvfIVU6XzcwkF9tE=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-external/-/@hiveio/wax-signers-external-1.28.6-rc10-stable.260326112051.tgz}
 
-  '@hiveio/wax-signers-keychain@2.0.1-260213104251':
-    resolution: {integrity: sha1-DCvijGst3fzdgjSR4giOtbJfdVk=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-keychain/-/@hiveio/wax-signers-keychain-2.0.1-260213104251.tgz}
+  '@hiveio/wax-signers-keychain@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-499QJWwHhaOnJogLgx0yt7lZKDw=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-keychain/-/@hiveio/wax-signers-keychain-1.28.6-rc10-stable.260326112051.tgz}
 
-  '@hiveio/wax-signers-metamask@2.0.1-260213104251':
-    resolution: {integrity: sha1-OTwB2tENfLdmgmI/kQz1oUx4rEk=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-metamask/-/@hiveio/wax-signers-metamask-2.0.1-260213104251.tgz}
+  '@hiveio/wax-signers-metamask@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-2XcUeOSk2jV5fmpnb2I2P5p2IE4=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-metamask/-/@hiveio/wax-signers-metamask-1.28.6-rc10-stable.260326112051.tgz}
 
-  '@hiveio/wax-signers-peakvault@2.0.1-260213104251':
-    resolution: {integrity: sha1-7JYSv6TLT/03hpn20azf3P6nveo=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-peakvault/-/@hiveio/wax-signers-peakvault-2.0.1-260213104251.tgz}
+  '@hiveio/wax-signers-peakvault@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-5vEzRlma5N9RlFH9uRodqLchz9g=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax-signers-peakvault/-/@hiveio/wax-signers-peakvault-1.28.6-rc10-stable.260326112051.tgz}
 
-  '@hiveio/wax@2.0.1-260213104251':
-    resolution: {integrity: sha1-sNMKPDSqmMdxcm2hagt7ly0fbSM=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-2.0.1-260213104251.tgz}
+  '@hiveio/wax@1.28.6-rc10-stable.260326112051':
+    resolution: {integrity: sha1-GG/otjEtJR06CGr0crVznXGGA34=, tarball: https://gitlab.syncad.com/api/v4/projects/419/packages/npm/@hiveio/wax/-/@hiveio/wax-1.28.6-rc10-stable.260326112051.tgz}
     engines: {node: ^20.11 || >= 21.2}
 
   '@humanfs/core@0.19.1':
@@ -6967,39 +6963,37 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@hiveio/beekeeper@1.28.4': {}
-
   '@hiveio/beekeeper@1.28.6-rc10-stable.260317081625': {}
 
-  '@hiveio/wax-signers-beekeeper@2.0.1-260213104251':
+  '@hiveio/wax-signers-beekeeper@1.28.6-rc10-stable.260326112051':
     dependencies:
-      '@hiveio/beekeeper': 1.28.4
-      '@hiveio/wax': 2.0.1-260213104251
+      '@hiveio/beekeeper': 1.28.6-rc10-stable.260317081625
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
 
-  '@hiveio/wax-signers-external@2.0.1-260213104251':
+  '@hiveio/wax-signers-external@1.28.6-rc10-stable.260326112051':
     dependencies:
-      '@hiveio/beekeeper': 1.28.4
-      '@hiveio/wax': 2.0.1-260213104251
-      '@hiveio/wax-signers-beekeeper': 2.0.1-260213104251
+      '@hiveio/beekeeper': 1.28.6-rc10-stable.260317081625
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
+      '@hiveio/wax-signers-beekeeper': 1.28.6-rc10-stable.260326112051
       zod: 4.3.6
 
-  '@hiveio/wax-signers-keychain@2.0.1-260213104251':
+  '@hiveio/wax-signers-keychain@1.28.6-rc10-stable.260326112051':
     dependencies:
-      '@hiveio/wax': 2.0.1-260213104251
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
 
-  '@hiveio/wax-signers-metamask@2.0.1-260213104251(webextension-polyfill@0.12.0)':
+  '@hiveio/wax-signers-metamask@1.28.6-rc10-stable.260326112051(webextension-polyfill@0.12.0)':
     dependencies:
-      '@hiveio/wax': 2.0.1-260213104251
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
       '@metamask/providers': 21.0.0(webextension-polyfill@0.12.0)
     transitivePeerDependencies:
       - supports-color
       - webextension-polyfill
 
-  '@hiveio/wax-signers-peakvault@2.0.1-260213104251':
+  '@hiveio/wax-signers-peakvault@1.28.6-rc10-stable.260326112051':
     dependencies:
-      '@hiveio/wax': 2.0.1-260213104251
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
 
-  '@hiveio/wax@2.0.1-260213104251':
+  '@hiveio/wax@1.28.6-rc10-stable.260326112051':
     dependencies:
       events: 3.3.0
 
@@ -7257,9 +7251,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@mtyszczak-cargo/htm@1.4.0(@hiveio/wax@2.0.1-260213104251)':
+  '@mtyszczak-cargo/htm@1.4.0(@hiveio/wax@1.28.6-rc10-stable.260326112051)':
     dependencies:
-      '@hiveio/wax': 2.0.1-260213104251
+      '@hiveio/wax': 1.28.6-rc10-stable.260326112051
       protobufjs: 7.2.5
 
   '@nabla/vite-plugin-eslint@2.0.6(eslint@9.32.0(jiti@2.6.1))(vite@6.2.0(@types/node@22.13.9)(jiti@2.6.1)(terser@5.39.0)(tsx@4.19.3)(yaml@2.8.1))':

@@ -203,7 +203,7 @@ const handleQrScan = async (decodedText: string) => {
       if(trimmedText.length === 51) {
         try {
           const bk = await import('@hiveio/beekeeper');
-          const instance = await bk.default({ enableLogs: false, inMemory: true });
+          const instance = await bk.default({ inMemory: true });
           const { wallet } = await instance.createSession(Math.random().toString()).createWallet(Math.random().toString(), Math.random().toString(), true);
           pk = await wallet.importKey(trimmedText);
           await instance.delete();

@@ -79,7 +79,7 @@ export class CTokensProvider extends AEncryptionProvider {
     if (!CTokensProvider.#beekeeper) {
       // XXX: Fix dynamic beekeeeper import
       CTokensProvider.#beekeeper = await (import('@hiveio/beekeeper')).then(async bk => {
-        return await bk.default({ inMemory: false, enableLogs: false, unlockTimeout: /* 1 day: */ 86400 });
+        return await bk.default({ inMemory: false, unlockTimeout: /* 1 day: */ 86400 });
       });
     }
   }
@@ -114,13 +114,13 @@ export class CTokensProvider extends AEncryptionProvider {
     const session = CTokensProvider.#beekeeper!.createSession(Math.random().toString());
 
     try {
-      CTokensProvider.#operationalWallet = session.openWallet(CTokensProvider.currentOperationalWalletName).unlock(password);
+      CTokensProvider.#operationalWallet = await session.openWallet(CTokensProvider.currentOperationalWalletName).unlock(password);
     } catch (error) {
       throw new WaxCTokensEncryptionProviderError('Failed to unlock operational wallet. Make sure the password is correct.', error as Error);
     }
 
     try {
-      CTokensProvider.#managementWallet = session.openWallet(CTokensProvider.currentManagementWalletName).unlock(password);
+      CTokensProvider.#managementWallet = await session.openWallet(CTokensProvider.currentManagementWalletName).unlock(password);
     } catch {
       // Owner wallet is optional
       CTokensProvider.#managementWallet = undefined;
@@ -189,17 +189,17 @@ export class CTokensProvider extends AEncryptionProvider {
   }
 
   public async encryptData (content: string, recipient: TPublicKey): Promise<string> {
-    return this.extendedChain.encrypt(CTokensProvider.#operationalWallet!, content, this.publicKey, recipient);
+    return CTokensProvider.#operationalWallet!.encryptData(content, this.publicKey, recipient);
   }
 
   public async decryptData (content: string): Promise<string> {
-    return this.extendedChain.decrypt(CTokensProvider.#operationalWallet!, content);
+    return CTokensProvider.#operationalWallet!.decryptData(content, this.publicKey);
   }
 
   protected async generateSignatures (transaction: ISignatureTransaction): Promise<TSignature[]> {
     const wallet = this.role === 'owner' ? CTokensProvider.#managementWallet! : CTokensProvider.#operationalWallet!;
 
-    const signature = wallet.signDigest(this.publicKey, transaction.sigDigest);
+    const signature = await wallet.signDigest(this.publicKey, transaction.sigDigest);
 
     return [signature];
   }
