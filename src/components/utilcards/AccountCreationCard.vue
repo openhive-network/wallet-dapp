@@ -32,14 +32,14 @@ const handleClick = async () => {
         return;
       }
       // If other wallets are available, open wallet selection modal
-      walletStore.openWalletSelectModal();
+      void walletStore.openWalletSelectModal();
       return;
     }
     // Navigate to wallet selection for account creation
-    router.push('/account/request?method=metamask');
+    void router.push('/account/request?method=metamask');
   } else
     // Navigate to account creation without wallet
-    router.push('/account/request?method=regular');
+    void router.push('/account/request?method=regular');
 
 };
 </script>

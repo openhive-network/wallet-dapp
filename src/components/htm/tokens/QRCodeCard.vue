@@ -51,11 +51,11 @@ const generateQRCode = async () => {
 
 // Generate QR code on mount and when props change
 onMounted(() => {
-  generateQRCode();
+  void generateQRCode();
 });
 
 watch([() => props.assetNum, () => props.amount, () => props.memo, userOperationalKey], () => {
-  generateQRCode();
+  void generateQRCode();
 });
 </script>
 

@@ -65,7 +65,7 @@ export default async function (): Promise<GoogleAuthResult> {
             if (error instanceof AccountNameEntryCancelledError) {
               result.preselectedWallet = UsedWalletEnum.GOOGLE_DRIVE;
               result.prefilledAccountName = undefined;
-              walletStore.openWalletSelectModal();
+              void walletStore.openWalletSelectModal();
               return result;
             }
             throw error;
@@ -144,7 +144,7 @@ export default async function (): Promise<GoogleAuthResult> {
             result.prefilledAccountName = savedAccount;
             // Keep in sessionStorage for error recovery
             sessionStorage.setItem('google_drive_account_name', savedAccount);
-            walletStore.openWalletSelectModal();
+            void walletStore.openWalletSelectModal();
           }
         }
       }

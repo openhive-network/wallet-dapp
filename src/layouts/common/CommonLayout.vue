@@ -170,7 +170,7 @@ const handleGoogleDriveDialogClose = () => {
 };
 
 onMounted(async () => {
-  settingsStore.loadSettings();
+  void settingsStore.loadSettings();
   hasUser.value = settingsStore.settings.account !== undefined;
   favoritesStore.loadFromStorage();
 
@@ -194,14 +194,14 @@ onMounted(async () => {
     }
 
     // Check if Google Drive wallet dialog should be shown
-    checkGoogleDriveWalletNeeded();
+    void checkGoogleDriveWalletNeeded();
   }
 });
 
 // Also check when auth state changes (e.g., after OAuth callback)
 watch(() => settingsStore.isGoogleAuthenticated, (isAuth) => {
   if (isAuth)
-    checkGoogleDriveWalletNeeded();
+    void checkGoogleDriveWalletNeeded();
 });
 
 const complete = async (data: { account: string; wallet: UsedWallet }) => {

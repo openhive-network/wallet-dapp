@@ -137,7 +137,7 @@ watch(accountName, () => {
     clearTimeout(debounceTimer);
 
   debounceTimer = setTimeout(() => {
-    validateAccountName();
+    void validateAccountName();
   }, 500);
 });
 

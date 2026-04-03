@@ -42,7 +42,7 @@ export const useWalletStore = defineStore('wallet', {
       if (!walletRetrievalIntervalId && import.meta.client) {
         const checkForWallets = async () => {
           if (!state._walletsStatus.metamask)
-            MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
+            void MetaMaskProvider.isExtensionInstalled().then(isInstalled => state._walletsStatus.metamask = isInstalled);
 
           if (!state._walletsStatus.keychain)
             state._walletsStatus.keychain = 'hive_keychain' in window;

@@ -96,7 +96,7 @@ onMounted(() => {
   if (props.variant === 'explicit' && props.availableBalance)
     selectedAvailableBalance.value = props.availableBalance;
   if (publicKey.value)
-    refetchAvailableBalance(publicKey.value);
+    void refetchAvailableBalance(publicKey.value);
 });
 </script>
 

@@ -38,7 +38,7 @@ const generateInvoice = () => {
   if (props.memo)
     params.append('memo', props.memo);
 
-  router.push({
+  void router.push({
     path: '/tokens/invoice',
     query: Object.fromEntries(params)
   });

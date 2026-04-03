@@ -118,7 +118,7 @@ const handleDeleteKey = async () => {
 };
 
 onMounted(() => {
-  loadCustomKeys();
+  void loadCustomKeys();
 });
 </script>
 

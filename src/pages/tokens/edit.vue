@@ -151,7 +151,7 @@ const loadTokenDetails = async () => {
     };
   } catch (error) {
     toastError('Failed to load token details', error);
-    router.push('/tokens/list');
+    void router.push('/tokens/list');
   }
 };
 
@@ -204,7 +204,7 @@ const handleSaveChanges = async () => {
       'Token metadata update'
     );
 
-    router.push({
+    void router.push({
       path: '/tokens/token',
       query: {
         'asset-num': token.value!.assetNum
@@ -229,7 +229,7 @@ const handleInit = async () => {
   // Check ownership after loading
   if (!isTokenOwner.value) {
     toastError('You do not have permission to edit this token');
-    router.push({
+    void router.push({
       path: '/tokens/token',
       query: { 'asset-num': assetNum.value }
     });

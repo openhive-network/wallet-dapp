@@ -19,7 +19,7 @@ const copyBtn = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
   const value = target.getAttribute("data-copy");
   if (!value) return;
-  copyText(value);
+  void copyText(value);
 
   const oldAttribute = target.children[0].children[0].getAttribute('d');
   target.children[0].children[0].setAttribute('d', mdiCheck);

@@ -242,7 +242,7 @@ const setMaxTransformAmount = async () => {
 
 // Initialize
 onMounted(() => {
-  loadAccountBalances();
+  void loadAccountBalances();
 });
 </script>
 

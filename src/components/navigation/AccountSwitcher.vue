@@ -131,7 +131,7 @@ const switchAccount = (type: 'hive' | 'htm') => {
 
 // Connect to Hive
 const connectToHive = () => {
-  walletStore.openWalletSelectModal();
+  void walletStore.openWalletSelectModal();
 };
 
 // Connect to HTM
@@ -142,7 +142,7 @@ const connectToHTM = async () => {
     if (hasStoredWallet)
       walletStore.isProvideWalletPasswordModalOpen = true;
     else
-      router.push('/tokens/register-account');
+      void router.push('/tokens/register-account');
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   }

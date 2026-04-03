@@ -85,7 +85,7 @@ const loadTokenDetails = async () => {
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
   } catch (error) {
     toastError('Failed to load token details', error);
-    router.push('/tokens/list');
+    void router.push('/tokens/list');
   }
 };
 
@@ -94,7 +94,7 @@ onMounted(async () => {
   // Validate required params
   if (!fromPk.value || !toPk.value || !amount.value || !assetNum.value) {
     toastError('Missing required invoice parameters');
-    router.push('/tokens/list');
+    void router.push('/tokens/list');
     return;
   }
 

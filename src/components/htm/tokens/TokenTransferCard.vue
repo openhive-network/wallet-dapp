@@ -83,7 +83,7 @@ const handleQrScan = async (privateKey: string) => {
 const clearScannedKey = () => {
   scannedPrivateKey.value = null;
   if (tempSigner.value) {
-    tempSigner.value.destroy();
+    void tempSigner.value.destroy();
     tempSigner.value = undefined;
   }
 };
@@ -179,7 +179,7 @@ const connectToHTM = async () => {
       return;
     }
 
-    router.push('/tokens/register-account');
+    void router.push('/tokens/register-account');
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   }

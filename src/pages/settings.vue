@@ -58,7 +58,7 @@ const handleOAuthCallback = async () => {
 };
 
 onMounted(() => {
-  handleOAuthCallback();
+  void handleOAuthCallback();
 });
 
 // Watch for changes in authentication status (e.g., when user logs out from AccountSwitcher)

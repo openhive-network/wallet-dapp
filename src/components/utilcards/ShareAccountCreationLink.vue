@@ -35,7 +35,7 @@ const shareViaTelegram = () => {
 const shareViaCopy = () => {
   const link = props.getLinkFunction();
   const message = `Hi! I need help creating my Hive account: ${props.accountName}. Please use this link to create it for me: ${link}`;
-  copyText(message)!.then(() => {
+  void copyText(message)!.then(() => {
     toast.info('Message copied! You can paste it anywhere.', {
       description: 'Copying the link is the easiest way to share.'
     });

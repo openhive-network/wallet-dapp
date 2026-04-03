@@ -87,8 +87,15 @@ export default withNuxt(
   }
 }).override('nuxt/typescript/rules', {
   ignores: ['src/components/ui/**', 'src/utils/wallet/ctokens/api/**', '__tests__/**'],
+  languageOptions: {
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: import.meta.dirname
+    }
+  },
   rules: {
     // TypeScript rules
+    '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
     '@typescript-eslint/no-extra-semi': 'off',
     '@typescript-eslint/strict-boolean-expressions': 'off',
     '@typescript-eslint/explicit-member-accessibility': 'error',

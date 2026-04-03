@@ -39,7 +39,7 @@ const loadTokenDetails = async () => {
     token.value = await tokensStore.getTokenByAssetNum(assetNum.value);
   } catch (error) {
     toastError('Failed to load token details', error);
-    router.push('/tokens/list');
+    void router.push('/tokens/list');
   }
 };
 

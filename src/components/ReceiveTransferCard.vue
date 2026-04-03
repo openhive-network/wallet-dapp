@@ -114,7 +114,7 @@ const handleQrScan = async (privateKey: string) => {
 const clearScannedKey = () => {
   scannedPrivateKey.value = null;
   if (tempSigner.value) {
-    tempSigner.value.destroy();
+    void tempSigner.value.destroy();
     tempSigner.value = undefined;
   }
   senderPublicKey.value = tokensStore.getUserPublicKey() || '';
@@ -214,7 +214,7 @@ const conditionalLogin = async () => {
   if (await CTokensProvider.hasWallet())
     walletStore.isProvideWalletPasswordModalOpen = true;
   else
-    router.push({ path: '/tokens/register-account' });
+    void router.push({ path: '/tokens/register-account' });
 
 };
 
@@ -240,7 +240,7 @@ watch(isLoggedIn, (newValue) => {
 });
 
 onMounted(() => {
-  fetchUserMetadata();
+  void fetchUserMetadata();
 
   senderPublicKey.value = tokensStore.getUserPublicKey() || '';
 });

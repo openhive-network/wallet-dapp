@@ -59,13 +59,13 @@ const loadTokenDetails = async () => {
       throw new Error(`Token with asset number ${assetNum.value} not found`);
   } catch (error) {
     toastError('Failed to load token details', error);
-    router.push('/tokens/list');
+    void router.push('/tokens/list');
   }
 };
 
 // Navigate back to token detail
 const goBack = () => {
-  router.push({
+  void router.push({
     path: '/tokens/token',
     query: { 'asset-num': assetNum.value }
   });

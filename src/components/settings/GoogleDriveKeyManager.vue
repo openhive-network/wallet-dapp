@@ -309,13 +309,13 @@ const handleDeleteWallet = async () => {
 };
 
 const reloadWalletInfo = () => {
-  loadWalletInfo();
+  void loadWalletInfo();
 };
 
 defineExpose({ reloadWalletInfo });
 
 onMounted(() => {
-  loadWalletInfo();
+  void loadWalletInfo();
 });
 
 watch(() => settingsStore.settings.account, (newAccount) => {

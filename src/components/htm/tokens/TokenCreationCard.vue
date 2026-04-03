@@ -63,7 +63,7 @@ const regenerateAssetNum = () => {
 // Copy Asset Num to clipboard
 const copyAssetNum = async () => {
   try {
-    copyText(String(props.generatedAssetNum));
+    void copyText(String(props.generatedAssetNum));
     toast.success('Asset Num copied to clipboard!');
   } catch {
     toastError('Failed to copy Asset Num');
@@ -136,7 +136,7 @@ const copyCustomMetadataJson = () => {
   for (const entry of customMetadataEntries.value)
     customObj[entry.key] = entry.value;
   try {
-    copyText(JSON.stringify(customObj, null, 2));
+    void copyText(JSON.stringify(customObj, null, 2));
     toast.success('Custom metadata JSON copied!');
   } catch {
     toastError('Failed to copy JSON');

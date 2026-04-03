@@ -30,7 +30,7 @@ export const debounce = (fn: (...args: any[]) => (Promise<void> | void), delayMs
       clearTimeout(timeoutId);
 
     timeoutId = setTimeout(() => {
-      fn(...args);
+      void fn(...args);
     }, delayMs);
   };
 };

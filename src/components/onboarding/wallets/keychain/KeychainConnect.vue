@@ -25,7 +25,7 @@ const connect = async () => {
     isLoading.value = true;
 
     const response: KeychainResponse = await new Promise((resolve, reject) => {
-      window.hive_keychain.requestSignBuffer(
+      void window.hive_keychain.requestSignBuffer(
         null,
         'Wee need you to sign a message using selected authority level to confirm your account',
         selectedLevel.value,

@@ -100,7 +100,7 @@ const loadTopHolders = async () => {
 };
 
 const showQRCode = () => {
-  router.push({
+  void router.push({
     path: '/tokens/pos/receive',
     query: { 'asset-num': assetNum.value }
   });

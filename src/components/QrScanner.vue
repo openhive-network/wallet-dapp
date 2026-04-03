@@ -39,7 +39,7 @@ const stopScanner = async () => {
 
 const onScanSuccess = (decodedText: string) => {
   emit('scan', decodedText);
-  stopScanner();
+  void stopScanner();
   closeScanner();
 };
 

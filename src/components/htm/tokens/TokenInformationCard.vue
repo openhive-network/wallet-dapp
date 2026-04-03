@@ -23,7 +23,7 @@ const copyOwnerAddress = () => {
   if (!props.token?.ownerPublicKey) return;
 
   try {
-    copyText(props.token.ownerPublicKey);
+    void copyText(props.token.ownerPublicKey);
     toast.success('Owner address copied to clipboard');
     isCopied.value = true;
     setTimeout(() => {
@@ -46,7 +46,7 @@ const copyCustomMetadataJson = () => {
   for (const entry of customMetadataEntries.value)
     customObj[entry.key] = entry.value;
   try {
-    copyText(JSON.stringify(customObj, null, 2));
+    void copyText(JSON.stringify(customObj, null, 2));
     toast.success('Custom metadata JSON copied!');
   } catch {
     toastError('Failed to copy JSON');
@@ -58,7 +58,7 @@ const copyAssetNum = () => {
   if (!props.token?.assetNum) return;
 
   try {
-    copyText(props.token.assetNum.toString());
+    void copyText(props.token.assetNum.toString());
     toast.success('Asset Num copied to clipboard');
     isAssetNumCopied.value = true;
     setTimeout(() => {

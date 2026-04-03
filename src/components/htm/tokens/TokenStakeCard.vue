@@ -52,7 +52,7 @@ const connectToHTM = async () => {
       return;
     }
 
-    router.push('/tokens/register-account');
+    void router.push('/tokens/register-account');
   } catch (error) {
     toastError('Failed to connect to HTM', error);
   }

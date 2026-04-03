@@ -28,12 +28,12 @@ const copyBtn = () => {
   let copied = false;
 
   if(text instanceof Promise)
-    text.then((text) => {
+    void text.then((text) => {
       if (copied = !!text)
-        copyText(text);
+        void copyText(text);
     });
   else if (copied = !!text)
-    copyText(text);
+    void copyText(text);
 
   if (!copied)
     return;

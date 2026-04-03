@@ -430,7 +430,7 @@ async function createOrAddKeys () {
 
 // Lifecycle
 onMounted(() => {
-  checkWalletStatus();
+  void checkWalletStatus();
 });
 </script>
 

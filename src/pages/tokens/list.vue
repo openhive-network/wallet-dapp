@@ -60,7 +60,7 @@ const debouncedSearch = debounce(searchFn);
 
 // Navigate to token detail page (placeholder for now)
 const viewTokenDetails = (token: CTokenDisplayBase) => {
-  router.push(`/tokens/token?asset-num=${token.assetNum}`);
+  void router.push(`/tokens/token?asset-num=${token.assetNum}`);
 };
 
 const loadTokens = async (page: number = 1) => {
