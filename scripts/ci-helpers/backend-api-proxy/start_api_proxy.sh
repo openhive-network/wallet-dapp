@@ -10,6 +10,7 @@ Usage: $0
     - REST_BACKEND e.g.: http://ip:port
     - HIVE_BACKEND e.g.: http://ip:port
     - FRONTEND_APP e.g.: http://ip:port
+    - BEEYARD_APP  e.g.: http://ip:port (optional)
     - EXPOSED_PORT a port exposed from the executing host e.g.: 18000
   --help|-h|-?                          Display this help screen and exit
 EOF
@@ -20,11 +21,15 @@ _TST_REST_BACKEND=${REST_BACKEND:?"Missing REST_BACKEND variable"}
 _TST_HIVED_BACKEND=${HIVED_BACKEND:?"Missing HIVED_BACKEND variable"}
 _TST_FRONTEND_APP=${FRONTEND_APP:?"Missing FRONTEND_APP variable"}
 
+# Optional; the default keeps the generated config valid when it is unset.
+BEEYARD_APP="${BEEYARD_APP:-http://127.0.0.1:8166}"
+
 CONF_FILE="${SCRIPTPATH}/conf/upstream_vars.conf"
 
 echo "set \$postgrest_backend ${REST_BACKEND};" > "${CONF_FILE}"
 echo "set \$hive_backend ${HIVED_BACKEND};" >> "${CONF_FILE}"
 echo "set \$frontend_app ${FRONTEND_APP};" >> "${CONF_FILE}"
+echo "set \$beeyard_app ${BEEYARD_APP};" >> "${CONF_FILE}"
 
 pushd "${SCRIPTPATH}"
 

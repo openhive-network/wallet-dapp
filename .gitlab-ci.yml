@@ -205,6 +205,7 @@ deploy_prototyping_environment:
     REST_BACKEND:  "${PROTOTYPING_REST_BACKEND}"
     HIVED_BACKEND: "${PROTOTYPING_HIVED_BACKEND}"
     FRONTEND_APP:  "${PROTOTYPING_FRONTEND_APP}"
+    BEEYARD_APP:   "${PROTOTYPING_BEEYARD_APP}"
 
   environment:
     name: prototyping-dev-mirrornet
