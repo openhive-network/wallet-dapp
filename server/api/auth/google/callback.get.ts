@@ -1,5 +1,7 @@
 import { google } from 'googleapis';
 
+import { buildReturnRedirectUrl } from '../../../utils/auth/return-url';
+
 /**
  * GET /api/auth/google/callback
  * Handle Google OAuth callback
@@ -14,11 +16,10 @@ export default defineEventHandler(async (event) => {
   const returnUrl = (query.state as string) || '/';
 
   if (error)
-    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=${encodeURIComponent(error)}`);
-
+    return sendRedirect(event, buildReturnRedirectUrl(config.public.appUrl, returnUrl, { error }));
 
   if (!code)
-    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=no_code`);
+    return sendRedirect(event, buildReturnRedirectUrl(config.public.appUrl, returnUrl, { error: 'no_code' }));
 
 
   try {
@@ -76,9 +77,9 @@ export default defineEventHandler(async (event) => {
     });
 
     // Redirect back to the page user was on
-    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?auth=success`);
+    return sendRedirect(event, buildReturnRedirectUrl(config.public.appUrl, returnUrl, { auth: 'success' }));
   } catch (err) {
     console.error('OAuth callback error:', err);
-    return sendRedirect(event, `${config.public.appUrl}${returnUrl}?error=auth_failed`);
+    return sendRedirect(event, buildReturnRedirectUrl(config.public.appUrl, returnUrl, { error: 'auth_failed' }));
   }
 });

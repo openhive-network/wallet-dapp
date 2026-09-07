@@ -19,6 +19,9 @@ const hasTokenInRoute = computed(() => {
   return route.fullPath.includes('/tokens/');
 });
 
+// Pages handling Google authentication themselves (e.g. QR onboarding) opt out via `definePageMeta({ disableGoogleDriveOnboarding: true })`
+const isGoogleDriveOnboardingDisabled = () => route.meta.disableGoogleDriveOnboarding === true;
+
 const WalletOnboarding = defineAsyncComponent(() => import('@/components/onboarding/index'));
 const HTMProvidePassword = defineAsyncComponent(() => import('@/components/htm/HTMProvidePassword.vue'));
 const GoogleDriveConnect = defineAsyncComponent(() => import('@/components/onboarding/wallets/google-drive/GoogleDriveConnect.vue'));
@@ -44,12 +47,13 @@ const handleGoogleOAuthCallback = async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const authStatus = urlParams.get('auth');
 
-  if (authStatus !== 'success')
+  if (authStatus !== 'success' || isGoogleDriveOnboardingDisabled())
     return false;
 
-  // Remove the auth parameter from URL
-  const newUrl = window.location.pathname;
-  window.history.replaceState({}, document.title, newUrl);
+  // Remove only the auth parameter from URL, keeping the rest of the query string intact
+  const cleanedUrl = new URL(window.location.href);
+  cleanedUrl.searchParams.delete('auth');
+  window.history.replaceState({}, document.title, `${cleanedUrl.pathname}${cleanedUrl.search}${cleanedUrl.hash}`);
 
   try {
     // Check if authenticated with Google
@@ -123,6 +127,9 @@ const handleGoogleOAuthCallback = async () => {
  * If so, show the create wallet dialog
  */
 const checkGoogleDriveWalletNeeded = async () => {
+  if (isGoogleDriveOnboardingDisabled())
+    return;
+
   isCheckingGoogleDriveWallet.value = true;
   try {
     // Check if authenticated with Google
