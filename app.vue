@@ -14,6 +14,7 @@ import ErrorDialog from '@/components/ErrorDialog.vue';
         theme="dark"
         close-button
         rich-colors
+        class="max-[600px]:!w-auto"
       />
       <ErrorDialog />
     </div>
