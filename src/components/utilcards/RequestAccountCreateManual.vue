@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { TRole } from '@hiveio/wax';
 import {
   mdiAccountPlusOutline,
   mdiCheckCircle,
@@ -25,14 +24,14 @@ import Label from '@/components/ui/label/Label.vue';
 import { Separator } from '@/components/ui/separator';
 import AccountDetailsExpandablePanel from '@/components/utilcards/AccountDetailsExpandablePanel.vue';
 import { getWax } from '@/stores/wax.store';
+import { downloadAuthorityDataFile } from '@/utils/account-request/authority-data';
+import { createEmptyRoleKeys, generateAccountAuthorityData, type AccountAuthorityData } from '@/utils/account-request/keys';
 import { toastError } from '@/utils/parse-error';
 
-import packageJson from '../../../package.json';
+import { normalizeAccountName } from '#shared/utils/account-name';
+
 import AccountCreationActionButtons from '../ui/hive/AccountCreationActionButtons.vue';
 
-const { public: { commitHash } } = useRuntimeConfig();
-
-const { version } = packageJson;
 const accountName = ref('');
 const accountNameValid = ref(false);
 const isGeneratingKeys = ref(false);
@@ -85,24 +84,10 @@ const stepStatus = computed(() => ({
   }
 }));
 
-const authorityData = reactive<{
-  masterPassword: string;
-  privateKeys: Record<TRole, string>;
-  publicKeys: Record<TRole, string>;
-}>({
+const authorityData = reactive<AccountAuthorityData>({
   masterPassword: '',
-  privateKeys: {
-    owner: '',
-    active: '',
-    posting: '',
-    memo: ''
-  },
-  publicKeys: {
-    owner: '',
-    active: '',
-    posting: '',
-    memo: ''
-  }
+  privateKeys: createEmptyRoleKeys(),
+  publicKeys: createEmptyRoleKeys()
 });
 
 const resetProcess = () => {
@@ -113,18 +98,8 @@ const resetProcess = () => {
 
   // Clear authority data
   authorityData.masterPassword = '';
-  authorityData.privateKeys = {
-    owner: '',
-    active: '',
-    posting: '',
-    memo: ''
-  };
-  authorityData.publicKeys = {
-    owner: '',
-    active: '',
-    posting: '',
-    memo: ''
-  };
+  authorityData.privateKeys = createEmptyRoleKeys();
+  authorityData.publicKeys = createEmptyRoleKeys();
 
   toast.info('Process reset. You can generate new authority data.');
 };
@@ -143,24 +118,12 @@ const generateAndDownloadAuthorityData = async () => {
 
     const wax = await getWax();
 
-    // Get clean account name (without @ prefix)
-    const cleanAccountName = accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value;
-
-    // Get master password
-    const masterPassword = wax.suggestBrainKey().wifPrivateKey;
+    // Random master password with deterministic per-role keys derived from it
+    const { masterPassword, privateKeys, publicKeys } = generateAccountAuthorityData(wax, normalizeAccountName(accountName.value));
 
     authorityData.masterPassword = masterPassword;
-
-    // Generate deterministic keys for each role using the master password
-    const roles: TRole[] = ['owner', 'active', 'posting', 'memo'];
-
-    for (const role of roles) {
-      // Generate private key from password using WAX API
-      const privateKeyData = wax.getPrivateKeyFromPassword(cleanAccountName, role, masterPassword);
-
-      authorityData.privateKeys[role] = privateKeyData.wifPrivateKey;
-      authorityData.publicKeys[role] = privateKeyData.associatedPublicKey;
-    }
+    authorityData.privateKeys = privateKeys;
+    authorityData.publicKeys = publicKeys;
 
     // Automatically download the authority data file
     downloadAuthorityData();
@@ -176,46 +139,7 @@ const generateAndDownloadAuthorityData = async () => {
 };
 
 const downloadAuthorityData = () => {
-  const cleanAccountName = accountName.value.startsWith('@') ? accountName.value.slice(1) : accountName.value;
-
-  const authorityFile = {
-    account_name: cleanAccountName,
-    master_key: authorityData.masterPassword,
-    generated_at: new Date().toISOString(),
-    authorities: {
-      owner: {
-        public_key: authorityData.publicKeys.owner,
-        private_key: authorityData.privateKeys.owner
-      },
-      active: {
-        public_key: authorityData.publicKeys.active,
-        private_key: authorityData.privateKeys.active
-      },
-      posting: {
-        public_key: authorityData.publicKeys.posting,
-        private_key: authorityData.privateKeys.posting
-      },
-      memo: {
-        public_key: authorityData.publicKeys.memo,
-        private_key: authorityData.privateKeys.memo
-      }
-    },
-    _note: 'KEEP THIS FILE SAFE! This master key is the key to your entire account. Store it in a secure location and never share it with anyone.',
-    generator: `Hive Bridge v${version} #${commitHash}`
-  };
-
-  const dataStr = JSON.stringify(authorityFile, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${cleanAccountName}-authority-data.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
+  downloadAuthorityDataFile(normalizeAccountName(accountName.value), authorityData);
 };
 
 const canShowConfirmation = computed(() => authorityDataGenerated.value);

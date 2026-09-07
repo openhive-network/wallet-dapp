@@ -2,6 +2,8 @@ import { type NaiAsset, type TWaxRestExtended, type TWaxExtended, type asset, DE
 
 import CTokensApi from '@/utils/wallet/ctokens/api';
 
+import { resolveHiveChainOptions } from '#shared/utils/hive-chain-options';
+
 export interface WaxApi {
   database_api: {
     get_current_price_feed: {
@@ -149,10 +151,9 @@ export const getWax = async () => {
   if (!chain) {
     const { public: { hiveNodeEndpoint, hiveChainId, ctokensApiUrl } } = useRuntimeConfig();
 
-    const chainId = typeof hiveChainId === 'number' || hiveChainId.length > 0 ? String(hiveChainId).padEnd(64, '0') : DEFAULT_WAX_OPTIONS.chainId;
-    const apiEndpoint = hiveNodeEndpoint.length > 0 ? hiveNodeEndpoint : undefined;
+    const chainOptions = resolveHiveChainOptions({ hiveNodeEndpoint, hiveChainId }, DEFAULT_WAX_OPTIONS.chainId);
 
-    chain = (await (await import('@hiveio/wax')).createHiveChain({ apiEndpoint, chainId })).extend<WaxApi>().extendRest(CTokensApi);
+    chain = (await (await import('@hiveio/wax')).createHiveChain(chainOptions)).extend<WaxApi>().extendRest(CTokensApi);
 
     // These steps are repeated in the CtokensProvider constructor, but we need them here too as for now - maybe find a better way of handling this?
     chain.restApi.ctokensApi.endpointUrl = ctokensApiUrl || 'http://192.168.6.7';

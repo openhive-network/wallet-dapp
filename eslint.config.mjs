@@ -66,6 +66,11 @@ export default withNuxt(
           pattern: '@/**',
           group: 'internal',
           position: 'before'
+        },
+        {
+          pattern: '#shared/**',
+          group: 'internal',
+          position: 'before'
         }
       ],
       pathGroupsExcludedImportTypes: ['builtin'],
