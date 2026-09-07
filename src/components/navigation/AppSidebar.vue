@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog } from '@mdi/js';
+import { mdiHomeOutline, mdiMessageLockOutline, mdiFileSign, mdiAccountPlusOutline, mdiAccountArrowUpOutline, mdiAccountReactivateOutline, mdiLink, mdiWallet, mdiAccountGroup, mdiArrowLeft, mdiCog, mdiQrcode } from '@mdi/js';
 import { computed, onMounted, ref, type Ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Sidebar, SidebarContent, SidebarHeader, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from '@/components/ui/sidebar';
 import { TextTooltip } from '@/components/ui/texttooltip';
+import { useAccountRequestStore } from '@/stores/account-request.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { getWax } from '@/stores/wax.store';
 import { toastError } from '@/utils/parse-error';
@@ -23,6 +24,7 @@ const props = defineProps({
 const router = useRouter();
 
 const walletStore = useWalletStore();
+const accountRequestStore = useAccountRequestStore();
 const { isMobile, setOpenMobile } = useSidebar();
 
 // Close mobile sidebar after menu item click
@@ -32,6 +34,8 @@ const handleMenuClick = () => {
 };
 
 const isL1BasedView = computed(() => walletStore.hasWallet && !walletStore.isL2Wallet);
+// QR onboarding is an optional server-side module - hidden until the server reports it as configured
+const isAccountRequestEnabled = computed(() => accountRequestStore.isEnabled === true);
 
 const chainId = ref('');
 
@@ -77,6 +81,12 @@ const mainGroups: { title: string; items: Array<{ title: string; url: string; ic
       title: 'Request Account Creation',
       url: '/account/request',
       icon: mdiAccountPlusOutline
+    },
+    {
+      title: 'Onboarding QR Code',
+      url: '/features/request-account',
+      icon: mdiQrcode,
+      visible: isAccountRequestEnabled
     },
     {
       title: 'Process Account Creation',
@@ -152,6 +162,8 @@ const defaultSnapVersion: string | undefined = snapVersion || '1.6.0';
 const metamaskVersion = `${defaultSnapOrigin}@${defaultSnapVersion}`;
 
 onMounted(async () => {
+  void accountRequestStore.checkAvailability();
+
   try {
     const wax = await getWax();
 
