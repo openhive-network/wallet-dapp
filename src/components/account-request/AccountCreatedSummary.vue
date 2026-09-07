@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { mdiDownload, mdiHomeOutline, mdiPartyPopper } from '@mdi/js';
+import { mdiDownload, mdiHomeOutline, mdiOpenInNew, mdiPartyPopper } from '@mdi/js';
 import { computed } from 'vue';
 
 
@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/stores/settings.store';
 import { useWalletStore } from '@/stores/wallet.store';
 import { downloadAuthorityDataFile } from '@/utils/account-request/authority-data';
 import type { AccountAuthorityData } from '@/utils/account-request/keys';
+import { getTransactionExplorerUrl } from '@/utils/block-explorer';
 
 const props = defineProps<{
   account: CreatedAccount;
@@ -23,6 +24,7 @@ const settingsStore = useSettingsStore();
 const walletStore = useWalletStore();
 
 const isLoggedIn = computed(() => walletStore.hasWallet && settingsStore.account === props.account.accountName);
+const transactionExplorerUrl = computed(() => getTransactionExplorerUrl(props.account.transactionId));
 
 const methodNote = computed(() => {
   switch (props.account.method) {
@@ -77,12 +79,36 @@ const download = () => {
     <Alert variant="info">
       <AlertDescription>{{ methodNote }}</AlertDescription>
     </Alert>
-    <div class="flex items-center justify-between text-xs text-muted-foreground border rounded-lg px-3 py-2">
-      <span class="font-semibold uppercase">Transaction</span>
-      <span class="flex items-center font-mono">
-        <span class="truncate max-w-[140px] sm:max-w-none">{{ account.transactionId }}</span>
-        <CopyButton :value="account.transactionId" />
-      </span>
+    <div class="text-xs text-muted-foreground border rounded-lg px-3 py-2 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-semibold uppercase">Transaction</span>
+        <span class="flex items-center font-mono">
+          <span class="truncate max-w-[140px] sm:max-w-none">{{ account.transactionId }}</span>
+          <CopyButton :value="account.transactionId" />
+        </span>
+      </div>
+      <div class="flex justify-end">
+        <a
+          data-testid="create-account-explorer-link"
+          :href="transactionExplorerUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="keychainify-checked inline-flex items-center gap-1 text-[11px] hover:text-foreground hover:underline"
+        >
+          Open in block explorer
+          <svg
+            width="12"
+            height="12"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiOpenInNew"
+            />
+          </svg>
+        </a>
+      </div>
     </div>
     <AccountDetailsExpandablePanel :public-keys="account.publicKeys" />
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

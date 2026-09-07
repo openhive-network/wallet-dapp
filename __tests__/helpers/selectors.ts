@@ -306,6 +306,7 @@ export const accountRequest = {
   progress: testid('create-account-progress'),
   success: testid('create-account-success'),
   successName: testid('create-account-success-name'),
+  explorerLink: testid('create-account-explorer-link'),
   downloadAuthority: testid('create-account-download-authority'),
   detailsToggle: testid('account-details-toggle'),
   detailsKeys: testid('account-details-keys')

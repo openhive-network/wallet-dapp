@@ -16,6 +16,8 @@ const TEST_TOKEN = 'a1b2c3d4e5f60718';
 const CREATE_ACCOUNT_URL = `/features/create-account?token=${TEST_TOKEN}`;
 const NEW_ACCOUNT_NAME = 'qr-newcomer';
 const STRONG_PASSWORD = 'correct-horse-battery-staple';
+const MOCK_TRANSACTION_ID = 'f'.repeat(40);
+const TRANSACTION_EXPLORER_URL = `https://explore.openhive.network/tx/${MOCK_TRANSACTION_ID}`;
 
 interface VerifyResponse {
   valid: boolean;
@@ -55,7 +57,7 @@ async function mockClaimEndpoint (page: Page, onClaim?: (claimBody: Record<strin
   await page.route('**/api/account-request/claim', async (route) => {
     const claimBody = route.request().postDataJSON() as Record<string, unknown>;
     onClaim?.(claimBody);
-    await route.fulfill(jsonResponse(200, { success: true, accountName: claimBody.accountName, transactionId: 'f'.repeat(40) }));
+    await route.fulfill(jsonResponse(200, { success: true, accountName: claimBody.accountName, transactionId: MOCK_TRANSACTION_ID }));
   });
 }
 
@@ -380,6 +382,11 @@ test.describe('Account Onboarding via QR Code', () => {
       await expect(page.locator(selectors.accountRequest.successName)).toHaveText(`@${NEW_ACCOUNT_NAME}`);
       await expect(page.locator(selectors.accountRequest.downloadAuthority)).toBeVisible();
 
+      // The creation transaction can be looked up in the block explorer
+      const explorerLink = page.locator(selectors.accountRequest.explorerLink);
+      await expect(explorerLink).toHaveAttribute('href', TRANSACTION_EXPLORER_URL);
+      await expect(explorerLink).toHaveAttribute('target', '_blank');
+
       // The authority data file is handed over automatically for password based registrations
       const download = await downloadPromise;
       expect(download.suggestedFilename()).toBe(`${NEW_ACCOUNT_NAME}-authority-data.json`);
@@ -444,6 +451,7 @@ test.describe('Account Onboarding via QR Code', () => {
 
       await expect(page.locator(selectors.accountRequest.success)).toBeVisible({ timeout: 15000 });
       await expect(page.locator(selectors.accountRequest.successName)).toHaveText(`@${NEW_ACCOUNT_NAME}`);
+      await expect(page.locator(selectors.accountRequest.explorerLink)).toHaveAttribute('href', TRANSACTION_EXPLORER_URL);
       await expect(page.locator(selectors.accountRequest.tokenClaimed)).toHaveCount(0);
       await expect(page.locator(selectors.accountRequest.form)).toHaveCount(0);
 
