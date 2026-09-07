@@ -4,7 +4,7 @@ import type { AccountRegistrationMethod } from '#shared/types/account-request';
 
 import { requireAccountRequestConfig } from './config';
 
-import { PrismaClient } from '~~/prisma/generated/client/client';
+import { PrismaClient, type ClaimedToken } from '~~/prisma/generated/client/client';
 
 export interface ClaimedTokenInput {
   token: string;
@@ -26,6 +26,11 @@ export class ClaimedTokensRepository {
 
   public async isClaimed (token: string): Promise<boolean> {
     return !!await this.#prisma.claimedToken.findUnique({ where: { token }, select: { token: true } });
+  }
+
+  /** The stored creation request for a token - `null` when no request used the token so far */
+  public async find (token: string): Promise<ClaimedToken | null> {
+    return await this.#prisma.claimedToken.findUnique({ where: { token } });
   }
 
   /** Reserves the token and the account name for one creation request - `false` when either of them is already taken */

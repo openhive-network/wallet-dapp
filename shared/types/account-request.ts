@@ -40,3 +40,22 @@ export interface AccountRequestClaimResponse {
   accountName: string;
   transactionId: string;
 }
+
+interface AccountRequestClaimDetails {
+  accountName: string;
+  method: AccountRegistrationMethod;
+  /** ISO timestamp of the accepted creation request */
+  claimedAt: string;
+}
+
+/**
+ * What happened to the creation request made with a token. Claims are kept for good, so the status stays readable
+ * long after the token expired: `pending` while the account is being created, `completed` once the creation was
+ * broadcast (with the id of that transaction), `failed` when the creation was rejected.
+ */
+export type AccountRequestClaimStatusResponse =
+  | { state: 'unclaimed' }
+  | ({ state: 'pending' | 'failed' } & AccountRequestClaimDetails)
+  | ({ state: 'completed'; transactionId: string; completedAt: string } & AccountRequestClaimDetails);
+
+export type AccountRequestClaimState = AccountRequestClaimStatusResponse['state'];

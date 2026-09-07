@@ -5,6 +5,7 @@
  * - GET  /api/account-request/token   - rotating token
  * - GET  /api/account-request/verify  - read-only token check
  * - POST /api/account-request/claim   - stores the token (the insert is the lock) and creates the account
+ * - GET  /api/account-request/claim   - status of the request made with a token, incl. the creation transaction id
  *
  * Requires the creator credentials on the server (playwright.config.ts sets throwaway ones for the managed dev
  * server - the creator account does not exist on chain, so every creation attempt fails once the token was stored),
@@ -31,6 +32,15 @@ interface TokenResponse {
   ttlMs: number;
 }
 
+interface ClaimStatusResponse {
+  state: 'unclaimed' | 'pending' | 'completed' | 'failed';
+  accountName?: string;
+  method?: string;
+  claimedAt?: string;
+  transactionId?: string;
+  completedAt?: string;
+}
+
 /** Stored account names survive between runs (the claims database is never reset), so every run needs fresh ones */
 const uniqueAccountName = (prefix: string) => `${prefix}-${Date.now().toString(36)}`;
 
@@ -55,6 +65,13 @@ async function verify (request: APIRequestContext, token: string) {
 const claim = (request: APIRequestContext, token: string, accountName: string) => request.post(CLAIM_ENDPOINT, {
   data: { token, accountName, method: 'password', publicKeys: SAMPLE_PUBLIC_KEYS }
 });
+
+async function claimStatus (request: APIRequestContext, token: string): Promise<ClaimStatusResponse> {
+  const response = await request.get(CLAIM_ENDPOINT, { params: { token } });
+  expect(response.ok()).toBeTruthy();
+
+  return await response.json() as ClaimStatusResponse;
+}
 
 test.describe('Account Request API', () => {
   // Tests share the server's rotating token and the claims database - running them in parallel would interfere
@@ -185,5 +202,41 @@ test.describe('Account Request API', () => {
 
     // The rejected request did not use the second token up
     expect(await verify(request, second!.token)).toEqual({ valid: true });
+  });
+
+  test('claim status should reject a missing or malformed token', async ({ request }) => {
+    const data = await fetchToken(request);
+    test.skip(data === null, 'Account request service is not configured on the target server');
+
+    expect((await request.get(CLAIM_ENDPOINT)).status()).toBe(400);
+    expect((await request.get(CLAIM_ENDPOINT, { params: { token: 'not-a-token' } })).status()).toBe(400);
+  });
+
+  test('claim status should report an unused token as unclaimed without using it up', async ({ request }) => {
+    const data = await fetchToken(request);
+    test.skip(data === null, 'Account request service is not configured on the target server');
+
+    expect(await claimStatus(request, data!.token)).toEqual({ state: 'unclaimed' });
+    expect(await claimStatus(request, 'deadbeefdeadbeef')).toEqual({ state: 'unclaimed' });
+
+    expect(await verify(request, data!.token)).toEqual({ valid: true });
+  });
+
+  test('claim status should expose the stored request once the token was used', async ({ request }) => {
+    const data = await fetchToken(request);
+    test.skip(data === null, 'Account request service is not configured on the target server');
+
+    const accountName = uniqueAccountName('qr-s');
+
+    // The creation fails on this server (no creator account on chain), so the request is recorded as failed without a transaction
+    expect((await claim(request, data!.token, accountName)).status()).toBe(500);
+
+    const status = await claimStatus(request, data!.token);
+    expect(status).toMatchObject({ state: 'failed', accountName, method: 'password' });
+    expect(status.transactionId).toBeUndefined();
+    expect(Date.parse(status.claimedAt!)).not.toBeNaN();
+
+    // Unlike the token, its status stays readable after the claim
+    expect(await verify(request, data!.token)).toEqual({ valid: false, reason: 'claimed' });
   });
 });
