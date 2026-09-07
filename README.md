@@ -143,3 +143,35 @@ Ensure your `nuxt.config.ts` or runtime environment has the correct `NUXT_PUBLIC
 ```ini
 NUXT_PUBLIC_APP_URL=http://localhost:3000
 ```
+
+## Account Onboarding via QR Code
+
+Optional module. The `/features/request-account` page displays a QR code (meant for a kiosk or an operator screen)
+leading to `/features/create-account?token=...`. The token is the issue timestamp encrypted with the creator account's active
+private key (beekeeper memo encryption), so only this server can issue or read it; a fresh token is issued on every QR refresh
+and a token stays claimable for 15 minutes. A token is only *claimed* when the user actually submits the account creation
+request: the backend takes an in-memory lock for the requested account name (and the token) for the duration of the on-chain
+creation, then records the used token via Prisma in SQLite.
+
+When `NUXT_ACCOUNT_CREATOR_ACCOUNT` / `NUXT_ACCOUNT_CREATOR_ACTIVE_KEY` are not set the module is disabled: its menu entry
+is hidden, its pages report the feature as unavailable and the rest of the application is unaffected.
+
+```env
+NUXT_ACCOUNT_REQUEST_TOKEN_INTERVAL=3            # seconds, QR refresh interval (default 3)
+NUXT_ACCOUNT_REQUEST_DATABASE_URL=file:./.data/account-requests.sqlite
+NUXT_ACCOUNT_CREATOR_ACCOUNT=<creator account>
+NUXT_ACCOUNT_CREATOR_ACTIVE_KEY=<creator active private key>
+NUXT_ACCOUNT_CREATOR_USE_CLAIMED_ACCOUNTS=false  # true to spend claimed account tokens instead of the creation fee
+```
+
+The claims database is managed with Prisma (`prisma/schema.prisma`) and synchronised straight from the schema - no migration
+history is kept. Create or update it before enabling the module:
+
+```bash
+pnpm db:push           # prisma db push - creates/updates the SQLite database from the schema
+pnpm db:generate       # prisma generate - regenerates the client after schema changes (also runs on install)
+```
+
+The Docker image does not touch the database itself: run `pnpm db:push` (or `prisma db push`) during deployment with
+`NUXT_ACCOUNT_REQUEST_DATABASE_URL` pointing at the mounted database, and mount that directory as a volume so claimed
+tokens survive container restarts.

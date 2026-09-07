@@ -66,6 +66,11 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
+# Local SQLite databases (account request claims) and generated Prisma client
+.data/
+prisma/generated/
+prisma/migrations/
+
 # dotenv environment variables file
 .env
 .env.test

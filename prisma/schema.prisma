@@ -1,0 +1,22 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "./generated/client"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ClaimedToken {
+  token         String    @id
+  accountName   String    @unique @map("account_name")
+  method        String
+  transactionId String?   @map("transaction_id")
+  claimedAt     DateTime  @map("claimed_at")
+  completedAt   DateTime? @map("completed_at")
+  error         String?
+
+  @@map("claimed_tokens")
+}

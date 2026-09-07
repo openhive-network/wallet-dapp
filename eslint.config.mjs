@@ -6,6 +6,11 @@ export default withNuxt(
   // Default Nuxt configuration
   {},
 
+  // Generated Prisma client is never linted
+  {
+    ignores: ['prisma/generated/**']
+  },
+
   // Client-specific rules
   {
     files: [

@@ -77,6 +77,12 @@ export default defineNuxtConfig({
     googleClientId: process.env.GOOGLE_CLIENT_ID || '',
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
     googleApiKey: process.env.GOOGLE_API_KEY || '',
-    googleDriveStorageFile: process.env.GOOGLE_DRIVE_STORAGE_FILE || 'profile_data.json'
+    googleDriveStorageFile: process.env.GOOGLE_DRIVE_STORAGE_FILE || 'profile_data.json',
+    // Account onboarding via QR code (optional module, see .env.example - enabled by NUXT_ACCOUNT_CREATOR_*)
+    accountRequestTokenInterval: 3,
+    accountRequestDatabaseUrl: 'file:./.data/account-requests.sqlite',
+    accountCreatorAccount: '',
+    accountCreatorActiveKey: '',
+    accountCreatorUseClaimedAccounts: false
   }
 });
