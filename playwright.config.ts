@@ -109,7 +109,7 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'pnpm run dev',
+    command: 'pnpm run db:push && pnpm run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !isCI,
     timeout: 120 * 1000, // 2 minutes for Nuxt to start
@@ -117,7 +117,11 @@ export default defineConfig({
       // Use test environment
       NODE_ENV: 'test',
       NUXT_PUBLIC_HIVE_NODE_ENDPOINT: process.env.TEST_HIVE_NODE_ENDPOINT || 'https://api.fake.openhive.network',
-      NUXT_PUBLIC_CTOKENS_API_URL: process.env.TEST_CTOKENS_API_URL || 'https://htm.fqdn.pl:10081'
+      NUXT_PUBLIC_CTOKENS_API_URL: process.env.TEST_CTOKENS_API_URL || 'https://htm.fqdn.pl:10081',
+      // Account onboarding via QR code - throwaway creator credentials (account does not exist on any chain) and an isolated claims database
+      NUXT_ACCOUNT_CREATOR_ACCOUNT: process.env.NUXT_ACCOUNT_CREATOR_ACCOUNT || 'playwright-creator',
+      NUXT_ACCOUNT_CREATOR_ACTIVE_KEY: process.env.NUXT_ACCOUNT_CREATOR_ACTIVE_KEY || '5HqnfF5aZXrPp1T6JA71ZYKwZrscwes4nRNwR6xTZk3zYDKpeDw',
+      NUXT_ACCOUNT_REQUEST_DATABASE_URL: process.env.NUXT_ACCOUNT_REQUEST_DATABASE_URL || 'file:./test-results/account-requests.sqlite'
     }
   },
 

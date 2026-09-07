@@ -25,6 +25,7 @@ export const navigation = {
   myHtmAccount: '[data-sidebar="menu-button"]:has-text("My HTM Account")',
   registerHtmAccount: '[data-sidebar="menu-button"]:has-text("Register HTM Account")',
   googleDriveWallet: '[data-sidebar="menu-button"]:has-text("Google Drive Wallet")',
+  onboardingQrCode: '[data-sidebar="menu-button"]:has-text("Onboarding QR Code")',
   memoEncryption: '[data-sidebar="menu-button"]:has-text("Memo encryption")',
   transactionSigning: '[data-sidebar="menu-button"]:has-text("Transaction signing")'
 };
@@ -269,4 +270,43 @@ export const tokenStaking = {
   connectBtn: testid('stake-connect-btn'),
   stakeBtn: testid('stake-btn'),
   unstakeBtn: testid('unstake-btn')
+};
+
+// ===========================================
+// Account Onboarding via QR Code
+// ===========================================
+
+export const accountRequest = {
+  // /features/request-account
+  qrCard: testid('request-account-card'),
+  qrImage: testid('request-account-qr'),
+  qrError: testid('request-account-error'),
+
+  // /features/create-account
+  createCard: testid('create-account-card'),
+  verifying: testid('create-account-verifying'),
+  tokenInvalid: testid('create-account-token-invalid'),
+  tokenClaimed: testid('create-account-token-claimed'),
+  unavailable: testid('create-account-unavailable'),
+  form: testid('create-account-form'),
+  nameInput: `${testid('create-account-name')} input`,
+  methodGoogle: testid('create-account-method-google'),
+  methodMetamask: testid('create-account-method-metamask'),
+  methodPassword: testid('create-account-method-password'),
+  googleSafetyNote: testid('create-account-google-safety'),
+  recoveryDialog: testid('create-account-recovery-dialog'),
+  recoveryPasswordInput: testid('create-account-recovery-password'),
+  recoveryPasswordRepeatInput: testid('create-account-recovery-password-repeat'),
+  recoverySubmit: testid('create-account-recovery-submit'),
+  recoveryCancel: testid('create-account-recovery-cancel'),
+  passwordPanel: testid('create-account-password-panel'),
+  passwordInput: testid('create-account-password'),
+  passwordRepeatInput: testid('create-account-password-repeat'),
+  passwordSubmit: testid('create-account-password-submit'),
+  progress: testid('create-account-progress'),
+  success: testid('create-account-success'),
+  successName: testid('create-account-success-name'),
+  downloadAuthority: testid('create-account-download-authority'),
+  detailsToggle: testid('account-details-toggle'),
+  detailsKeys: testid('account-details-keys')
 };

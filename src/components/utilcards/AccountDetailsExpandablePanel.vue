@@ -15,6 +15,7 @@ const showDetailsPanel = ref(false);
 <template>
   <div class="space-y-4">
     <Button
+      data-testid="account-details-toggle"
       variant="ghost"
       class="w-full flex items-center justify-center space-x-2 text-sm"
       @click="showDetailsPanel = !showDetailsPanel"
@@ -71,7 +72,10 @@ const showDetailsPanel = ref(false);
               <span>Public key</span>
             </div>
           </div>
-          <div class="grid gap-3">
+          <div
+            data-testid="account-details-keys"
+            class="grid gap-3"
+          >
             <div
               v-for="(key, role) in props.publicKeys"
               :key="role"
