@@ -18,6 +18,7 @@ const NEW_ACCOUNT_NAME = 'qr-newcomer';
 const STRONG_PASSWORD = 'correct-horse-battery-staple';
 const MOCK_TRANSACTION_ID = 'f'.repeat(40);
 const TRANSACTION_EXPLORER_URL = `https://explore.openhive.network/tx/${MOCK_TRANSACTION_ID}`;
+const HIVE_BLOG_URL = 'https://new.hive.blog/';
 
 interface VerifyResponse {
   valid: boolean;
@@ -447,6 +448,13 @@ test.describe('Account Onboarding via QR Code', () => {
       const explorerLink = page.locator(selectors.accountRequest.explorerLink);
       await expect(explorerLink).toHaveAttribute('href', TRANSACTION_EXPLORER_URL);
       await expect(explorerLink).toHaveAttribute('target', '_blank');
+
+      // The next steps point the newcomer to the Hive front-end in a new tab
+      await expect(page.locator(selectors.accountRequest.nextSteps)).toBeVisible();
+      const hiveBlogLink = page.locator(selectors.accountRequest.hiveBlogLink);
+      await expect(hiveBlogLink).toHaveAttribute('href', HIVE_BLOG_URL);
+      await expect(hiveBlogLink).toHaveAttribute('target', '_blank');
+      await expect(hiveBlogLink).toHaveAttribute('rel', 'noopener noreferrer');
 
       // The authority data file is handed over automatically for password based registrations
       const download = await downloadPromise;

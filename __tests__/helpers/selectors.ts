@@ -309,6 +309,8 @@ export const accountRequest = {
   success: testid('create-account-success'),
   successName: testid('create-account-success-name'),
   explorerLink: testid('create-account-explorer-link'),
+  nextSteps: testid('create-account-next-steps'),
+  hiveBlogLink: testid('create-account-hive-blog-link'),
   downloadAuthority: testid('create-account-download-authority'),
   detailsToggle: testid('account-details-toggle'),
   detailsKeys: testid('account-details-keys')

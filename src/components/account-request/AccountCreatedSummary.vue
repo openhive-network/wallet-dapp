@@ -2,7 +2,7 @@
 import { mdiDownload, mdiHomeOutline, mdiOpenInNew, mdiPartyPopper } from '@mdi/js';
 import { computed } from 'vue';
 
-
+import hiveLogoUrl from '@/assets/icons/hive.svg';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Button as CopyButton } from '@/components/ui/copybutton';
@@ -13,6 +13,8 @@ import { useWalletStore } from '@/stores/wallet.store';
 import { downloadAuthorityDataFile } from '@/utils/account-request/authority-data';
 import type { AccountAuthorityData } from '@/utils/account-request/keys';
 import { getTransactionExplorerUrl } from '@/utils/block-explorer';
+
+const HIVE_BLOG_URL = 'https://new.hive.blog/';
 
 const props = defineProps<{
   account: CreatedAccount;
@@ -79,6 +81,48 @@ const download = () => {
     <Alert variant="info">
       <AlertDescription>{{ methodNote }}</AlertDescription>
     </Alert>
+    <div
+      data-testid="create-account-next-steps"
+      class="border rounded-lg p-4 space-y-3"
+    >
+      <p class="font-semibold">
+        Next steps
+      </p>
+      <p class="text-sm text-muted-foreground">
+        You can already sign in on new.hive.blog with your new account and do everything there: post, comment, vote and follow others.
+      </p>
+      <a
+        data-testid="create-account-hive-blog-link"
+        :href="HIVE_BLOG_URL"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="keychainify-checked block"
+      >
+        <Button
+          variant="outline"
+          class="w-full"
+        >
+          <img
+            :src="hiveLogoUrl"
+            alt=""
+            class="w-5 h-5 mr-2"
+          >
+          Sign in on new.hive.blog
+          <svg
+            width="14"
+            height="14"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            class="ml-2 opacity-70"
+          >
+            <path
+              style="fill: currentColor"
+              :d="mdiOpenInNew"
+            />
+          </svg>
+        </Button>
+      </a>
+    </div>
     <div class="text-xs text-muted-foreground border rounded-lg px-3 py-2 space-y-1">
       <div class="flex items-center justify-between">
         <span class="font-semibold uppercase">Transaction</span>
