@@ -301,6 +301,22 @@ test.describe('Account Onboarding via QR Code', () => {
       await expect(page.locator(selectors.accountRequest.methodPassword)).toBeEnabled({ timeout: 20000 });
     });
 
+    test('should suggest a free account name that passes validation', async ({ page }) => {
+      await mockVerifyEndpoint(page, { valid: true });
+
+      await openCreateAccountPage(page);
+      await page.locator(selectors.accountRequest.nameSuggest).click();
+
+      const nameInput = page.locator(selectors.accountRequest.nameInput);
+      await expect(nameInput).toHaveValue(/^[a-z][a-z0-9-]{1,14}[a-z0-9]$/);
+      await expect(page.locator(selectors.accountRequest.methodPassword)).toBeEnabled({ timeout: 20000 });
+
+      // Every click rolls a new name
+      const firstSuggestion = await nameInput.inputValue();
+      await page.locator(selectors.accountRequest.nameSuggest).click();
+      await expect(nameInput).not.toHaveValue(firstSuggestion);
+    });
+
     test('should keep MetaMask unavailable when the extension is not detected', async ({ page }) => {
       await mockVerifyEndpoint(page, { valid: true });
 

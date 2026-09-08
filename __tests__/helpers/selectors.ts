@@ -290,6 +290,7 @@ export const accountRequest = {
   unavailable: testid('create-account-unavailable'),
   form: testid('create-account-form'),
   nameInput: `${testid('create-account-name')} input`,
+  nameSuggest: `${testid('create-account-name')} ${testid('account-name-suggest')}`,
   methodGoogle: testid('create-account-method-google'),
   methodMetamask: testid('create-account-method-metamask'),
   metamaskNote: testid('create-account-metamask-note'),

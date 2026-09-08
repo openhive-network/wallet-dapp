@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { ApiAccount } from '@hiveio/wax';
 import {
+  mdiAutoFix,
   mdiCheckCircle,
   mdiAlertCircle,
   mdiNumeric1Circle,
@@ -9,6 +10,7 @@ import {
 } from '@mdi/js';
 import { computed, ref, watch } from 'vue';
 
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -49,6 +51,7 @@ const emit = defineEmits<Emits>();
 const accountNameValid = ref(false);
 const accountNameError = ref('');
 const isValidatingName = ref(false);
+const isSuggestingName = ref(false);
 
 const accountName = computed({
   get: () => props.modelValue,
@@ -143,6 +146,18 @@ const validateAccountName = async () => {
   }
 };
 
+/** Fills the field with a random name that is free on the chain - the regular validation then confirms it */
+const suggestAccountName = async () => {
+  try {
+    isSuggestingName.value = true;
+    accountName.value = await accountCreateStore.suggestAvailableAccountName();
+  } catch (error) {
+    toastError('Failed to suggest an account name', error);
+  } finally {
+    isSuggestingName.value = false;
+  }
+};
+
 watch(accountName, () => {
   accountCreateStore.resetCopyState();
 
@@ -166,61 +181,91 @@ defineExpose({
 
 <template>
   <div class="space-y-3">
-    <TooltipProvider v-if="props.label">
-      <Tooltip>
-        <TooltipTrigger class="flex items-center space-x-2">
-          <svg
-            v-if="props.showStepIcon"
-            width="18"
-            height="18"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-          >
-            <path
-              style="fill: hsl(var(--primary))"
-              :d="mdiNumeric1Circle"
-            />
-          </svg>
-          <Label
-            :for="props.id"
-            class="text-base font-semibold"
-          >{{ props.label }}</Label>
-          <svg
-            v-if="!props.requireExists"
-            width="16"
-            height="16"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-          >
-            <path
-              style="fill: hsl(var(--primary))"
-              :d="mdiHelpCircleOutline"
-            />
-          </svg>
-        </TooltipTrigger>
-        <TooltipContent v-if="!props.requireExists">
-          <div class="text-sm">
-            <p class="font-semibold mb-2">
-              Account name requirements:
-            </p>
-            <ul class="space-y-1">
-              <li>• 3 to 16 characters</li>
-              <li>• Lowercase letters, numbers, and hyphens only</li>
-              <li>• Dots (.) can separate segments, but:</li>
-              <li class="ml-6">
-                • Each segment must be at least 3 characters
-              </li>
-              <li class="ml-6">
-                • Must start with a letter
-              </li>
-              <li class="ml-6">
-                • Must end with a letter or number
-              </li>
-            </ul>
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <div
+      v-if="props.label || !props.requireExists"
+      class="flex items-center justify-between gap-2"
+    >
+      <TooltipProvider v-if="props.label">
+        <Tooltip>
+          <TooltipTrigger class="flex items-center space-x-2">
+            <svg
+              v-if="props.showStepIcon"
+              width="18"
+              height="18"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+            >
+              <path
+                style="fill: hsl(var(--primary))"
+                :d="mdiNumeric1Circle"
+              />
+            </svg>
+            <Label
+              :for="props.id"
+              class="text-base font-semibold"
+            >{{ props.label }}</Label>
+            <svg
+              v-if="!props.requireExists"
+              width="16"
+              height="16"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+            >
+              <path
+                style="fill: hsl(var(--primary))"
+                :d="mdiHelpCircleOutline"
+              />
+            </svg>
+          </TooltipTrigger>
+          <TooltipContent v-if="!props.requireExists">
+            <div class="text-sm">
+              <p class="font-semibold mb-2">
+                Account name requirements:
+              </p>
+              <ul class="space-y-1">
+                <li>• 3 to 16 characters</li>
+                <li>• Lowercase letters, numbers, and hyphens only</li>
+                <li>• Dots (.) can separate segments, but:</li>
+                <li class="ml-6">
+                  • Each segment must be at least 3 characters
+                </li>
+                <li class="ml-6">
+                  • Must start with a letter
+                </li>
+                <li class="ml-6">
+                  • Must end with a letter or number
+                </li>
+              </ul>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <Button
+        v-if="!props.requireExists"
+        data-testid="account-name-suggest"
+        type="button"
+        variant="ghost"
+        size="sm"
+        class="h-7 px-2 text-xs ml-auto shrink-0"
+        :disabled="disabled"
+        :loading="isSuggestingName"
+        @click="suggestAccountName"
+      >
+        <svg
+          width="14"
+          height="14"
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          class="mr-1"
+        >
+          <path
+            style="fill: currentColor"
+            :d="mdiAutoFix"
+          />
+        </svg>
+        Suggest a name
+      </Button>
+    </div>
     <div class="relative">
       <Input
         :id="id"
