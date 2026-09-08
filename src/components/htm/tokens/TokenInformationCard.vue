@@ -4,6 +4,7 @@ import { toast } from 'vue-sonner';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { CTokenBalanceDisplay, CTokenDefinitionDisplay } from '@/stores/tokens.store';
 import { copyText } from '@/utils/copy';
 import { BUILTIN_METADATA_KEYS } from '@/utils/htm-metadata';
@@ -104,7 +105,7 @@ const copyAssetNum = () => {
           </AvatarFallback>
         </Avatar>
 
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0 w-full">
           <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-3">
             <h1 class="text-2xl sm:text-3xl font-bold text-foreground">
               {{ props.token.name }}
@@ -137,14 +138,23 @@ const copyAssetNum = () => {
             class="mb-4"
           >
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              <div
-                v-for="entry in customMetadataEntries"
-                :key="entry.key"
-                class="flex items-center gap-1"
-              >
-                <span class="text-muted-foreground font-medium">{{ entry.key }}:</span>
-                <span class="text-foreground">{{ entry.value }}</span>
-              </div>
+              <TooltipProvider :delay-duration="350">
+                <div
+                  v-for="entry in customMetadataEntries"
+                  :key="entry.key"
+                  class="flex items-center gap-1 min-w-0 max-w-full"
+                >
+                  <span class="text-muted-foreground font-medium shrink-0">{{ entry.key }}:</span>
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <span class="text-foreground truncate max-w-xs">{{ entry.value }}</span>
+                    </TooltipTrigger>
+                    <TooltipContent class="max-w-[min(28rem,calc(100vw-2rem))] break-words">
+                      {{ entry.value }}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TooltipProvider>
               <button
                 type="button"
                 class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
