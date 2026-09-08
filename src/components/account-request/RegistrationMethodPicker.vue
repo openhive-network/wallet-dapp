@@ -37,7 +37,8 @@ const walletMethods = computed(() => [
     description: 'Keys stay encrypted in your own Google Drive',
     icon: getWalletIcon(UsedWallet.GOOGLE_DRIVE),
     testId: 'create-account-method-google',
-    available: true
+    available: true,
+    desktopOnly: false
   },
   {
     method: 'metamask' as const,
@@ -47,7 +48,8 @@ const walletMethods = computed(() => [
       : 'Desktop only - needs the MetaMask extension with the Hive snap',
     icon: getWalletIcon(UsedWallet.METAMASK),
     testId: 'create-account-method-metamask',
-    available: isMetamaskDetected.value
+    available: isMetamaskDetected.value,
+    desktopOnly: true
   }
 ]);
 
@@ -65,7 +67,7 @@ const buttonClass = 'h-auto w-full min-w-0 py-4 px-4 justify-start sm:justify-ce
         variant="outline"
         :disabled="disabled || isBusy || !option.available"
         :loading="pendingMethod === option.method"
-        :class="buttonClass"
+        :class="[buttonClass, { 'hidden sm:inline-flex': option.desktopOnly }]"
         @click="emit('select', option.method)"
       >
         <img
@@ -110,7 +112,8 @@ const buttonClass = 'h-auto w-full min-w-0 py-4 px-4 justify-start sm:justify-ce
     </div>
     <p
       v-if="!isMetamaskDetected"
-      class="text-xs text-muted-foreground text-center"
+      data-testid="create-account-metamask-note"
+      class="hidden sm:block text-xs text-muted-foreground text-center"
     >
       MetaMask works on a computer only - the Hive snap runs inside the browser extension.
       <a

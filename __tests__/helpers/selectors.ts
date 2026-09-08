@@ -292,6 +292,7 @@ export const accountRequest = {
   nameInput: `${testid('create-account-name')} input`,
   methodGoogle: testid('create-account-method-google'),
   methodMetamask: testid('create-account-method-metamask'),
+  metamaskNote: testid('create-account-metamask-note'),
   methodPassword: testid('create-account-method-password'),
   googleSafetyNote: testid('create-account-google-safety'),
   recoveryDialog: testid('create-account-recovery-dialog'),

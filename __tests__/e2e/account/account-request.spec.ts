@@ -233,6 +233,17 @@ test.describe('Account Onboarding via QR Code', () => {
         return panelTop >= 60 && (panelTop <= 80 || scrolledToBottom);
       }, selectors.accountRequest.passwordPanel)).toBe(true);
     });
+
+    test('should hide the MetaMask option on small screens', async ({ page }) => {
+      await mockVerifyEndpoint(page, { valid: true });
+
+      await openCreateAccountPage(page);
+
+      await expect(page.locator(selectors.accountRequest.methodGoogle)).toBeVisible();
+      await expect(page.locator(selectors.accountRequest.methodPassword)).toBeVisible();
+      await expect(page.locator(selectors.accountRequest.methodMetamask)).toBeHidden();
+      await expect(page.locator(selectors.accountRequest.metamaskNote)).toBeHidden();
+    });
   });
 
   test.describe('Create account page', () => {
@@ -287,6 +298,7 @@ test.describe('Account Onboarding via QR Code', () => {
       await fillAccountName(page, NEW_ACCOUNT_NAME);
 
       await expect(page.locator(selectors.accountRequest.methodMetamask)).toBeDisabled();
+      await expect(page.locator(selectors.accountRequest.metamaskNote)).toBeVisible();
       await expect(page.locator(selectors.accountRequest.methodGoogle)).toBeEnabled();
     });
 
