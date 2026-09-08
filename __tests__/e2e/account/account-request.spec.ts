@@ -211,6 +211,28 @@ test.describe('Account Onboarding via QR Code', () => {
       await expect(page.locator(selectors.accountRequest.success)).toBeVisible({ timeout: 20000 });
       await expectNoHorizontalOverflow(page);
     });
+
+    test('should scroll the password form into view and focus the password field after choosing the password method', async ({ page }) => {
+      await mockVerifyEndpoint(page, { valid: true });
+
+      await openCreateAccountPage(page);
+      await fillAccountName(page, NEW_ACCOUNT_NAME);
+
+      await page.locator(selectors.accountRequest.methodPassword).click();
+
+      await expect(page.locator(selectors.accountRequest.passwordInput)).toBeFocused();
+      await expect(page.locator(selectors.accountRequest.passwordInput)).toBeInViewport();
+      await expect(page.locator(selectors.accountRequest.passwordSubmit)).toBeInViewport();
+
+      // The form is pinned right under the 60px fixed header (never beneath it), or as close as the page can scroll
+      await expect.poll(() => page.evaluate((panelSelector) => {
+        const panelTop = document.querySelector(panelSelector)?.getBoundingClientRect().top ?? Infinity;
+        const { scrollTop, scrollHeight, clientHeight } = document.scrollingElement!;
+        const scrolledToBottom = scrollTop + clientHeight >= scrollHeight - 1;
+
+        return panelTop >= 60 && (panelTop <= 80 || scrolledToBottom);
+      }, selectors.accountRequest.passwordPanel)).toBe(true);
+    });
   });
 
   test.describe('Create account page', () => {
@@ -363,6 +385,7 @@ test.describe('Account Onboarding via QR Code', () => {
       await page.locator(selectors.accountRequest.methodPassword).click();
 
       await expect(page.locator(selectors.accountRequest.passwordInput)).toBeVisible();
+      await expect(page.locator(selectors.accountRequest.passwordInput)).toBeFocused();
       await expect(page.locator(selectors.accountRequest.passwordRepeatInput)).toBeVisible();
       await expect(page.locator(selectors.accountRequest.passwordSubmit)).toBeDisabled();
     });

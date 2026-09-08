@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { mdiAutoFix, mdiEye, mdiEyeOff } from '@mdi/js';
-import { computed, ref } from 'vue';
+import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
+import { computed, onMounted, ref } from 'vue';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,23 @@ const emit = defineEmits<{
   submit: [password: string];
 }>();
 
+const formRef = ref<HTMLFormElement | null>(null);
+const passwordInputRef = ref<InstanceType<typeof Input> | null>(null);
+const isSmallScreen = useBreakpoints(breakpointsTailwind).smaller('sm');
+
 const password = ref('');
 const repeatPassword = ref('');
 const showPassword = ref(false);
 const isSuggesting = ref(false);
+
+/**
+ * The panel expands below the method picker. Phones get it pinned right under the fixed app header so the fields stay
+ * above the keyboard, larger screens only scroll as far as needed - either way typing can start right away.
+ */
+onMounted(() => {
+  formRef.value?.scrollIntoView({ behavior: 'smooth', block: isSmallScreen.value ? 'start' : 'nearest' });
+  (passwordInputRef.value?.$el as HTMLInputElement | undefined)?.focus({ preventScroll: true });
+});
 
 const isLongEnough = computed(() => password.value.length >= MIN_ACCOUNT_PASSWORD_LENGTH);
 const passwordsMatch = computed(() => password.value === repeatPassword.value);
@@ -62,8 +76,9 @@ const submit = () => {
 
 <template>
   <form
+    ref="formRef"
     data-testid="create-account-password-panel"
-    class="space-y-4"
+    class="space-y-4 scroll-mt-20"
     @submit.prevent="submit"
   >
     <Alert variant="warning">
@@ -101,6 +116,7 @@ const submit = () => {
       <div class="relative">
         <Input
           id="create_account_password"
+          ref="passwordInputRef"
           v-model="password"
           data-testid="create-account-password"
           :type="showPassword ? 'text' : 'password'"
