@@ -52,8 +52,21 @@ const isValidatingName = ref(false);
 
 const accountName = computed({
   get: () => props.modelValue,
-  set: (value: string) => emit('update:modelValue', value)
+  set: (value: string) => emit('update:modelValue', value.toLowerCase())
 });
+
+/** Hive names are lowercase - mobile keyboards capitalise the first letter, so fix the field in place without moving the caret */
+const lowercaseInput = (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  const lowercased = input.value.toLowerCase();
+
+  if (input.value === lowercased)
+    return;
+
+  const { selectionStart, selectionEnd } = input;
+  input.value = lowercased;
+  input.setSelectionRange(selectionStart, selectionEnd);
+};
 
 const validateAccountName = async () => {
   try {
@@ -214,6 +227,9 @@ defineExpose({
         v-model="accountName"
         :placeholder="placeholder"
         :disabled="disabled"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
         :class="[
           {
             'border-red-500': accountName && !accountNameValid && accountNameError,
@@ -223,6 +239,7 @@ defineExpose({
           'w-full',
           props.class
         ]"
+        @input="lowercaseInput"
       />
       <div
         v-if="isValidatingName || accountNameValid"

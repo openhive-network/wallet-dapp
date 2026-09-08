@@ -291,6 +291,16 @@ test.describe('Account Onboarding via QR Code', () => {
       await expect(page.locator(selectors.accountRequest.methodPassword)).toBeDisabled();
     });
 
+    test('should lowercase the account name typed with capital letters', async ({ page }) => {
+      await mockVerifyEndpoint(page, { valid: true });
+
+      await openCreateAccountPage(page);
+      await page.locator(selectors.accountRequest.nameInput).fill(NEW_ACCOUNT_NAME.toUpperCase());
+
+      await expect(page.locator(selectors.accountRequest.nameInput)).toHaveValue(NEW_ACCOUNT_NAME);
+      await expect(page.locator(selectors.accountRequest.methodPassword)).toBeEnabled({ timeout: 20000 });
+    });
+
     test('should keep MetaMask unavailable when the extension is not detected', async ({ page }) => {
       await mockVerifyEndpoint(page, { valid: true });
 
