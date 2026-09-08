@@ -275,7 +275,7 @@ onUnmounted(() => {
     <!-- Loading Skeletons -->
     <div
       v-if="isFirstLoad || tokensStore.isLoading && tokensList.total === 0"
-      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6"
+      class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4 sm:gap-6"
     >
       <Card
         v-for="i in 12"
@@ -306,7 +306,7 @@ onUnmounted(() => {
     <div v-else-if="!tokensStore.isLoading" class="flex flex-col gap-4">
 
       <!-- Tokens Grid -->
-      <div v-if="tokensList.items.length > 0" data-testid="token-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div v-if="tokensList.items.length > 0" data-testid="token-grid" class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4 sm:gap-6">
         <template
           v-for="token in tokensList.items"
           :key="token.liquid?.assetNum || token.vesting?.assetNum"

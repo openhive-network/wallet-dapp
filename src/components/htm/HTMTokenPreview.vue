@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import TextTooltip from '@/components/ui/texttooltip/TextTooltip.vue';
 import type { CTokenDefinitionDisplay } from '@/stores/tokens.store';
 
 interface Props {
@@ -8,9 +9,14 @@ interface Props {
   showViewIcon?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   showViewIcon: false
 });
+
+const supplyRows = computed(() => [
+  { label: 'Total Supply:', value: props.token.displayTotalSupply },
+  { label: 'Max Supply:', value: props.token.capped ? props.token.displayMaxSupply : '∞ (Unlimited)' }
+]);
 
 // Get avatar fallback text
 const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
@@ -70,8 +76,8 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
         <!-- Token Info -->
         <div class="flex-1 min-w-0">
           <div class="flex flex-col gap-2 mb-1">
-            <CardTitle class="text-lg truncate inline-flex gap-2 flex-wrap items-center">
-              <span>{{ token.symbol || token.name || 'Unnamed Token' }}</span>
+            <CardTitle class="text-lg inline-flex gap-2 flex-wrap items-center min-w-0">
+              <span class="truncate">{{ token.symbol || token.name || 'Unnamed Token' }}</span>
               <span
                 v-if="token.name && token.symbol && token.name !== token.symbol"
                 class="text-sm text-muted-foreground font-normal"
@@ -132,23 +138,17 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
       <!-- Token Properties -->
       <div class="space-y-2 text-sm">
         <!-- Supply Info -->
-        <div class="flex items-center justify-between">
-          <span class="text-muted-foreground">Total Supply:</span>
-          <span class="font-semibold text-foreground">
-            {{ token.displayTotalSupply }}
-          </span>
-        </div>
-
-        <div class="flex items-center justify-between">
-          <span class="text-muted-foreground">Max Supply:</span>
-          <span class="font-semibold text-foreground flex items-center gap-1">
-            <template v-if="token.capped">
-              {{ token.displayMaxSupply }}
-            </template>
-            <template v-else>
-              ∞ (Unlimited)
-            </template>
-          </span>
+        <div
+          v-for="row in supplyRows"
+          :key="row.label"
+          class="flex items-center justify-between gap-2"
+        >
+          <span class="text-muted-foreground shrink-0">{{ row.label }}</span>
+          <div class="min-w-0">
+            <TextTooltip :content="row.value">
+              <span class="block truncate text-right font-semibold text-foreground">{{ row.value }}</span>
+            </TextTooltip>
+          </div>
         </div>
 
         <div class="flex items-center justify-between">
