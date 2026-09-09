@@ -29,6 +29,15 @@ export default defineNuxtConfig({
       ]
     }
   },
+  // Dev-only overrides (not applied to production builds)
+  $development: {
+    vite: {
+      server: {
+        // Allow Cloudflare quick tunnels (ephemeral *.trycloudflare.com hostnames)
+        allowedHosts: ['.trycloudflare.com']
+      }
+    }
+  },
   vite: {
     plugins: [stripTestIds()],
     esbuild: {
