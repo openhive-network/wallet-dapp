@@ -90,8 +90,8 @@ export default defineNuxtConfig({
     // Account onboarding via QR code (optional module, see .env.example - enabled by NUXT_ACCOUNT_CREATOR_*)
     accountRequestTokenInterval: 3,
     accountRequestDatabaseUrl: 'file:./.data/account-requests.sqlite',
-    accountCreatorAccount: '',
-    accountCreatorActiveKey: '',
+    accountCreatorAccount: process.env.NUXT_ACCOUNT_CREATOR_ACCOUNT || '',
+    accountCreatorActiveKey: process.env.NUXT_ACCOUNT_CREATOR_ACTIVE_KEY || '',
     accountCreatorUseClaimedAccounts: false
   }
 });
