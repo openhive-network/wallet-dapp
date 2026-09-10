@@ -12,8 +12,8 @@ OPTIONS:
   --port=PORT                           Port to be exposed (Obligatory)
   --name=NAME                           Container name to be used (default: wallet-dapp)
   --env-file=deployment.env             Obligatory path to a file containing environment variables to override i.e. deployment secrets
-  --data-dir=DIR                        Host directory mounted at /app/.data, holding the SQLite claims database created during the build
-                                        (created when missing; relative paths are resolved against the current directory)
+  --data-dir=DIR                        Persistent host directory mounted at /app/.data for the SQLite claims database; the container
+                                        seeds it on the first start (created when missing; relative paths are resolved against the current directory)
   --detach                              Run in detached mode
   --help|-h|-?                          Display this help screen and exit
 EOF
@@ -87,7 +87,7 @@ else
     exit 2
 fi
 
-# Mount the prebuilt SQLite claims database directory (schema created during the build).
+# Mount the persistent data directory - the container seeds the SQLite claims database into it on the first start.
 # Docker only bind-mounts absolute paths - a relative one is treated as a named volume - so the directory
 # is created first and its real path (relative to the current directory, symlinks resolved) is mounted.
 if [ -n "${DATA_DIR}" ]; then

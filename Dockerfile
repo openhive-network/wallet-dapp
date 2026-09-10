@@ -32,12 +32,17 @@ ENV HOST=0.0.0.0
 # .output contains the server and public assets built by Nuxt.
 COPY .output/ .output/
 
+# Seed of the SQLite claims database - the empty schema created by `pnpm db:push` before the image build.
+# The entrypoint copies it into /app/.data when that directory holds no database yet.
+COPY .data/account-requests.sqlite .data-init/
+COPY --chmod=755 scripts/docker-entrypoint.sh docker-entrypoint.sh
+
 # Expose the Nuxt server port
 EXPOSE 8080
 
 # warning: while starting this image, external env file must be mapped as /app/mapped.env
-# note: the SQLite claims database (schema created during the build) is mounted at /app/.data
-#       via `run_instance.sh --data-dir`; nothing about the database lives in this image.
+# note: mount a persistent host directory at /app/.data (`run_instance.sh --data-dir`) to keep the claims
+#       database across deployments; without the mount it lives only inside the container.
 
-# Run the Nuxt server from the generated .output
-CMD ["node", "--env-file=/app/mapped.env", ".output/server/index.mjs"]
+# Seed the data directory, then run the Nuxt server (see scripts/docker-entrypoint.sh)
+CMD ["/app/docker-entrypoint.sh"]

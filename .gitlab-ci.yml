@@ -36,8 +36,8 @@ build:
   stage: build
   script:
     - pnpm build
-    # Materialise the SQLite claims database schema from prisma/schema.prisma so it can be
-    # mounted at runtime (see run_instance.sh --data-dir); keeps the schema the single source of truth.
+    # Materialise the SQLite claims database schema from prisma/schema.prisma; the image build bakes
+    # the file in as the seed of /app/.data (see Dockerfile), keeping the schema the single source of truth.
     - NUXT_ACCOUNT_REQUEST_DATABASE_URL="file:./.data/account-requests.sqlite" pnpm db:push
   artifacts:
     paths:
