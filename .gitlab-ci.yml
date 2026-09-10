@@ -17,6 +17,9 @@ variables:
   GIT_DEPTH: 0
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
+  # Host directory mounted at /app/.data, holding the SQLite claims database created during the build.
+  # Deployments may override this with a persistent host path; by default it is the CI workspace copy.
+  DATA_DIR: "$CI_PROJECT_DIR/.data"
 
 default:
   tags:
@@ -33,9 +36,13 @@ build:
   stage: build
   script:
     - pnpm build
+    # Materialise the SQLite claims database schema from prisma/schema.prisma so it can be
+    # mounted at runtime (see run_instance.sh --data-dir); keeps the schema the single source of truth.
+    - NUXT_ACCOUNT_REQUEST_DATABASE_URL="file:./.data/account-requests.sqlite" pnpm db:push
   artifacts:
     paths:
       - .output
+      - .data
     when: always
     expire_in: 1 week
 
@@ -91,6 +98,7 @@ test:e2e:
       --name="$CONTAINER_NAME" \
       --port=$PORT \
       --env-file="${DEPLOYMENT_ENV_FILE}" \
+      --data-dir="${DATA_DIR}" \
       --detach
 
 build_app_image:
@@ -118,6 +126,8 @@ deploy_dev_environment:
   stage: deploy
   needs:
     - push_protected_app_image
+    - job: build
+      artifacts: true
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
     CONTAINER_NAME: "hive_bridge_dev_deployment"
@@ -194,6 +204,8 @@ deploy_prototyping_environment:
   stage: deploy
   needs:
     - push_protected_app_image
+    - job: build
+      artifacts: true
 
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
@@ -224,6 +236,7 @@ deploy_prototyping_environment:
         --name="$CONTAINER_NAME" \
         --port=$PORT \
         --env-file="${DEPLOYMENT_ENV_FILE}" \
+        --data-dir="${DATA_DIR}" \
         --detach
 
   rules:
@@ -253,6 +266,8 @@ deploy_prod_environment:
   stage: deploy
   needs:
     - push_protected_app_image
+    - job: build
+      artifacts: true
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
     CONTAINER_NAME: "hive_bridge_prod_deployment"

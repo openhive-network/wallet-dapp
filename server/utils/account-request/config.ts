@@ -1,7 +1,5 @@
 import { normalizeAccountName } from '#shared/utils/account-name';
 
-import { resolveAccountRequestDatabaseUrl } from './database-url';
-
 export interface AccountCreatorConfig {
   /** Hive account paying for / signing the account creation */
   account: string;
@@ -46,7 +44,7 @@ export const getAccountRequestConfig = (): AccountRequestConfig | undefined => {
       useClaimedAccounts: config.accountCreatorUseClaimedAccounts === true
     },
     tokenInterval,
-    databaseUrl: resolveAccountRequestDatabaseUrl(toTrimmedString(config.accountRequestDatabaseUrl))
+    databaseUrl: toTrimmedString(config.accountRequestDatabaseUrl)
   };
 };
 

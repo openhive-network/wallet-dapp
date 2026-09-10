@@ -36,6 +36,8 @@ COPY .output/ .output/
 EXPOSE 8080
 
 # warning: while starting this image, external env file must be mapped as /app/mapped.env
+# note: the SQLite claims database (schema created during the build) is mounted at /app/.data
+#       via `run_instance.sh --data-dir`; nothing about the database lives in this image.
 
 # Run the Nuxt server from the generated .output
 CMD ["node", "--env-file=/app/mapped.env", ".output/server/index.mjs"]

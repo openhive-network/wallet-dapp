@@ -12,7 +12,8 @@ OPTIONS:
   --port=PORT                           Port to be exposed (Obligatory)
   --name=NAME                           Container name to be used (default: wallet-dapp)
   --env-file=deployment.env             Obligatory path to a file containing environment variables to override i.e. deployment secrets
-  --detach                              Run in detached mode 
+  --data-dir=DIR                        Host directory mounted at /app/.data, holding the SQLite claims database created during the build
+  --detach                              Run in detached mode
   --help|-h|-?                          Display this help screen and exit
 EOF
 }
@@ -23,6 +24,7 @@ CONTAINER_NAME=${CONTAINER_NAME:-"wallet-dapp"}
 DETACH=${DETACH:-false}
 
 CUSTOM_ENV_FILE=''
+DATA_DIR=''
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -49,6 +51,9 @@ while [ $# -gt 0 ]; do
             echo "ERROR: File '${arg}' not found"
             exit 2
         fi
+        ;;
+    --data-dir=*)
+        DATA_DIR="${1#*=}"
         ;;
     --help|-?)
         print_help
@@ -78,6 +83,12 @@ if [ -n "${CUSTOM_ENV_FILE}" ]; then
 else
     echo "ERROR: Env file must be specified at command line using option: --env-file"
     exit 2
+fi
+
+# Mount the prebuilt SQLite claims database directory (schema created during the build).
+if [ -n "${DATA_DIR}" ]; then
+    mkdir -p "${DATA_DIR}"
+    RUN_OPTIONS+=("-v" "${DATA_DIR}:/app/.data")
 fi
 
 if [[ "$DETACH" == "true" ]]; then
