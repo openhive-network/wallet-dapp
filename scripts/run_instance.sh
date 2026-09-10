@@ -86,8 +86,10 @@ else
 fi
 
 # Mount the prebuilt SQLite claims database directory (schema created during the build).
+# Docker only bind-mounts absolute paths - a relative one is treated as a named volume - so resolve it.
 if [ -n "${DATA_DIR}" ]; then
     mkdir -p "${DATA_DIR}"
+    DATA_DIR="$(cd "${DATA_DIR}" && pwd)"
     RUN_OPTIONS+=("-v" "${DATA_DIR}:/app/.data")
 fi
 
