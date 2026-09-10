@@ -17,9 +17,6 @@ variables:
   GIT_DEPTH: 0
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
-  # Host directory mounted at /app/.data, holding the SQLite claims database created during the build.
-  # Deployments may override this with a persistent host path; by default it is the CI workspace copy.
-  DATA_DIR: "$CI_PROJECT_DIR/.data"
 
 default:
   tags:
@@ -93,12 +90,15 @@ test:e2e:
   - |
     # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
     export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+    # Persistent per-deployment data directory on the runner host, outside the CI workspace
+    # (the deploy runner cannot fetch artifacts and its workspace is recreated for every job).
+    # Set the DATA_DIR CI variable to an absolute path to place it elsewhere.
     ./scripts/run_instance.sh \
       --image="$IMAGE_NAME" \
       --name="$CONTAINER_NAME" \
       --port=$PORT \
       --env-file="${DEPLOYMENT_ENV_FILE}" \
-      --data-dir="${DATA_DIR}" \
+      --data-dir="${DATA_DIR:-$HOME/wallet-dapp-data/${CONTAINER_NAME}}" \
       --detach
 
 build_app_image:
@@ -126,8 +126,6 @@ deploy_dev_environment:
   stage: deploy
   needs:
     - push_protected_app_image
-    - job: build
-      artifacts: true
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
     CONTAINER_NAME: "hive_bridge_dev_deployment"
@@ -204,8 +202,6 @@ deploy_prototyping_environment:
   stage: deploy
   needs:
     - push_protected_app_image
-    - job: build
-      artifacts: true
 
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
@@ -231,12 +227,13 @@ deploy_prototyping_environment:
       ./scripts/ci-helpers/backend-api-proxy/start_api_proxy.sh
       # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
       export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+      # Persistent per-deployment data directory on the runner host - see .deploy_instance_script
       ./scripts/run_instance.sh \
         --image="$IMAGE_NAME" \
         --name="$CONTAINER_NAME" \
         --port=$PORT \
         --env-file="${DEPLOYMENT_ENV_FILE}" \
-        --data-dir="${DATA_DIR}" \
+        --data-dir="${DATA_DIR:-$HOME/wallet-dapp-data/${CONTAINER_NAME}}" \
         --detach
 
   rules:
@@ -266,8 +263,6 @@ deploy_prod_environment:
   stage: deploy
   needs:
     - push_protected_app_image
-    - job: build
-      artifacts: true
   variables:
     IMAGE_NAME: "${APP_IMAGE_NAME}"
     CONTAINER_NAME: "hive_bridge_prod_deployment"
