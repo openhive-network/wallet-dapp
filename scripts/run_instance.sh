@@ -13,6 +13,7 @@ OPTIONS:
   --name=NAME                           Container name to be used (default: wallet-dapp)
   --env-file=deployment.env             Obligatory path to a file containing environment variables to override i.e. deployment secrets
   --data-dir=DIR                        Host directory mounted at /app/.data, holding the SQLite claims database created during the build
+                                        (created when missing; relative paths are resolved against the current directory)
   --detach                              Run in detached mode
   --help|-h|-?                          Display this help screen and exit
 EOF
@@ -46,7 +47,8 @@ while [ $# -gt 0 ]; do
     --env-file=*)
         arg="${1#*=}"
         if [ -f "${arg}" ]; then
-            CUSTOM_ENV_FILE="${arg}"
+            # Docker treats a relative bind-mount source as a named volume, so pass the resolved path.
+            CUSTOM_ENV_FILE="$(realpath "${arg}")"
         else
             echo "ERROR: File '${arg}' not found"
             exit 2
@@ -86,10 +88,11 @@ else
 fi
 
 # Mount the prebuilt SQLite claims database directory (schema created during the build).
-# Docker only bind-mounts absolute paths - a relative one is treated as a named volume - so resolve it.
+# Docker only bind-mounts absolute paths - a relative one is treated as a named volume - so the directory
+# is created first and its real path (relative to the current directory, symlinks resolved) is mounted.
 if [ -n "${DATA_DIR}" ]; then
     mkdir -p "${DATA_DIR}"
-    DATA_DIR="$(cd "${DATA_DIR}" && pwd)"
+    DATA_DIR="$(realpath "${DATA_DIR}")"
     RUN_OPTIONS+=("-v" "${DATA_DIR}:/app/.data")
 fi
 
