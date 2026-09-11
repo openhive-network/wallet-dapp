@@ -3,7 +3,7 @@ import beekeeperProviderFactory from '@hiveio/wax-signers-beekeeper';
 
 import type { AccountPublicKeys } from '#shared/types/account-request';
 
-import { getAccountCreationFee, getServerWax, type ServerWax } from '../hive/chain';
+import { getAccountCreationFee, getServerWax } from '../hive/chain';
 
 import { requireAccountRequestConfig, type AccountCreatorConfig } from './config';
 import { getCreatorWallet, withCreatorWallet } from './creator-wallet';
@@ -16,17 +16,6 @@ export interface AccountCreationRequest {
 export interface AccountCreationResult {
   transactionId: string;
 }
-
-/** Makes sure the configured key really controls the creator account before spending its resources */
-const assertCreatorKeyOnChain = async (wax: ServerWax, config: AccountCreatorConfig, publicKey: string): Promise<void> => {
-  const { accounts: [creator] } = await wax.api.database_api.find_accounts({ accounts: [config.account] });
-  if (!creator)
-    throw new Error(`Creator account @${config.account} does not exist on chain`);
-
-  const activeKeys = creator.active.key_auths.map(keyAuth => keyAuth[0]);
-  if (!activeKeys.includes(publicKey))
-    throw new Error(`Configured active key does not belong to @${config.account}`);
-};
 
 const toAuthority = (publicKey: string) => ({
   weight_threshold: 1,
@@ -56,8 +45,6 @@ export const createHiveAccount = async (request: AccountCreationRequest): Promis
   const { creator } = requireAccountRequestConfig();
   const wax = await getServerWax();
   const { publicKey } = await getCreatorWallet();
-
-  await assertCreatorKeyOnChain(wax, creator, publicKey);
 
   const transaction = await wax.createTransaction();
   transaction.pushOperation(await buildCreateOperation(request, creator));
