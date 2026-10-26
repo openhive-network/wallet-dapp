@@ -14,19 +14,16 @@
 #   generate` and `prisma db push` need no download. The install also leaves the
 #   build's side effects in the store's cache;
 # * the Chromium (headless shell) of the lockfile's @playwright/test in
-#   /opt/pw-browsers (the base image's /ms-playwright is another Playwright's).
-#   Playwright 1.57 predates Ubuntu 26.04 and refuses to install or launch on
-#   it; PLAYWRIGHT_HOST_PLATFORM_OVERRIDE makes it use its ubuntu24.04 build
-#   (the system libraries are the base image's, installed for a newer Chromium).
+#   /opt/pw-browsers (the lockfile's Playwright comes from npm-common-config's
+#   playwright-toolset catalog, the one the base image is built for).
 #
 # Build and pin it with .aidev/runtime/build.sh; see .aidev/README.md.
-FROM registry.gitlab.syncad.com/hive/common-ci-configuration/node-test-tools@sha256:e49773279d26e2b546c5e785e656fcec5caa983def88aef5816e2d95ec72ef1a
+FROM registry.gitlab.syncad.com/hive/common-ci-configuration/node-test-tools@sha256:c15f6782c675ddbe8a5d5b05cfa27cfa7b606ecd8bc67a3b5d0c2206f2733994
 USER root
 ENV HOME=/tmp \
     npm_config_store_dir=/opt/pnpm-store \
     npm_config_manage_package_manager_versions=false \
     PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
-    PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64 \
     PRISMA_SCHEMA_ENGINE_BINARY=/opt/prisma-engines/schema-engine \
     PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 \
     CHECKPOINT_DISABLE=1 \

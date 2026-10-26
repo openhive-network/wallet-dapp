@@ -24,6 +24,15 @@ import {
   mockCTokensTokenApi,
   mockBroadcastSuccess
 } from '../fixtures/mock-responses';
+import { primaryTestAccount, secondaryTestAccount, tertiaryTestAccount } from '../fixtures/test-accounts';
+
+/** Accounts the mocked node knows - every other name is free to register */
+const EXISTING_ACCOUNT_NAMES = new Set([
+  mockHiveAccount.name,
+  primaryTestAccount.name,
+  secondaryTestAccount.name,
+  tertiaryTestAccount.name
+]);
 
 // ===========================================
 // Types
@@ -52,59 +61,54 @@ export interface MockApiOptions {
 export async function mockHiveApi (page: Page, options: MockApiOptions = {}) {
   const { delay = 0 } = options;
 
-  // Mock Hive API JSON-RPC endpoint
-  await page.route('**/api.hive.blog', async (route) => {
+  const handleJsonRpc = async (route: Route) => {
     await handleWithDelay(route, delay, async () => {
-      const request = route.request();
-      const postData = request.postDataJSON();
+      const postData = route.request().postDataJSON();
 
       if (!postData?.method)
         return route.fulfill({ status: 400, body: JSON.stringify({ error: 'Invalid request' }) });
-
 
       const response = getHiveApiResponse(postData.method, postData.params);
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify(response)
+        body: JSON.stringify({ ...response, id: postData.id })
       });
     });
-  });
+  };
+
+  // The page posts to the node's origin, which the browser requests with a trailing slash
+  await page.route('**/api.hive.blog/', handleJsonRpc);
 
   // Also mock testnet API if not using real testnet
-  if (!options.useTestnet) {
-    await page.route('**/api.fake.openhive.network', async (route) => {
-      await handleWithDelay(route, delay, async () => {
-        const request = route.request();
-        const postData = request.postDataJSON();
-
-        if (!postData?.method)
-          return route.fulfill({ status: 400, body: JSON.stringify({ error: 'Invalid request' }) });
-
-
-        const response = getHiveApiResponse(postData.method, postData.params);
-        return route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify(response)
-        });
-      });
-    });
-  }
+  if (!options.useTestnet)
+    await page.route('**/api.fake.openhive.network/', handleJsonRpc);
 }
 
 /**
  * Get mock response for Hive API method
  */
-function getHiveApiResponse (method: string, params: unknown[]) {
+function getHiveApiResponse (method: string, params: unknown) {
   switch (method) {
   case 'condenser_api.get_accounts':
-  case 'database_api.find_accounts':
     return {
       jsonrpc: '2.0',
       id: 1,
       result: [mockHiveAccountExtended]
     };
+
+  case 'database_api.find_accounts': {
+    const { accounts = [] } = params as { accounts?: string[] };
+    return {
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        accounts: accounts
+          .filter(name => EXISTING_ACCOUNT_NAMES.has(name))
+          .map(name => ({ ...mockHiveAccountExtended, name }))
+      }
+    };
+  }
 
   case 'condenser_api.get_dynamic_global_properties':
   case 'database_api.get_dynamic_global_properties':
@@ -146,6 +150,34 @@ function getHiveApiResponse (method: string, params: unknown[]) {
         curation_reward_curve: 'linear'
       }
     };
+
+  case 'database_api.get_current_price_feed':
+    return {
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        base: { amount: '300', precision: 3, nai: '@@000000013' },
+        quote: { amount: '1000', precision: 3, nai: '@@000000021' }
+      }
+    };
+
+  case 'rc_api.find_rc_accounts': {
+    const { accounts = [] } = params as { accounts?: string[] };
+    return {
+      jsonrpc: '2.0',
+      id: 1,
+      result: {
+        rc_accounts: accounts.map(account => ({
+          account,
+          rc_manabar: { current_mana: '1000000000000', last_update_time: 1700000000 },
+          max_rc_creation_adjustment: { amount: '0', precision: 6, nai: '@@000000037' },
+          max_rc: '1000000000000',
+          delegated_rc: 0,
+          received_delegated_rc: 0
+        }))
+      }
+    };
+  }
 
   case 'condenser_api.get_current_median_history_price':
     return {

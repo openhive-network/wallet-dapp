@@ -14,9 +14,8 @@
 #              claims schema into a SQLite file under test-results/<suite>/ as
 #              CI's build job does (the build itself needs no database)
 #   e2e        Playwright, project chromium-headless, __tests__/e2e and
-#              __tests__/integration (API mocks of __tests__/helpers/api-mocks.ts)
-#              without the tests in E2E_NEEDS_NETWORK below. CI=1 (junit
-#              reporter, forbidOnly, retries), E2E_WORKERS workers.
+#              __tests__/integration (API mocks of __tests__/helpers/api-mocks.ts).
+#              CI=1 (junit reporter, forbidOnly, retries), E2E_WORKERS workers.
 #
 # Runs offline in the image of .aidev/runtime/Dockerfile.
 set -uo pipefail
@@ -28,29 +27,6 @@ rm -rf "$out"; mkdir -p "$out"
 cases="$out/cases.tsv"; : > "$cases"
 source .aidev/junit-helpers.sh
 
-# The tests that need the network, left out of every slot (--grep-invert): they
-# pass with network and fail under `--network none` because the page reaches an
-# endpoint their spec does not mock (the Hive node api.fake.openhive.network the
-# dev server is started with). Patterns are Playwright title regexes; see
-# .aidev/README.md. Playwright matches them against the titles joined by spaces
-# (describe titles, then the test title). Everything else in __tests__/e2e and __tests__/integration runs.
-E2E_NEEDS_NETWORK=(
-    'Account Details Display should display Hive Power \(HP\)'
-    'Account Details Display should display profile information'
-    'Mobile layout create account page should not scroll horizontally in any state'
-    'Mobile layout should scroll the password form into view'
-    'Create account page should lowercase the account name typed with capital letters'
-    'Create account page should suggest a free account name that passes validation'
-    'Create account page should keep MetaMask unavailable when the extension is not detected'
-    'Create account page should redirect to Google sign-in right after choosing Google without a session'
-    'Create account page should resume the Google registration automatically'
-    'Create account page should ask for a recovery password when Google is connected'
-    'Create account page should reveal password fields only after choosing the password method'
-    'Create account page should create the account with password derived keys'
-    'Create account page should return to the form and show the backend rejection'
-    'Create account page should show the already used state when a failed request used the token up'
-    'Create account page should keep showing the created account with its public keys after a page reload'
-)
 # CI=1 makes the config use one worker; the specs are fullyParallel and pass
 # with several, which keeps the slot to a few minutes.
 E2E_WORKERS="${E2E_WORKERS:-4}"
@@ -92,11 +68,9 @@ build() {
 e2e() {
     local junit="$root/test-results/junit.xml" rc=0
     rm -f "$junit"
-    local skip
-    skip="$(IFS='|'; echo "${E2E_NEEDS_NETWORK[*]}")"
     CI=1 run_with_junit_fallback "$junit" e2e \
         pnpm exec playwright test --project=chromium-headless --workers="$E2E_WORKERS" \
-        --output "$out/playwright" --grep-invert "$skip" __tests__/e2e __tests__/integration || rc=$?
+        --output "$out/playwright" __tests__/e2e __tests__/integration || rc=$?
     [ -f "$junit" ] && cp "$junit" "$out/e2e-junit.xml"
     return "$rc"
 }
