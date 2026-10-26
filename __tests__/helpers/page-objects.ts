@@ -395,8 +395,12 @@ export class SendTransferCard extends BasePage {
     return this.page.locator(selectors.tokenTransfer.sendTransferCard);
   }
 
-  get recipientInput(): Locator {
-    return this.page.locator(selectors.tokenTransfer.recipientInput);
+  get recipientTrigger(): Locator {
+    return this.page.locator(selectors.tokenTransfer.recipientTrigger);
+  }
+
+  get recipientSearch(): Locator {
+    return this.page.locator(selectors.tokenTransfer.recipientSearch);
   }
 
   get amountInput(): Locator {
@@ -416,7 +420,8 @@ export class SendTransferCard extends BasePage {
   }
 
   async fillTransfer(recipient: string, amount: string, memo?: string) {
-    await this.recipientInput.first().fill(recipient);
+    await this.recipientTrigger.first().click();
+    await this.recipientSearch.first().fill(recipient);
     await this.amountInput.first().fill(amount);
     if (memo)
       await this.memoInput.first().fill(memo);

@@ -1,17 +1,22 @@
-import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 import { defineNuxtConfig } from 'nuxt/config';
 
 import { stripTestIds } from './config/vite-strip-testid';
 
+// git resolves worktrees (`.git` is a file) and packed refs; a checkout without
+// git metadata or without a git binary builds with the fallback hash instead.
 const getCommitHash = () => {
-  const rev = fs.readFileSync('.git/HEAD').toString().trim();
-
-  if (!rev.includes(':'))
-    return rev;
-  else
-    return fs.readFileSync(`.git/${rev.substring(5)}`).toString().trim();
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], {
+      cwd: import.meta.dirname,
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+  } catch {
+    return process.env.CI_COMMIT_SHA || 'unknown';
+  }
 };
 
 export default defineNuxtConfig({

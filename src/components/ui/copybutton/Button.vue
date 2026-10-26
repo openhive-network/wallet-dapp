@@ -21,10 +21,12 @@ const copyBtn = (event: MouseEvent) => {
   if (!value) return;
   void copyText(value);
 
-  const oldAttribute = target.children[0].children[0].getAttribute('d');
-  target.children[0].children[0].setAttribute('d', mdiCheck);
+  const icon = target.children[0]?.children[0];
+  if (!icon) return;
+  const oldAttribute = icon.getAttribute('d');
+  icon.setAttribute('d', mdiCheck);
   setTimeout(() => {
-    target.children[0].children[0].setAttribute('d', oldAttribute!);
+    icon.setAttribute('d', oldAttribute!);
   }, 1000);
 };
 </script>

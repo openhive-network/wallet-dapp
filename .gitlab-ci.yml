@@ -8,7 +8,7 @@ stages:
 include:
   - template: Workflows/Branch-Pipelines.gitlab-ci.yml
   - project: 'hive/common-ci-configuration'
-    ref: cafb362f9b025cf91caebccd91e6275e2d0d6b60
+    ref: develop
     file:
       - '/templates/docker_image_jobs.gitlab-ci.yml'
       - '/templates/npm_projects.gitlab-ci.yml'
@@ -46,13 +46,10 @@ build:
 test:e2e:
   extends: .npm_based_job_base
   stage: test
-  image: mcr.microsoft.com/playwright:v1.57.0-noble
+  image: "${NODE_TEST_TOOLS_IMAGE}"
   needs:
     - job: lint
       optional: true
-  before_script:
-    - npm install -g pnpm@10
-    - pnpm install --frozen-lockfile
   script:
     - pnpm test:e2e --project=chromium-headless
   artifacts:

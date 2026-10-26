@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Delete the file
-    const fileId = files[0].id;
+    const fileId = files[0]?.id;
     if (fileId) {
       await drive.files.delete({
         fileId
