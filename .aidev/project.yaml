@@ -29,7 +29,7 @@ branches:
 environment:
   kind: "container"
   # Built by .aidev/runtime/build.sh --push; replace with the printed repo@sha256:<digest>.
-  image: "registry.gitlab.syncad.com/hive/wallet-dapp/aidev-tests@sha256:d9853be5391b61a30eb7fa2ce2d1bea7fb3b006b4972b5a6f7e1cca8fd0ff23c"
+  image: "registry.gitlab.syncad.com/hive/wallet-dapp/aidev-tests@sha256:c1f212c9283c2d173864cd6bc6e87cbe2f6fd1b14c406457b07859374620832b"
   inputs: ["pnpm-lock.yaml"]
 
 issues:
@@ -49,11 +49,9 @@ issues:
 # Verification slots. Each binding is what this project genuinely runs for
 # that slot — never one selection repeated under seven names, which makes
 # seven gates report on the same evidence while claiming to check seven
-# different things. `e2e` is the Playwright suite (chromium-headless, API
-# mocks) without the tests that need the network (.aidev/run-checks.sh,
-# E2E_NEEDS_NETWORK); about 1.5 minutes offline. `static` carries `typecheck`
-# (nuxt typecheck), which fails on the existing code at onboarding
-# (.aidev/README.md); no other slot runs it.
+# different things. `e2e` is the whole Playwright suite (chromium-headless, API
+# mocks); about 2 minutes offline. `static` carries `typecheck` (nuxt
+# typecheck); no other slot runs it.
 verification:
   quick:
     adapter: command

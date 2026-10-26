@@ -40,15 +40,9 @@ CI's build job), `e2e` is `playwright test --project=chromium-headless` over `__
 and `__tests__/integration` with `CI=1`. Every run first installs `node_modules` offline
 and runs the `postinstall` (`prisma generate`, `nuxt prepare`).
 
-The suites run with no network. These tests pass with network and fail without it — the
-page reaches the Hive node (`api.fake.openhive.network`, which the dev server is started
-with) in ways their spec does not mock — and are left out of every slot
-(`E2E_NEEDS_NETWORK` in `run-checks.sh`); the other 186 run:
-
-- `account/account-management.spec.ts` — Account Details Display: *should display Hive Power (HP)*, *should display profile information* (no mocks in these tests).
-- `account/account-request.spec.ts` — Mobile layout: *create account page should not scroll horizontally in any state*, *should scroll the password form into view…*; Create account page: the eleven tests that type an account name and wait for the method buttons to enable (the account-name validation stays pending offline).
-
-Mocking the account-name lookup in those specs would bring them back into the slots.
+The suites run with no network: the endpoints the tests depend on are mocked
+(`__tests__/helpers/api-mocks.ts` and the specs' own routes), and the whole of
+`__tests__/e2e` and `__tests__/integration` runs.
 
 ## Test runtime
 
@@ -61,19 +55,3 @@ a pnpm store filled from `pnpm-lock.yaml`, Prisma's schema engine for the lockfi
 schema/config changes, and put the printed `repo@sha256:…` into `environment.image`.
 The submodule must be checked out (`git submodule update --init`) for both the build and
 the suites.
-
-At onboarding (2026-10-25) `quick`, `full`, `canary`, `system`, `baseline` and `coverage`
-pass offline; `static`'s `typecheck` fails on the existing code (11 errors: missing
-`terser` types in `npm-common-config/ts-common/terser.ts`, possibly-undefined accesses in
-`src/components/ui/copybutton/Button.vue` and
-`server/api/google-drive/delete-wallet.delete.ts`, an unknown selector in
-`__tests__/helpers/page-objects.ts`).
-
-## Known state at onboarding (2026-10-25)
-
-All slots pass offline except `static`: `nuxt typecheck` reports 11 existing type errors
-(npm-common-config/ts-common/terser.ts, copybutton/Button.vue, delete-wallet.delete.ts,
-page-objects.ts). 15 e2e tests are excluded by title (`E2E_NEEDS_NETWORK` in run-checks.sh)
-because they reach live endpoints the specs do not mock. `nuxt.config.ts` reads `.git/HEAD`
-as a path, which breaks in a git worktree. The lockfile's Playwright 1.57.0 needs
-`PLAYWRIGHT_HOST_PLATFORM_OVERRIDE=ubuntu24.04-x64` on the Ubuntu 26.04 runtime.
