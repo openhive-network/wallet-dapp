@@ -27,6 +27,14 @@ cd wallet-dapp
 pnpm install
 ```
 
+Tool versions (e.g. Playwright) come from the pnpm catalog in the `npm-common-config` submodule, which tracks the `develop` branch of [common-ci-configuration](https://gitlab.syncad.com/hive/common-ci-configuration). CI always checks out the tip of `develop`, so the catalog matches the `node-test-tools` image. To match CI locally, run:
+
+```bash
+git submodule update --init --remote && pnpm install
+```
+
+After a catalog bump in common-ci-configuration, commit the updated submodule commit and the refreshed `pnpm-lock.yaml`.
+
 ### 3. Configure Environment Variables
 
 Copy `.env.example` to `.env` and configure the required variables (see [Google Integration Setup](#google-integration-setup) for details).
