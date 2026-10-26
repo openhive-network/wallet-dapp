@@ -17,6 +17,8 @@ variables:
   GIT_DEPTH: 0
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
+  # Track ccc develop so the pnpm catalog matches the develop node-test-tools image and templates.
+  GIT_SUBMODULE_UPDATE_FLAGS: --remote
 
 default:
   tags:
