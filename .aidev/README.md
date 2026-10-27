@@ -52,6 +52,8 @@ a pnpm store filled from `pnpm-lock.yaml`, Prisma's schema engine for the lockfi
 `@playwright/test` in `/opt/pw-browsers`. Rebuild and re-pin it with
 `.aidev/runtime/build.sh --push` when the Dockerfile, `package.json`, `pnpm-lock.yaml`,
 `pnpm-workspace.yaml` (from the `npm-common-config` submodule), `.npmrc` or the Prisma
-schema/config changes, and put the printed `repo@sha256:…` into `environment.image`.
+schema/config changes, or when common-ci-configuration republishes `node-test-tools:develop`
+(e.g. a Node bump; the Dockerfile builds on that moving tag and takes Node from it), and
+put the printed `repo@sha256:…` into `environment.image`.
 The submodule must be checked out (`git submodule update --init`) for both the build and
 the suites.

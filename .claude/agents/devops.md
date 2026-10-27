@@ -34,7 +34,7 @@ Jobs:
 ## Key Files
 
 - .gitlab-ci.yml - Pipeline config
-- Dockerfile - Node 22-slim multi-stage
+- Dockerfile - node:${NODE_VERSION}-slim, Node version from ccc (NODE_IMAGE_VERSION)
 - .env.example - Env template
 
 ## Commands

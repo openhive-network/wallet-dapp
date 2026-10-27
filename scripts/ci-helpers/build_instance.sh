@@ -13,6 +13,9 @@ cat <<-EOF
       --help|-h|-?      Display this help screen and exit
       --progress=TYPE   Determines how to display build progress (default: 'auto')
       --push            Allows to automatically push built image to the registry
+
+  The Node version of the image is NODE_IMAGE_VERSION, which common-ci-configuration's
+  CI templates define; set it yourself for a local build.
 EOF
 }
 
@@ -63,6 +66,7 @@ done
 _TST_IMGTAG=${BUILD_IMAGE_TAG:?"Missing arg #1 to specify built image tag"}
 _TST_SRCDIR=${SRCROOTDIR:?"Missing arg #2 to specify source directory"}
 _TST_REGISTRY=${REGISTRY:?"Missing arg #3 to specify target container registry"}
+_TST_NODE_VERSION=${NODE_IMAGE_VERSION:?"Missing NODE_IMAGE_VERSION (common-ci-configuration's Node version)"}
 
 # Supplement a registry path by trailing slash (if needed)
 #[[ "${REGISTRY}" != */ ]] && REGISTRY="${REGISTRY}/"
@@ -105,6 +109,7 @@ echo -e "\nBuilding base instance image...\n"
 
 docker buildx build --target=app \
   --progress="$PROGRESS_DISPLAY" \
+  --build-arg NODE_VERSION="$NODE_IMAGE_VERSION" \
   --build-arg BUILD_TIME="$BUILD_TIME" \
   --build-arg GIT_COMMIT_SHA="$GIT_COMMIT_SHA" \
   --build-arg GIT_CURRENT_BRANCH="$GIT_CURRENT_BRANCH" \
