@@ -2,8 +2,9 @@
 # .aidev/project.yaml). Suites run with `--network none` and the caller's uid, so
 # everything they need is in the image:
 #
-# * common-ci-configuration's node-test-tools (Ubuntu 26.04, Node v24.21.0, pnpm,
-#   Chromium's system libraries and fonts), the tool image CI's npm templates use;
+# * common-ci-configuration's node-test-tools at its moving `develop` tag (Node,
+#   pnpm, Chromium's system libraries and fonts), the tool image CI's npm
+#   templates use, so the suites run the Node version ccc defines;
 # * a pnpm store filled from pnpm-lock.yaml (`pnpm fetch`), so `pnpm install
 #   --offline` works in the sandbox. pnpm-workspace.yaml is a symlink into the
 #   npm-common-config submodule; build.sh copies the resolved file;
@@ -18,7 +19,7 @@
 #   playwright-toolset catalog, the one the base image is built for).
 #
 # Build and pin it with .aidev/runtime/build.sh; see .aidev/README.md.
-FROM registry.gitlab.syncad.com/hive/common-ci-configuration/node-test-tools@sha256:c15f6782c675ddbe8a5d5b05cfa27cfa7b606ecd8bc67a3b5d0c2206f2733994
+FROM registry.gitlab.syncad.com/hive/common-ci-configuration/node-test-tools:develop
 USER root
 ENV HOME=/tmp \
     npm_config_store_dir=/opt/pnpm-store \

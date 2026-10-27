@@ -5,8 +5,9 @@
 #
 # The tag is `aidev-<hash>` of the image inputs (the Dockerfile, package.json,
 # pnpm-lock.yaml, the resolved pnpm-workspace.yaml, .npmrc, prisma/schema.prisma,
-# prisma.config.ts). When <repository>:aidev-<hash> is already in the registry
-# nothing is built: the script prints its digest.
+# prisma.config.ts) and of the current digest of the Dockerfile's moving base
+# image, so a new ccc node-test-tools (e.g. a Node bump) gives a new tag. When
+# <repository>:aidev-<hash> is already in the registry nothing is built: the script prints its digest.
 #
 #   .aidev/runtime/build.sh           # registry digest, or build locally and print the local tag
 #   .aidev/runtime/build.sh --push    # registry digest, or build + push and print repo@sha256:<digest>
@@ -19,8 +20,16 @@ REPOSITORY="${AIDEV_RUNTIME_REPOSITORY:-registry.gitlab.syncad.com/hive/wallet-d
 # pnpm-workspace.yaml is a symlink into the npm-common-config submodule: every
 # input is read (and copied) through symlinks.
 INPUTS=(package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc prisma.config.ts prisma/schema.prisma)
+BASE_IMAGE="$(sed -n 's/^FROM \([^ ]*\).*/\1/p' .aidev/runtime/Dockerfile)"
+manifest_digest() {
+    docker buildx imagetools inspect "$1" --format '{{json .Manifest}}' 2>/dev/null \
+        | grep -o '"digest": *"sha256:[0-9a-f]*"' | head -1 | grep -o 'sha256:[0-9a-f]*' || true
+}
 input_hash() {
-    sha256sum .aidev/runtime/Dockerfile "${INPUTS[@]}" | sha256sum | cut -c1-16
+    local base_digest
+    base_digest="$(manifest_digest "$BASE_IMAGE")"
+    [ -n "$base_digest" ] || { echo "cannot resolve the digest of $BASE_IMAGE" >&2; exit 1; }
+    { sha256sum .aidev/runtime/Dockerfile "${INPUTS[@]}"; echo "$base_digest"; } | sha256sum | cut -c1-16
 }
 [ -f pnpm-workspace.yaml ] || { echo "pnpm-workspace.yaml does not resolve: git submodule update --init" >&2; exit 1; }
 TAG="aidev-$(input_hash)"
@@ -29,11 +38,7 @@ case "${1:-}" in
     ""|--push) ;;
     *) echo "usage: $0 [--push|--tag]" >&2; exit 2 ;;
 esac
-registry_digest() {
-    docker buildx imagetools inspect "$REPOSITORY:$TAG" --format '{{json .Manifest}}' 2>/dev/null \
-        | grep -o '"digest": *"sha256:[0-9a-f]*"' | head -1 | grep -o 'sha256:[0-9a-f]*' || true
-}
-digest="$(registry_digest)"
+digest="$(manifest_digest "$REPOSITORY:$TAG")"
 if [ -n "$digest" ]; then
     echo "$REPOSITORY:$TAG exists in the registry; not building" >&2
     echo "$REPOSITORY@$digest"
