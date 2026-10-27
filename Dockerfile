@@ -1,4 +1,6 @@
-FROM node:22-slim AS app
+# Node comes from common-ci-configuration: build_instance.sh passes its NODE_IMAGE_VERSION.
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim AS app
 WORKDIR /app
 
 # Metadata from original Dockerfile (kept as labels/args)
