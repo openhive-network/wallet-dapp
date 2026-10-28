@@ -128,7 +128,7 @@ const handleStatusChanged = (status: typeof connectionStatus.value) => {
                 :disabled="isLoading"
                 variant="outline"
                 size="lg"
-                class="px-8 py-4 border-[#FF5C16] border-[2px]"
+                class="px-8 py-4 border-[#FF5C16] border-2"
                 @click="installMetamaskSnap"
               >
                 <span class="text-md font-bold">Install Hive Snap</span>
@@ -156,7 +156,7 @@ const handleStatusChanged = (status: typeof connectionStatus.value) => {
                   height="16"
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
-                  class="mr-2 mt-0.5 flex-shrink-0"
+                  class="mr-2 mt-0.5 shrink-0"
                 >
                   <path
                     style="fill: currentColor"

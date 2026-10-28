@@ -116,7 +116,7 @@ onMounted(async () => {
             height="16"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            class="flex-shrink-0"
+            class="shrink-0"
           >
             <path
               style="fill: currentColor"
@@ -158,7 +158,7 @@ onMounted(async () => {
       <Card>
         <CardHeader class="pb-6">
           <div class="flex flex-col md:flex-row items-start gap-6">
-            <Skeleton class="h-32 w-32 rounded-full flex-shrink-0" />
+            <Skeleton class="h-32 w-32 rounded-full shrink-0" />
             <div class="flex-1 space-y-4 w-full">
               <Skeleton class="h-10 w-64" />
               <Skeleton class="h-5 w-full max-w-md" />
@@ -187,7 +187,7 @@ onMounted(async () => {
     >
       <!-- Main Profile Card -->
       <Card class="overflow-hidden">
-        <CardHeader class="pb-6 bg-gradient-to-br from-primary/5 to-primary/10">
+        <CardHeader class="pb-6 bg-linear-to-br from-primary/5 to-primary/10">
           <HTMUserHeader :user="user" />
         </CardHeader>
 

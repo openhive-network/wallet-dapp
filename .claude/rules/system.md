@@ -40,7 +40,7 @@ After all agents complete work:
 ## Project Context
 
 - **Repository**: wallet-dapp (Nuxt 4 + Vue 3 + TypeScript)
-- **Blockchain**: Hive (@hiveio/wax 1.28.4)
+- **Blockchain**: Hive (@hiveio/wax, hiveio-toolset catalog)
 - **State**: Pinia stores
 - **Styling**: Tailwind CSS + Reka UI
 - **Testing**: Playwright (branch: fw-add-tests)

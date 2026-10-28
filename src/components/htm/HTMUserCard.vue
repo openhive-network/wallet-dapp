@@ -96,7 +96,7 @@ const handleStarClick = (event: Event) => {
         <!-- Star Icon -->
         <button
           v-if="showStar"
-          class="flex-shrink-0 p-1 rounded-full hover:bg-accent transition-colors"
+          class="shrink-0 p-1 rounded-full hover:bg-accent transition-colors"
           :class="{ 'text-yellow-500': isFavorited, 'text-muted-foreground': !isFavorited }"
           @click="handleStarClick"
         >
@@ -120,7 +120,7 @@ const handleStarClick = (event: Event) => {
           height="20"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          class="text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0"
+          class="text-muted-foreground group-hover:text-foreground transition-colors shrink-0"
         >
           <path
             style="fill: currentColor"
@@ -134,13 +134,13 @@ const handleStarClick = (event: Event) => {
       <!-- About -->
       <p
         v-if="user.about"
-        class="text-sm text-muted-foreground line-clamp-3 min-h-[3.75rem]"
+        class="text-sm text-muted-foreground line-clamp-3 min-h-15"
       >
         {{ user.about }}
       </p>
       <p
         v-else
-        class="text-sm text-muted-foreground italic min-h-[3.75rem]"
+        class="text-sm text-muted-foreground italic min-h-15"
       >
         No bio provided
       </p>
@@ -179,7 +179,7 @@ const handleStarClick = (event: Event) => {
             height="14"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            class="text-muted-foreground flex-shrink-0"
+            class="text-muted-foreground shrink-0"
           >
             <path
               style="fill: currentColor"

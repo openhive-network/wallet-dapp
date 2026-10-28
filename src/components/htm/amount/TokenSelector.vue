@@ -96,7 +96,7 @@ onMounted(() => {
 <template>
   <Combobox v-model="selectedValue" :disabled="disabled">
     <ComboboxAnchor class="relative w-full">
-      <ComboboxTrigger class="flex h-11 sm:h-9 w-full items-center justify-between rounded-r-md bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+      <ComboboxTrigger class="flex h-11 sm:h-9 w-full items-center justify-between rounded-r-md bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
         <div class="flex items-center justify-between flex-1 min-w-0">
           <div
             v-if="selectedToken"
@@ -121,7 +121,7 @@ onMounted(() => {
             height="16"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            class="flex-shrink-0 text-muted-foreground ml-2"
+            class="shrink-0 text-muted-foreground ml-2"
           >
           <path
             style="fill: currentColor"
@@ -135,7 +135,7 @@ onMounted(() => {
           <Search class="mr-3 h-4 w-4 shrink-0 text-muted-foreground" />
           <ComboboxInput
             v-model="searchQuery"
-            class="flex h-11 sm:h-8 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            class="flex h-11 sm:h-8 w-full bg-transparent text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             placeholder="Search tokens..."
           />
         </div>

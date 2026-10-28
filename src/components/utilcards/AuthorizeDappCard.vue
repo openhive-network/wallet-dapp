@@ -108,7 +108,7 @@ const authorize = async () => {
   <div>
     <div
       v-if="failed"
-      class="rounded-lg shadow border w-full max-w-[500px] p-4 sm:p-8"
+      class="rounded-lg shadow-sm border w-full max-w-[500px] p-4 sm:p-8"
     >
       <Alert variant="destructive">
         <AlertTitle>Error</AlertTitle>
@@ -120,7 +120,7 @@ const authorize = async () => {
     </div>
     <div
       v-else
-      class="rounded-lg shadow border w-full max-w-[500px] p-4 sm:p-8"
+      class="rounded-lg shadow-sm border w-full max-w-[500px] p-4 sm:p-8"
     >
       <!-- Header Section -->
       <div class="text-center mb-8">
@@ -182,7 +182,7 @@ const authorize = async () => {
       <div class="border rounded-lg p-4 mb-6">
         <!-- App Info -->
         <div class="flex items-start mb-4">
-          <div class="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 overflow-hidden mr-3 flex-shrink-0">
+          <div class="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-600 overflow-hidden mr-3 shrink-0">
             <template v-if="isLoading">
               <Skeleton class="w-8 h-8 rounded-full" />
             </template>
@@ -214,7 +214,7 @@ const authorize = async () => {
                 </span>
               </template>
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-300 ml-[1px]">
+            <div class="text-sm text-gray-600 dark:text-gray-300 ml-px">
               <template v-if="isLoading">
                 <Skeleton class="h-4 w-32 mt-1" />
               </template>
@@ -227,12 +227,12 @@ const authorize = async () => {
 
         <!-- Permissions -->
         <div class="flex items-start">
-          <Globe class="w-8 h-8 text-gray-600 dark:text-gray-400 mr-3 mt-0.5 flex-shrink-0" />
+          <Globe class="w-8 h-8 text-gray-600 dark:text-gray-400 mr-3 mt-0.5 shrink-0" />
           <div>
             <div class="font-medium text-gray-900 dark:text-gray-100">
               Public data only
             </div>
-            <div class="text-sm text-gray-600 dark:text-gray-300 ml-[1px]">
+            <div class="text-sm text-gray-600 dark:text-gray-300 ml-px">
               Limited access to your public data
             </div>
           </div>

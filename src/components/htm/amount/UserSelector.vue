@@ -287,7 +287,7 @@ watch(isOpen, async (open) => {
               height="12"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              class="text-yellow-500 flex-shrink-0"
+              class="text-yellow-500 shrink-0"
             >
               <path
                 style="fill: currentColor"
@@ -315,7 +315,7 @@ watch(isOpen, async (open) => {
           </svg>
         </Button>
       </PopoverTrigger>
-      <PopoverContent class="w-[var(--reka-popover-trigger-width)] p-0" :collision-padding="8">
+      <PopoverContent class="w-(--reka-popover-trigger-width) p-0" :collision-padding="8">
         <div class="flex items-center border-b px-3 py-2.5 sm:py-2">
           <Search class="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
@@ -324,7 +324,7 @@ watch(isOpen, async (open) => {
             type="text"
             placeholder="Search name or STM key..."
             :data-testid="dataTestid ? `${dataTestid}-search` : undefined"
-            class="flex-1 h-9 sm:h-8 bg-transparent text-base sm:text-sm outline-none placeholder:text-muted-foreground"
+            class="flex-1 h-9 sm:h-8 bg-transparent text-base sm:text-sm outline-hidden placeholder:text-muted-foreground"
             inputmode="text"
             autocomplete="off"
             autocorrect="off"
@@ -356,7 +356,7 @@ watch(isOpen, async (open) => {
                 :class="{ 'bg-accent': selectedValue === user.operationalKey }"
                 @click="selectUser(user)"
               >
-                <Avatar class="h-8 w-8 flex-shrink-0">
+                <Avatar class="h-8 w-8 shrink-0">
                   <AvatarImage
                     v-if="user.profileImage"
                     :src="user.profileImage"
@@ -374,7 +374,7 @@ watch(isOpen, async (open) => {
                       height="12"
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 24 24"
-                      class="text-yellow-500 flex-shrink-0"
+                      class="text-yellow-500 shrink-0"
                     >
                       <path
                         style="fill: currentColor"
@@ -388,7 +388,7 @@ watch(isOpen, async (open) => {
                 </div>
                 <Check
                   v-if="selectedValue === user.operationalKey"
-                  class="h-4 w-4 text-primary flex-shrink-0"
+                  class="h-4 w-4 text-primary shrink-0"
                 />
               </button>
             </div>
@@ -408,7 +408,7 @@ watch(isOpen, async (open) => {
                 :class="{ 'bg-accent': selectedValue === user.operationalKey }"
                 @click="selectUser(user)"
               >
-                <Avatar class="h-8 w-8 flex-shrink-0">
+                <Avatar class="h-8 w-8 shrink-0">
                   <AvatarImage
                     v-if="user.profileImage"
                     :src="user.profileImage"
@@ -426,7 +426,7 @@ watch(isOpen, async (open) => {
                 </div>
                 <Check
                   v-if="selectedValue === user.operationalKey"
-                  class="h-4 w-4 text-primary flex-shrink-0"
+                  class="h-4 w-4 text-primary shrink-0"
                 />
               </button>
             </div>

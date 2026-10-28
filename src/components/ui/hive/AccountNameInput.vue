@@ -324,7 +324,7 @@ defineExpose({
         height="14"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        class="mt-0.5 flex-shrink-0"
+        class="mt-0.5 shrink-0"
       >
         <path
           style="fill: currentColor"

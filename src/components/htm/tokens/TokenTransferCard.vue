@@ -222,7 +222,7 @@ const connectToHTM = async () => {
                 height="20"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
-                class="text-primary flex-shrink-0"
+                class="text-primary shrink-0"
               >
                 <path
                   style="fill: currentColor"
@@ -264,7 +264,7 @@ const connectToHTM = async () => {
               height="16"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              class="text-green-500 flex-shrink-0"
+              class="text-green-500 shrink-0"
             >
               <path
                 style="fill: currentColor"

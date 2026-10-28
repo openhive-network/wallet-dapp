@@ -89,7 +89,7 @@ const buttonClass = 'h-auto w-full min-w-0 py-4 px-4 justify-start sm:justify-ce
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          class="!size-4 mr-2 mt-0.5 shrink-0"
+          class="size-4! mr-2 mt-0.5 shrink-0"
         >
           <path
             style="fill: hsl(var(--primary))"
@@ -137,7 +137,7 @@ const buttonClass = 'h-auto w-full min-w-0 py-4 px-4 justify-start sm:justify-ce
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 24 24"
-        class="!size-7 mr-3 shrink-0"
+        class="size-7! mr-3 shrink-0"
       >
         <path
           style="fill: hsl(var(--primary))"

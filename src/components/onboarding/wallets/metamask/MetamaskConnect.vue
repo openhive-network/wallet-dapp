@@ -3,6 +3,7 @@ import type { TRole } from '@hiveio/wax';
 import { AccountAuthorityUpdateOperation } from '@hiveio/wax';
 import { mdiClose } from '@mdi/js';
 import { Check, Search } from 'lucide-vue-next';
+import type { AcceptableValue } from 'reka-ui';
 import { ref } from 'vue';
 
 import step1 from '@/assets/icons/wallets/metamask/step1.webp';
@@ -132,8 +133,8 @@ const getAuthorityUpdateSigningLink = (): string => {
   return url.toString();
 };
 
-const updateAccountName = (value: string) => {
-  if (!value)
+const updateAccountName = (value: AcceptableValue) => {
+  if (typeof value !== 'string' || !value)
     return;
 
   accountName.value = value.startsWith('@') ? value.slice(1) : value;
@@ -212,7 +213,7 @@ const updateAccountName = (value: string) => {
                 :disabled="connectionLoading"
                 variant="outline"
                 size="lg"
-                class="px-8 py-4 border-[#FF5C16] border-[2px]"
+                class="px-8 py-4 border-[#FF5C16] border-2"
                 @click="installMetamaskSnap"
               >
                 <span class="text-md font-bold">Install snap</span>
@@ -278,7 +279,7 @@ const updateAccountName = (value: string) => {
                     :copy="getAuthorityUpdateSigningLink"
                     variant="outline"
                     size="lg"
-                    class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]"
+                    class="mt-4 px-8 py-4 border-[#FF5C16] border"
                   >
                     <span class="text-md font-bold">Copy signing link</span>
                   </Button>
@@ -298,7 +299,7 @@ const updateAccountName = (value: string) => {
                       :copy="generateAccountUpdateTransaction"
                       variant="outline"
                       size="lg"
-                      class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]"
+                      class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border"
                     >
                       <span class="text-md font-bold">Copy entire transaction</span>
                     </Button>
@@ -342,7 +343,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading || !createAccountNameOperation || !accountNameValid"
                     variant="outline"
                     size="lg"
-                    class="mt-4 px-8 py-4 border-[#FF5C16] border-[1px]"
+                    class="mt-4 px-8 py-4 border-[#FF5C16] border"
                   >
                     <span class="text-md font-bold">Copy signing link</span>
                   </Button>
@@ -383,7 +384,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading"
                     variant="outline"
                     size="lg"
-                    class="px-8 py-4 border-[#FF5C16] border-[2px]"
+                    class="px-8 py-4 border-[#FF5C16] border-2"
                     @click="showCreateAccountModal = true"
                   >
                     <span class="text-md font-bold">Request account creation</span>
@@ -398,7 +399,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading"
                     variant="outline"
                     size="lg"
-                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]"
+                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border"
                     @click="applyPublicKeys"
                   >
                     <span class="text-md font-bold">Re-check for Hive Accounts</span>
@@ -409,7 +410,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading"
                     variant="outline"
                     size="lg"
-                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]"
+                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border"
                     @click="showUpdateAccountModal = true"
                   >
                     <span class="text-md font-bold">Update account authority</span>
@@ -431,7 +432,7 @@ const updateAccountName = (value: string) => {
                             :display-value="(val) => val ? `@${val}` : ''"
                             placeholder="Select account"
                           />
-                          <span class="absolute start-0 inset-y-0 flex items-center justify-center px-3">
+                          <span class="absolute inset-s-0 inset-y-0 flex items-center justify-center px-3">
                             <Search class="size-4 text-muted-foreground" />
                           </span>
                         </div>
@@ -464,7 +465,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading"
                     variant="outline"
                     size="lg"
-                    class="px-8 py-4 border-[#FF5C16] border-[2px]"
+                    class="px-8 py-4 border-[#FF5C16] border-2"
                     @click="emit('setaccount', accountName)"
                   >
                     <span class="text-md font-bold">Import</span>
@@ -479,7 +480,7 @@ const updateAccountName = (value: string) => {
                     :disabled="isLoading"
                     variant="outline"
                     size="lg"
-                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border-[1px]"
+                    class="px-8 opacity-[0.9] py-4 border-[#FF5C16] border"
                     @click="accountsMatchingKeys = []"
                   >
                     <span class="text-md font-bold">Import different account</span>

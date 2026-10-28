@@ -18,7 +18,7 @@ type Props = (CommonProps & {
   token?: CTokenDisplayBase;
 }) | (CommonProps & {
   variant: 'explicit';
-  token: CTokenDisplayBase;
+  token?: CTokenDisplayBase;
   availableBalance?: string;
 });
 
@@ -125,7 +125,7 @@ onMounted(() => {
         v-model="selectedToken"
         :disabled="disabled"
         placeholder="Choose token"
-        class="shrink-1"
+        class="shrink"
       />
       <!-- Token Symbol & Image on the right -->
       <div v-if="variant === 'explicit' && selectedToken" class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">

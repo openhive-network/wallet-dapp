@@ -76,7 +76,7 @@ const copyAssetNum = () => {
     <CardContent class="p-6">
       <!-- Main Token Info -->
       <div class="flex flex-col sm:flex-row items-start gap-6 mb-6">
-        <Avatar class="h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0">
+        <Avatar class="h-20 w-20 sm:h-24 sm:w-24 shrink-0">
           <AvatarImage
             v-if="props.token.image"
             :src="props.token.image"
@@ -149,7 +149,7 @@ const copyAssetNum = () => {
                     <TooltipTrigger as-child>
                       <span class="text-foreground truncate max-w-xs">{{ entry.value }}</span>
                     </TooltipTrigger>
-                    <TooltipContent class="max-w-[min(28rem,calc(100vw-2rem))] break-words">
+                    <TooltipContent class="max-w-[min(28rem,calc(100vw-2rem))] wrap-break-word">
                       {{ entry.value }}
                     </TooltipContent>
                   </Tooltip>

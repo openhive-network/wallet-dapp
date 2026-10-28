@@ -90,7 +90,7 @@ watch(refreshedAt, async () => {
           </AlertDescription>
         </Alert>
         <template v-else>
-          <div class="bg-white p-3 rounded-lg shadow-sm">
+          <div class="bg-white p-3 rounded-lg shadow-xs">
             <img
               v-if="qrDataUrl"
               data-testid="request-account-qr"

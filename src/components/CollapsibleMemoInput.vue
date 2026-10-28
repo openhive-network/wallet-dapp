@@ -48,7 +48,7 @@ const handleInput = (event: Event) => {
           height="16"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          class="flex-shrink-0"
+          class="shrink-0"
         >
           <path
             style="fill: currentColor"

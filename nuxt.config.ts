@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
+import tailwindcss from '@tailwindcss/vite';
 import { defineNuxtConfig } from 'nuxt/config';
 
 import { stripTestIds } from './config/vite-strip-testid';
@@ -44,8 +45,8 @@ export default defineNuxtConfig({
     }
   },
   vite: {
-    plugins: [stripTestIds()],
-    esbuild: {
+    plugins: [tailwindcss(), stripTestIds()],
+    oxc: {
       target: 'es2022'
     },
     build: {
@@ -63,7 +64,8 @@ export default defineNuxtConfig({
   imports: {
     dirs: ['src/composables']
   },
-  modules: ['@nuxtjs/tailwindcss', '@nuxtjs/color-mode', '@nuxt/eslint', '@pinia/nuxt'],
+  css: ['@/assets/css/tailwind.css'],
+  modules: ['@nuxtjs/color-mode', '@nuxt/eslint', '@pinia/nuxt'],
   alias: {
     '@': path.resolve(import.meta.dirname, './src')
   },

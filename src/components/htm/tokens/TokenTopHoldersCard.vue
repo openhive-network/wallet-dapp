@@ -75,7 +75,7 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
           :key="i"
           class="flex items-center gap-4 p-3 rounded-lg border animate-pulse"
         >
-          <Skeleton class="h-10 w-10 rounded-full flex-shrink-0" />
+          <Skeleton class="h-10 w-10 rounded-full shrink-0" />
           <div class="flex-1 space-y-2">
             <Skeleton class="h-4 w-32" />
             <Skeleton class="h-3 w-24" />
@@ -97,8 +97,8 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
           :to="`/tokens/users/${holder.operationalKey}`"
           class="flex items-center gap-2 sm:gap-4 p-3 rounded-lg border hover:border-primary/20 hover:bg-accent/50 transition-colors group"
         >
-          <div class="relative flex-shrink-0">
-            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 text-sm font-bold text-primary border-2 border-primary/20">
+          <div class="relative shrink-0">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-sm font-bold text-primary border-2 border-primary/20">
               {{ index + 1 }}
             </div>
             <div
@@ -170,7 +170,7 @@ const toggleFavorite = (holder: CTokenUserRanked, event: Event) => {
             </p>
           </div>
 
-          <div class="text-right flex-shrink-0">
+          <div class="text-right shrink-0">
             <p class="font-bold text-foreground">
               {{ holder.displayAmount }}
             </p>

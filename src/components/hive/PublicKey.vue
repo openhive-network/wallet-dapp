@@ -18,7 +18,7 @@ const value = String(props.value);
 <template>
   <div class="flex items-center p-1">
     <span class="font-bold">{{ props.role.toUpperCase() }}</span>
-    <div class="mx-2 border flex-grow border-[hsl(var(--foreground))] opacity-[0.1]" />
+    <div class="mx-2 border grow border-[hsl(var(--foreground))] opacity-[0.1]" />
     <div class="flex items-center">
       <span class="font-mono pt-[2px] mr-1">
         <span
