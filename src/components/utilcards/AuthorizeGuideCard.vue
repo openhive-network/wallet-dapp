@@ -15,7 +15,7 @@ const step = ref(0);
 </script>
 
 <template>
-  <Card class="rounded-lg shadow border w-full max-w-[500px]">
+  <Card class="rounded-lg shadow-sm border w-full max-w-[500px]">
     <CardHeader>
       <CardTitle class="pb-2 inline-flex items-center justify-between">
         <span>Authorize your dApp!</span>

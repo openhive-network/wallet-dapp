@@ -86,7 +86,7 @@ const connect = async () => {
             :disabled="isLoading"
             variant="outline"
             size="lg"
-            class="px-8 py-4 border-[#ae2164] border-[2px]"
+            class="px-8 py-4 border-[#ae2164] border-2"
             @click="connect"
           >
             <span class="text-md font-bold">Connect</span>

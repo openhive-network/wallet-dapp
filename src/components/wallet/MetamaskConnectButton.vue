@@ -24,7 +24,7 @@ const isButtonDisabled = computed(() =>
 );
 
 const buttonClass = computed(() => {
-  const baseClass = 'px-8 py-4 border-[#FF5C16] border-[2px]';
+  const baseClass = 'px-8 py-4 border-[#FF5C16] border-2';
   return props.customClass ? `${baseClass} ${props.customClass}` : baseClass;
 });
 </script>

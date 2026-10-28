@@ -34,7 +34,7 @@ as `e2e-junit.xml`):
 - `coverage` — `command` .aidev/run-checks.sh coverage build
 - `system` — `command` .aidev/run-checks.sh system build e2e
 
-Steps: `lint` is `eslint` (CI's `lint-ci`), `typecheck` is `nuxt typecheck`, `build` is
+Steps: `lint` is package.json's `lint-ci` (eslint, as CI's lint job), `typecheck` is `nuxt typecheck`, `build` is
 `nuxt build` followed by `prisma db push` into a SQLite file under the slot's results (as
 CI's build job), `e2e` is `playwright test --project=chromium-headless` over `__tests__/e2e`
 and `__tests__/integration` with `CI=1`. Every run first installs `node_modules` offline

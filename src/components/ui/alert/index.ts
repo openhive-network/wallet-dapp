@@ -5,7 +5,7 @@ export { default as AlertDescription } from './AlertDescription.vue'
 export { default as AlertTitle } from './AlertTitle.vue'
 
 export const alertVariants = cva(
-  'relative w-full border-l-4 p-4 [&>svg]:flex-shrink-0',
+  'relative w-full border-l-4 p-4 [&>svg]:shrink-0',
   {
     variants: {
       variant: {

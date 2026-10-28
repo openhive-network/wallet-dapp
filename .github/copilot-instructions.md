@@ -13,7 +13,7 @@ pnpm test     # Playwright E2E tests
 
 ## Tech Stack
 
-Nuxt 4.2 | Vue 3.5 | TypeScript 5.7 | Pinia 3.0 | Tailwind CSS 3 | Reka UI 2.0 | @hiveio/wax | Playwright
+Nuxt 4 | Vue 3.5 | TypeScript 5.9 | Pinia 4 | Tailwind CSS 4 | Reka UI 2.0 | @hiveio/wax | Playwright (versions from ccc's pnpm catalogs)
 
 ## Structure
 

@@ -36,7 +36,7 @@ const receiverShortKey = computed(() => {
     <div class="flex items-center gap-3 min-w-0 mt-2">
       <div
         v-if="receiverAvatar"
-        class="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-muted"
+        class="w-10 h-10 rounded-full overflow-hidden shrink-0 bg-muted"
       >
         <img
           :src="receiverAvatar"
@@ -46,7 +46,7 @@ const receiverShortKey = computed(() => {
       </div>
       <div
         v-else
-        class="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground flex-shrink-0"
+        class="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-semibold text-foreground shrink-0"
       >
         {{ receiverAvatarLetter }}
       </div>

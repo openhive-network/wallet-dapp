@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const iconClass = computed(() => {
-  const baseClass = 'w-6 h-6 mr-2 -mt-1 flex-shrink-0'
+  const baseClass = 'w-6 h-6 mr-2 -mt-1 shrink-0'
   switch (props.variant) {
     case 'info':
       return `${baseClass} text-blue-500`
@@ -50,7 +50,7 @@ const defaultIcon = computed(() => {
   <div :class="cn(alertVariants({ variant }), props.class)" :role="props.role || 'alert'">
     <div class="flex items-start">
       <!-- Loading spinner or icon -->
-      <div v-if="props.variant === 'loading'" class="animate-spin rounded-full h-4 w-4 border-b-2 mr-2 -mt-0.5 flex-shrink-0 border-blue-500" />
+      <div v-if="props.variant === 'loading'" class="animate-spin rounded-full h-4 w-4 border-b-2 mr-2 -mt-0.5 shrink-0 border-blue-500" />
       <svg
         v-else-if="!props.disableIcon"
         :class="iconClass"

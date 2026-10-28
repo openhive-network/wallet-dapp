@@ -316,7 +316,7 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
             height="20"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
-            class="text-muted-foreground transition-transform duration-200 flex-shrink-0"
+            class="text-muted-foreground transition-transform duration-200 shrink-0"
             :class="{ 'rotate-180': isMetadataExpanded }"
           >
             <path
@@ -424,7 +424,7 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
             >
               <span class="flex-1 text-xs font-medium text-muted-foreground">Key</span>
               <span class="flex-1 text-xs font-medium text-muted-foreground">Value</span>
-              <span class="w-9 flex-shrink-0" />
+              <span class="w-9 shrink-0" />
             </div>
 
             <div
@@ -462,7 +462,7 @@ const isReservedKey = (key: string) => BUILTIN_METADATA_KEYS.has(key.trim().toLo
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-9 w-9 flex-shrink-0 text-muted-foreground hover:text-destructive"
+                class="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
                 :disabled="isSubmitting"
                 @click="removeCustomMetadataEntry(entry.key)"
               >

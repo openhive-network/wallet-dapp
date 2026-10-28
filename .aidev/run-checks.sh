@@ -8,7 +8,7 @@
 # prepare`: the lint config and the typecheck read .nuxt/). Steps, one junit
 # case each (e2e also keeps Playwright's own junit):
 #
-#   lint       eslint over the repository (package.json `lint-ci`, CI's lint job)
+#   lint       package.json `lint-ci` (eslint over the repository, CI's lint job)
 #   typecheck  nuxt typecheck (vue-tsc)
 #   build      nuxt build (CI's build job), then `prisma db push` of the account
 #              claims schema into a SQLite file under test-results/<suite>/ as
@@ -77,7 +77,7 @@ e2e() {
 
 for s in "$@"; do
     case "$s" in
-        lint) step lint pnpm exec eslint ;;
+        lint) step lint pnpm run lint-ci ;;
         typecheck) step typecheck pnpm exec nuxt typecheck ;;
         build) step build build ;;
         e2e) step e2e e2e ;;
