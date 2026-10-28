@@ -160,7 +160,7 @@ const connect = async () => {
             variant="outline"
             data-testid="htm-login-btn"
             size="lg"
-            class="px-8 py-4 border-[#FBA510] border-[2px]"
+            class="px-8 py-4 border-[#FBA510] border-2"
             @click="connect"
           >
             <span class="text-md font-bold">Connect</span>

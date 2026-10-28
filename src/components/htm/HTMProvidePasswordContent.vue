@@ -138,7 +138,7 @@ const handleCreateAccount = async () => {
           :disabled="isLoading"
           :variant="props.embed ? 'default' : 'outline'"
           :size="props.embed ? 'default' : 'lg'"
-          :class="props.embed ? 'w-full' : 'px-8 py-4 border-[2px] border-[#FBA510]'"
+          :class="props.embed ? 'w-full' : 'px-8 py-4 border-2 border-[#FBA510]'"
           @click="connect"
         >
           <span v-if="isLoading">Logging in...</span>

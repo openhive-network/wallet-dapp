@@ -549,7 +549,7 @@ onMounted(() => {
               :disabled="isProcessing"
               @click="selectExistingAccount(account)"
             >
-              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mr-3">
+              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mr-3">
                 <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
                 </svg>
@@ -560,9 +560,9 @@ onMounted(() => {
         </div>
 
         <div class="relative flex items-center py-2">
-          <div class="flex-grow border-t border-muted" />
+          <div class="grow border-t border-muted" />
           <span class="mx-4 text-xs text-muted-foreground">or</span>
-          <div class="flex-grow border-t border-muted" />
+          <div class="grow border-t border-muted" />
         </div>
 
         <Button
@@ -582,7 +582,7 @@ onMounted(() => {
         <div v-if="googleUser" class="p-4 bg-muted/50 rounded-lg border">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <svg class="w-4 h-4 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
                   <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
@@ -593,7 +593,7 @@ onMounted(() => {
             <Button
               variant="ghost"
               size="sm"
-              class="text-xs hover:text-destructive flex-shrink-0"
+              class="text-xs hover:text-destructive shrink-0"
               :disabled="isProcessing"
               @click="logoutFromGoogle"
             >
@@ -679,7 +679,7 @@ onMounted(() => {
                   v-if="form.keys.length > 1"
                   variant="ghost"
                   size="icon"
-                  class="h-9 w-9 text-muted-foreground hover:text-destructive flex-shrink-0"
+                  class="h-9 w-9 text-muted-foreground hover:text-destructive shrink-0"
                   :disabled="isProcessing"
                   @click="removeKeyField(index)"
                 >

@@ -84,7 +84,7 @@ const copyAccountCreationLink = (): string => {
                 height="20"
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
-                class="text-amber-500 mt-0.5 flex-shrink-0"
+                class="text-amber-500 mt-0.5 shrink-0"
               >
                 <path
                   style="fill: currentColor"
@@ -147,7 +147,7 @@ const copyAccountCreationLink = (): string => {
               height="20"
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              class="text-amber-500 mt-0.5 flex-shrink-0"
+              class="text-amber-500 mt-0.5 shrink-0"
             >
               <path
                 style="fill: currentColor"

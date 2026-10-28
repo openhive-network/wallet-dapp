@@ -257,7 +257,7 @@ onMounted(() => {
             <code class="text-xs sm:text-sm font-mono truncate flex-1 bg-background/50 px-2 py-1 rounded">
               {{ tokensStore.getUserPublicKey() }}
             </code>
-            <CopyButton :value="tokensStore.getUserPublicKey() || ''" class="flex-shrink-0" />
+            <CopyButton :value="tokensStore.getUserPublicKey() || ''" class="shrink-0" />
           </div>
         </div>
       </CardContent>

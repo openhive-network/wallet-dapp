@@ -62,7 +62,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bg-black/30 backdrop-blur-sm h-full w-full z-50 flex items-center justify-center">
+  <div class="bg-black/30 backdrop-blur-xs h-full w-full z-50 flex items-center justify-center">
     <div class="max-h-[90dvh] overflow-y-auto overflow-x-hidden">
       <SelectWallet
         v-if="stage_1_select_wallet"

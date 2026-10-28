@@ -26,7 +26,7 @@ const isAccountLoading = computed(() =>
 
 <template>
   <header class="w-full h-[60px] bg-background">
-    <div class="fixed top-0 z-10 bg-background/60 backdrop-blur-sm px-4 h-[60px] border-b w-full md:w-[calc(100%-var(--sidebar-width))] flex items-center justify-between">
+    <div class="fixed top-0 z-10 bg-background/60 backdrop-blur-xs px-4 h-[60px] border-b w-full md:w-[calc(100%-var(--sidebar-width))] flex items-center justify-between">
       <ToggleSidebar />
       <AccountSwitcher v-if="settingsStore.isLoaded && hasAnyAccount" />
       <div v-else-if="isAccountLoading" class="inline-flex items-center gap-2">

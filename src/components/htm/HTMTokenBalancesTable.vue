@@ -290,7 +290,7 @@ const handleUnstake = (balance: CTokenPairBalanceDefinition['vesting']) => {
         >
           <!-- Asset Header -->
           <div class="flex items-center gap-3 mb-4">
-            <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
               <img
                 v-if="balance.liquid.image"
                 :src="balance.liquid.image"

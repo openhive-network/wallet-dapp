@@ -103,7 +103,7 @@ onUnmounted(async () => {
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+        class="fixed inset-0 z-200 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4"
         style="pointer-events: auto;"
         @click.self="closeScanner"
       >

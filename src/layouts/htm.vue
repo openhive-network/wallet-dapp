@@ -101,7 +101,7 @@ const goBack = () => {
     </div>
     <div
       v-if="enableL1Proxy && !hasL1WalletConnected"
-      class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-700/90 bg-blue-500/90 backdrop-blur-sm px-3 py-1.5 w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center gap-1.5"
+      class="fixed bottom-0 z-12 select-none cursor-pointer dark:bg-blue-700/90 bg-blue-500/90 backdrop-blur-xs px-3 py-1.5 w-full md:w-[calc(100%-var(--sidebar-width))] flex flex-row justify-center items-center gap-1.5"
       @click="walletStore.openWalletSelectModal()"
     >
       <Icon name="heroicons:link" class="w-3.5 h-3.5 text-white/80" />

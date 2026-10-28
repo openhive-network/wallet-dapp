@@ -110,7 +110,7 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
           height="20"
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          class="text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0"
+          class="text-muted-foreground group-hover:text-foreground transition-colors shrink-0"
         >
           <path
             style="fill: currentColor"
@@ -124,13 +124,13 @@ const getAvatarFallback = (token: CTokenDefinitionDisplay): string => {
       <!-- Description -->
       <p
         v-if="token.description"
-        class="text-sm text-muted-foreground line-clamp-2 min-h-[2.5rem]"
+        class="text-sm text-muted-foreground line-clamp-2 min-h-10"
       >
         {{ token.description }}
       </p>
       <p
         v-else
-        class="text-sm text-muted-foreground italic min-h-[2.5rem]"
+        class="text-sm text-muted-foreground italic min-h-10"
       >
         No description provided
       </p>
