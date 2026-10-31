@@ -29,7 +29,7 @@ branches:
 environment:
   kind: "container"
   # Built by .aidev/runtime/build.sh --push; replace with the printed repo@sha256:<digest>.
-  image: "registry.gitlab.syncad.com/hive/wallet-dapp/aidev-tests@sha256:6592e40fb31887d3d7d35233794022b5b916f694c105095f7d5eaf053bf8d9e6"
+  image: "registry.gitlab.syncad.com/hive/wallet-dapp/aidev-tests@sha256:92fe5d5fcb9fb34b56dd4b99c8b55465bef9785ab97e04dffee34595caa8bd1b"
   inputs: ["pnpm-lock.yaml"]
 
 issues:
