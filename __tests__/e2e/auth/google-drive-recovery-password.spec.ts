@@ -76,6 +76,10 @@ test.describe('Google Drive recovery password re-prompt', () => {
     const notice = page.locator(selectors.common.recoveryPasswordNotice);
     await expect(notice).toContainText('saved password no longer matches');
 
+    // No account data is loaded while the wallet waits for its password
+    await expect(page.locator(selectors.accountDisplay.walletUnlocking)).toBeVisible();
+    await expect(page.locator(selectors.accountDisplay.accountDetailsCard)).toBeHidden();
+
     const cachedKey = await page.evaluate((storageKey) => localStorage.getItem(storageKey), ENCRYPTION_KEY_STORAGE);
     expect(cachedKey).toBeNull();
   });
@@ -97,6 +101,17 @@ test.describe('Google Drive recovery password re-prompt', () => {
 
     await page.click(selectors.common.recoveryCancelBtn);
     await expect(dialog).toBeHidden();
+
+    // Giving up stops the loading state and offers to unlock again
+    await expect(page.locator(selectors.accountDisplay.walletLockedCard)).toBeVisible();
+    await expect(page.locator(selectors.accountDisplay.walletUnlocking)).toBeHidden();
+    await expect(page.locator(selectors.accountDisplay.accountDetailsCard)).toBeHidden();
+
+    await page.click(selectors.accountDisplay.unlockWalletButton);
+    await expect(dialog).toBeVisible();
+    await page.click(selectors.common.recoveryCancelBtn);
+    await expect(dialog).toBeHidden();
+    await expect(page.locator(selectors.accountDisplay.unlockWalletButton)).toBeVisible();
   });
 
   test('should allow deleting the wallet from Settings without knowing the password', async ({ page }) => {

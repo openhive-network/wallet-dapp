@@ -202,11 +202,13 @@ test.describe('Google OAuth Flow', () => {
       await page.reload();
       await page.waitForLoadState('networkidle');
 
-      // Page should load - either shows connect card or account details depending on session
+      // Page should load - shows the connect card, the locked wallet card or account details depending on session
       const connectCard = page.locator(selectors.accountDisplay.connectWalletCard);
+      const lockedCard = page.locator(selectors.accountDisplay.walletLockedCard);
       const accountDetails = page.locator(selectors.accountDisplay.accountDetailsCard);
 
       const showsContent = await connectCard.first().isVisible({ timeout: 10000 }).catch(() => false) ||
+        await lockedCard.first().isVisible().catch(() => false) ||
         await accountDetails.first().isVisible().catch(() => false);
 
       expect(showsContent).toBeTruthy();

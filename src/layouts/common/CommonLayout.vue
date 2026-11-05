@@ -186,19 +186,8 @@ onMounted(async () => {
 
   if (!wasOAuthCallback) {
     // Normal app load - not an OAuth callback
-    if (hasUser.value) {
-      walletStore.createWalletFor(settingsStore.settings, 'posting').then(() => {
-        userStore.parseUserData(settingsStore.settings.account!).catch(error => {
-          toastError('Failed to load user data', error);
-        });
-      }).catch(error => {
-        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
-          toast.warning('Your wallet is empty. Please go to Settings to add keys.');
-        else
-          toastError('Failed to load wallet', error);
-
-      });
-    }
+    if (hasUser.value)
+      void walletStore.loadSavedWallet();
 
     // Check if Google Drive wallet dialog should be shown
     void checkGoogleDriveWalletNeeded();

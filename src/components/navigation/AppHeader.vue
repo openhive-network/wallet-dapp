@@ -20,7 +20,12 @@ const hasAnyAccount = computed(() =>
 );
 
 const isAccountLoading = computed(() =>
-  settingsStore.settings.account !== undefined && !walletStore.hasWallet
+  settingsStore.settings.account !== undefined && walletStore.isConnecting
+);
+
+// A saved wallet that is not connected and not being connected, e.g. after a cancelled unlock
+const isWalletLocked = computed(() =>
+  settingsStore.settings.account !== undefined && !walletStore.hasWallet && !walletStore.isConnecting
 );
 </script>
 
@@ -39,9 +44,9 @@ const isAccountLoading = computed(() =>
           v-if="!hasAnyAccount && !isAccountLoading"
           variant="outline"
           class="px-2 md:px-4 font-bold"
-          @click="walletStore.openWalletSelectModal()"
+          @click="isWalletLocked ? walletStore.loadSavedWallet() : walletStore.openWalletSelectModal()"
         >
-          <span>Connect</span>
+          <span>{{ isWalletLocked ? 'Unlock' : 'Connect' }}</span>
         </Button>
       </div>
     </div>

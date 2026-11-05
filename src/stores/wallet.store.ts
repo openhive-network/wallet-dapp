@@ -6,13 +6,16 @@ import { defineStore } from 'pinia';
 import { shallowRef } from 'vue';
 import { toast } from 'vue-sonner';
 
+import { PasswordEntryCancelledError } from '@/composables/usePromptDialog';
 import { getWax } from '@/stores/wax.store';
+import { toastError } from '@/utils/parse-error';
 import CTokensProvider from '@/utils/wallet/ctokens/signer';
-import GoogleDriveWalletProvider from '@/utils/wallet/google-drive/provider';
+import GoogleDriveWalletProvider, { AccountNotInWalletError, EmptyWalletError } from '@/utils/wallet/google-drive/provider';
 
 import { useMetamaskStore } from './metamask.store';
-import { type Settings, UsedWallet } from './settings.store';
+import { type Settings, UsedWallet, useSettingsStore } from './settings.store';
 import { useTokensStore } from './tokens.store';
+import { useUserStore } from './user.store';
 
 let walletRetrievalIntervalId: NodeJS.Timeout | undefined;
 
@@ -32,6 +35,8 @@ export const useWalletStore = defineStore('wallet', {
     },
     _lastGoogleDriveCheck: 0,
     isL2Wallet: false,
+    // True while a wallet is being connected or unlocked (e.g. waiting for the recovery password)
+    isConnecting: false,
     isWalletSelectModalOpen: false,
     isProvideWalletPasswordModalOpen: false
   }),
@@ -113,6 +118,43 @@ export const useWalletStore = defineStore('wallet', {
       this.isWalletSelectModalOpen = false;
     },
     async createWalletFor (settings: Pick<Settings, 'wallet' | 'account'>, role: TRole) {
+      this.isConnecting = true;
+      try {
+        await this.connectWallet(settings, role);
+      } finally {
+        this.isConnecting = false;
+      }
+    },
+    /**
+     * Connects the wallet saved in settings and loads the account data.
+     * A cancelled unlock leaves the wallet locked without an error toast - the UI offers to retry.
+     */
+    async loadSavedWallet () {
+      const settingsStore = useSettingsStore();
+      const userStore = useUserStore();
+      const { account } = settingsStore.settings;
+
+      if (!account)
+        return;
+
+      try {
+        await this.createWalletFor(settingsStore.settings, 'posting');
+      } catch (error) {
+        if (error instanceof EmptyWalletError || error instanceof AccountNotInWalletError)
+          toast.warning('Your wallet is empty. Please go to Settings to add keys.');
+        else if (!(error instanceof PasswordEntryCancelledError))
+          toastError('Failed to load wallet', error);
+
+        return;
+      }
+
+      try {
+        await userStore.parseUserData(account);
+      } catch (error) {
+        toastError('Failed to load user data', error);
+      }
+    },
+    async connectWallet (settings: Pick<Settings, 'wallet' | 'account'>, role: TRole) {
       const isL1ProxyDisabled = !useRuntimeConfig().public.enableL1Proxy;
 
       switch(settings.wallet) {

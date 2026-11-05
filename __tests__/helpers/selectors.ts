@@ -88,6 +88,11 @@ export const accountDisplay = {
   connectWalletCard: testid('connect-wallet-card'),
   connectWalletButton: testid('connect-wallet-btn'),
 
+  // Saved wallet that is not unlocked yet
+  walletLockedCard: testid('wallet-locked-card'),
+  walletUnlocking: testid('wallet-unlocking'),
+  unlockWalletButton: testid('unlock-wallet-btn'),
+
   // When connected
   accountDetailsCard: testid('account-details-card'),
   accountName: testid('account-name'),
