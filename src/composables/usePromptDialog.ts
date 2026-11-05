@@ -12,20 +12,26 @@ type ValueRejecter = (error: Error) => void;
 
 export interface PromptDialogState<T> {
   readonly isOpen: Ref<boolean>;
-  request: () => Promise<T>;
+  /** Explanation displayed with the prompt, e.g. why the previously entered value was rejected */
+  readonly notice: Ref<string | null>;
+  request: (notice?: string) => Promise<T>;
   submit: (value: T) => void;
   cancel: () => void;
 }
 
-export function usePromptDialog<T = string> (errorMessage?: string): PromptDialogState<T> {
+export function usePromptDialog<T = string> (
+  createCancelError: () => PromptDialogCancelledError = () => new PromptDialogCancelledError()
+): PromptDialogState<T> {
   const isOpen = ref(false);
+  const notice = ref<string | null>(null);
   let _resolve: ValueResolver<T> | null = null;
   let _reject: ValueRejecter | null = null;
 
-  const request = (): Promise<T> => {
+  const request = (requestNotice?: string): Promise<T> => {
     return new Promise((resolve, reject) => {
       _resolve = resolve;
       _reject = reject;
+      notice.value = requestNotice ?? null;
       isOpen.value = true;
     });
   };
@@ -41,7 +47,7 @@ export function usePromptDialog<T = string> (errorMessage?: string): PromptDialo
 
   const cancel = () => {
     if (_reject) {
-      _reject(new PromptDialogCancelledError(errorMessage));
+      _reject(createCancelError());
       _resolve = null;
       _reject = null;
     }
@@ -50,6 +56,7 @@ export function usePromptDialog<T = string> (errorMessage?: string): PromptDialo
 
   return {
     isOpen,
+    notice,
     request,
     submit,
     cancel
@@ -76,14 +83,14 @@ let accountNamePromptDialog: PromptDialogState<string> | null = null;
 
 export function useRecoveryPasswordDialog (): PromptDialogState<string> {
   if (!recoveryPasswordDialog)
-    recoveryPasswordDialog = usePromptDialog<string>('User cancelled password entry');
+    recoveryPasswordDialog = usePromptDialog<string>(() => new PasswordEntryCancelledError());
 
   return recoveryPasswordDialog;
 }
 
 export function useAccountNamePromptDialog (): PromptDialogState<string> {
   if (!accountNamePromptDialog)
-    accountNamePromptDialog = usePromptDialog<string>('User cancelled account name entry');
+    accountNamePromptDialog = usePromptDialog<string>(() => new AccountNameEntryCancelledError());
 
   return accountNamePromptDialog;
 }

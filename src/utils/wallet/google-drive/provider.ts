@@ -1,13 +1,20 @@
 import type { TPublicKey, TRole, TAccountName, AEncryptionProvider } from '@hiveio/wax';
-import { createExternalWallet, type IExternalWalletContent, type IExternalWalletCustomKeyInfo, type IExternalWallet, type TStorageEncryptionCredentials } from '@hiveio/wax-signers-external';
+import { createExternalWallet, WaxExternalSignatureProviderError, type IExternalWalletContent, type IExternalWalletCustomKeyInfo, type IExternalWallet, type TStorageEncryptionCredentials } from '@hiveio/wax-signers-external';
 
 import { useAccountNamePromptDialog, useRecoveryPasswordDialog, PasswordEntryCancelledError } from '@/composables/usePromptDialog';
 
 const WALLET_FILE_NAME = 'hivebridge_wallet.json';
 const LOCAL_ENCRYPTION_KEY_STORAGE = 'hivebridge_encryption_key_wif';
 
+const STORED_PASSWORD_MISMATCH_NOTICE = 'The saved password no longer matches the wallet stored on Google Drive (it may have been recreated with a different password). Please enter the current recovery password.';
+const INVALID_PASSWORD_NOTICE = 'Invalid recovery password. Please try again.';
+
 // Track if we're currently creating a new wallet
 let pendingWalletCreationPassword: string | undefined;
+// Explanation shown on the next recovery password prompt (why the previous credentials were rejected)
+let recoveryPasswordNotice: string | undefined;
+// Whether the current wallet instance was unlocked with the key cached on this device rather than a typed password
+let unlockedWithStoredKey = false;
 
 export class RecoveryPasswordRequiredError extends Error {
   public constructor () {
@@ -38,8 +45,6 @@ const tokenProvider = async (): Promise<string> => {
   return response.token;
 };
 
-let walletInstance: IExternalWallet | null = null;
-
 const getStoredEncryptionKey = (): string | undefined => {
   if (typeof window === 'undefined')
     return undefined;
@@ -58,50 +63,148 @@ const clearStoredEncryptionKey = (): void => {
   localStorage.removeItem(LOCAL_ENCRYPTION_KEY_STORAGE);
 };
 
-const storagePasswordProvider = async (missingStorageFile: boolean): Promise<TStorageEncryptionCredentials> => {
-  // If we're creating a new wallet, use the pending password
-  if (missingStorageFile && pendingWalletCreationPassword) {
-    const password = pendingWalletCreationPassword;
+const isWalletError = (error: unknown, code: 'DECRYPTION_FAILED' | 'KEY_NOT_FOUND'): boolean =>
+  error instanceof WaxExternalSignatureProviderError && error.code === code;
 
-    return { password };
-  }
+const storagePasswordProvider = async (missingStorageFile: boolean): Promise<TStorageEncryptionCredentials> => {
+  unlockedWithStoredKey = false;
+
+  // If we're creating a new wallet, use the pending password
+  if (missingStorageFile && pendingWalletCreationPassword)
+    return { password: pendingWalletCreationPassword };
 
   // Check localStorage for cached encryption key
   const storedKey = getStoredEncryptionKey();
 
   if (storedKey) {
-    // We have the encryption key stored - return it directly
+    unlockedWithStoredKey = true;
     return { encryptionKey: storedKey };
   }
 
-  // No key cached - prompt user via dialog
-  if (!missingStorageFile) {
-    // Wallet file exists but we don't have the encryption key cached
-    const recoveryPasswordDialog = useRecoveryPasswordDialog();
-    const password = await recoveryPasswordDialog.request();
-
-    // Don't store yet - we'll derive and store the key after wallet is loaded
-    return { password };
-  }
-
   // Missing file and no pending password - this shouldn't happen
-  throw new Error('Recovery password must be set before creating a new wallet');
+  if (missingStorageFile)
+    throw new Error('Recovery password must be set before creating a new wallet');
+
+  // Wallet file exists but we don't have the encryption key cached - prompt user via dialog
+  const notice = recoveryPasswordNotice;
+  recoveryPasswordNotice = undefined;
+  const password = await useRecoveryPasswordDialog().request(notice);
+
+  // Don't store yet - the derived key is cached once it has successfully decrypted the wallet
+  return { password };
 };
 
-async function getWallet (): Promise<IExternalWallet> {
-  if (!walletInstance) {
-    const { getWax } = await import('@/stores/wax.store');
-    const wax = await getWax();
-    walletInstance = await createExternalWallet(
-      wax,
-      tokenProvider,
-      storagePasswordProvider,
-      WALLET_FILE_NAME
-    );
+let walletInstance: IExternalWallet | null = null;
+let walletInstanceCreation: Promise<IExternalWallet> | null = null;
+
+const createWalletInstance = async (): Promise<IExternalWallet> => {
+  const { getWax } = await import('@/stores/wax.store');
+  const wax = await getWax();
+
+  return await createExternalWallet(wax, tokenProvider, storagePasswordProvider, WALLET_FILE_NAME);
+};
+
+// Concurrent callers share a single creation so the recovery password is requested only once
+const getWallet = async (): Promise<IExternalWallet> => {
+  if (walletInstance)
+    return walletInstance;
+
+  walletInstanceCreation ??= createWalletInstance()
+    .then(instance => {
+      walletInstance = instance;
+      return instance;
+    })
+    .finally(() => {
+      walletInstanceCreation = null;
+    });
+
+  return await walletInstanceCreation;
+};
+
+const discardWalletInstance = async (instance: IExternalWallet | null = walletInstance): Promise<void> => {
+  if (!instance)
+    return;
+
+  if (walletInstance === instance)
+    walletInstance = null;
+
+  await instance.close();
+};
+
+// Cache the key once it has proven to decrypt the wallet, so the password is not asked for again on this device
+const rememberEncryptionKey = (wallet: IExternalWallet): void => {
+  const encryptionKeyWif = wallet.getEncryptionKeyWif();
+
+  if (getStoredEncryptionKey() !== encryptionKeyWif)
+    setStoredEncryptionKey(encryptionKeyWif);
+};
+
+/**
+ * Runs an operation on the unlocked wallet.
+ * When the credentials used to unlock it do not match the wallet file (e.g. the wallet was recreated with
+ * a different password or a wrong password was typed), the stale credentials are dropped and the user is
+ * asked for the recovery password again - until it matches or the prompt is cancelled.
+ */
+const withUnlockedWallet = async <T>(operation: (wallet: IExternalWallet) => Promise<T>): Promise<T> => {
+  for (;;) {
+    const wallet = await getWallet();
+
+    try {
+      const result = await operation(wallet);
+      rememberEncryptionKey(wallet);
+
+      return result;
+    } catch (error) {
+      if (!isWalletError(error, 'DECRYPTION_FAILED'))
+        throw error;
+
+      // A concurrent operation may have already replaced the instance - then just retry with the new one
+      if (walletInstance === wallet) {
+        recoveryPasswordNotice = unlockedWithStoredKey ? STORED_PASSWORD_MISMATCH_NOTICE : INVALID_PASSWORD_NOTICE;
+        clearStoredEncryptionKey();
+        await discardWalletInstance(wallet);
+      }
+    }
+  }
+};
+
+// Loads the requested role or, when it is not stored, any role of the account; undefined when the account has no keys
+const loadAnyHiveKey = async (wallet: IExternalWallet, accountName: TAccountName, role?: TRole): Promise<IExternalWalletContent | undefined> => {
+  const rolesToTry: Array<TRole | undefined> = role ? [role, undefined] : [undefined];
+
+  for (const candidate of rolesToTry) {
+    try {
+      return await wallet.loadForHiveKey(accountName, candidate);
+    } catch (error) {
+      if (!isWalletError(error, 'KEY_NOT_FOUND'))
+        throw error;
+    }
   }
 
-  return walletInstance;
-}
+  return undefined;
+};
+
+const missingAccountError = async (wallet: IExternalWallet, accountName: TAccountName): Promise<Error> => {
+  const accounts = await wallet.enumStoredAccounts();
+  // The wallet was decrypted even though the account is missing from it
+  rememberEncryptionKey(wallet);
+
+  const otherAccounts = accounts.filter(account => account !== accountName);
+
+  return otherAccounts.length > 0 ? new AccountNotInWalletError(accountName, otherAccounts) : new EmptyWalletError();
+};
+
+// Validate the private key format before persisting it to Google Drive
+const assertValidPrivateKey = async (privateKey: string): Promise<void> => {
+  const { getWax } = await import('@/stores/wax.store');
+  const wax = await getWax();
+
+  try {
+    wax.calculatePublicKey(privateKey);
+  } catch {
+    throw new Error('Invalid private key format. Please provide a valid Hive WIF private key.');
+  }
+};
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class GoogleDriveWalletProvider {
@@ -146,27 +249,12 @@ export class GoogleDriveWalletProvider {
     pendingWalletCreationPassword = recoveryPassword;
 
     // Reset wallet instance to ensure fresh creation with new password
-    if (walletInstance) {
-      await walletInstance.close();
-      walletInstance = null;
-    }
+    await discardWalletInstance();
 
     try {
-      const wallet = await getWallet();
-      const content = await wallet.createForHiveKey(role, accountName, key);
-
-      // Extract and store the encryption key WIF for future automatic decryption
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-
-      // Clear pending password after successfully storing the key
+      return await withUnlockedWallet(wallet => wallet.createForHiveKey(role, accountName, key));
+    } finally {
       pendingWalletCreationPassword = undefined;
-
-      return content;
-    } catch (error) {
-      // Clear pending password on error
-      pendingWalletCreationPassword = undefined;
-      throw error;
     }
   }
 
@@ -178,77 +266,16 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
-    const wallet = await getWallet();
+    return await withUnlockedWallet(async wallet => {
+      const content = await loadAnyHiveKey(wallet, accountName, role);
 
-    try {
-      const content = role
-        ? await wallet.loadForHiveKey(accountName, role)
-        : await wallet.loadForHiveKey(accountName);
+      if (!content)
+        throw await missingAccountError(wallet, accountName);
 
-      // Extract and store the encryption key WIF if not already stored
-      if (!getStoredEncryptionKey()) {
-        const encryptionKeyWif = wallet.getEncryptionKeyWif();
-        setStoredEncryptionKey(encryptionKeyWif);
-      }
-
-      // Get the loaded role from enumerated keys
-      const keyInfo = role
-        ? [...content.enumStoredHiveKeys(accountName, role)][0]
-        : [...content.enumStoredHiveKeys(accountName)][0];
+      const keyInfo = [...content.enumStoredHiveKeys(accountName)][0];
 
       return { accountName, role: keyInfo?.role };
-    } catch (error) {
-      // Re-throw user-initiated cancellations
-      if (error instanceof PasswordEntryCancelledError)
-        throw error;
-
-      // If a specific role was requested and failed, try loading without role filter
-      // (same fallback pattern as the for() method)
-      if (role) {
-        try {
-          const content = await wallet.loadForHiveKey(accountName);
-          const keyInfo = [...content.enumStoredHiveKeys(accountName)][0];
-
-          if (keyInfo) {
-            if (!getStoredEncryptionKey()) {
-              const encryptionKeyWif = wallet.getEncryptionKeyWif();
-              setStoredEncryptionKey(encryptionKeyWif);
-            }
-
-            return { accountName, role: keyInfo.role };
-          }
-        } catch (fallbackError) {
-          if (fallbackError instanceof PasswordEntryCancelledError)
-            throw fallbackError;
-          // Fall through to original error handling
-        }
-      }
-
-      // Check if the wallet is simply empty or the account doesn't exist in it
-      try {
-        const accounts = await wallet.enumStoredAccounts();
-        if (!accounts.includes(accountName)) {
-          // Cache encryption key if available (wallet was decrypted even though load failed)
-          if (!getStoredEncryptionKey()) {
-            try {
-              const encryptionKeyWif = wallet.getEncryptionKeyWif();
-              setStoredEncryptionKey(encryptionKeyWif);
-            } catch { /* encryption key not available yet */ }
-          }
-
-          if (accounts.length > 0)
-            throw new AccountNotInWalletError(accountName, accounts);
-
-          throw new EmptyWalletError();
-        }
-      } catch (enumError) {
-        if (enumError instanceof EmptyWalletError || enumError instanceof AccountNotInWalletError)
-          throw enumError;
-      }
-
-      // Re-throw original error if not an empty wallet issue
-      throw error;
-    }
+    });
   }
 
   /**
@@ -306,16 +333,7 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       return [];
 
-    const wallet = await getWallet();
-    const roles = await wallet.enumStoredRolesForAccount(accountName);
-
-    // Extract and store the encryption key WIF if not already stored
-    if (roles.length > 0 && !getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-    }
-
-    return roles;
+    return await withUnlockedWallet(wallet => wallet.enumStoredRolesForAccount(accountName));
   }
 
   /**
@@ -329,20 +347,12 @@ export class GoogleDriveWalletProvider {
       return null;
 
     try {
-      const wallet = await getWallet();
-      const content = await wallet.loadForHiveKey(accountName, role);
-      const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
+      return await withUnlockedWallet(async wallet => {
+        const content = await wallet.loadForHiveKey(accountName, role);
+        const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
 
-      // Extract and store the encryption key WIF if not already stored
-      if (!getStoredEncryptionKey()) {
-        const encryptionKeyWif = wallet.getEncryptionKeyWif();
-        setStoredEncryptionKey(encryptionKeyWif);
-      }
-
-      if (!keyInfo)
-        return null;
-
-      return { publicKey: keyInfo.publicKey };
+        return keyInfo ? { publicKey: keyInfo.publicKey } : null;
+      });
     } catch (error) {
       // Re-throw PasswordEntryCancelledError so UI can handle it
       if (error instanceof PasswordEntryCancelledError)
@@ -351,24 +361,6 @@ export class GoogleDriveWalletProvider {
       return null;
     }
   }
-
-  /**
-   * Delete wallet from Google Drive
-   * @param accountName - The Hive account name
-   */
-  // public static async deleteWallet (): Promise<void> {
-  //   if (!await GoogleDriveWalletProvider.isAuthenticated())
-  //     throw new Error('Not authenticated with Google');
-
-  //   const wallet = await getWallet();
-  //   await wallet.deleteStorageFile();
-  //   // const content = await wallet.loadForHiveKey(accountName, role);
-  //   // await content.clearContents(true);
-
-  //   // Reset wallet instance after deletion
-  //   await wallet.close();
-  //   walletInstance = null;
-  // }
 
   public static setEncryptionKey (keyWif: string): void {
     setStoredEncryptionKey(keyWif);
@@ -389,10 +381,7 @@ export class GoogleDriveWalletProvider {
   public static async logout (): Promise<void> {
     await $fetch('/api/auth/google/logout', { method: 'POST' });
 
-    if (walletInstance) {
-      await walletInstance.close();
-      walletInstance = null;
-    }
+    await discardWalletInstance();
 
     // Update settings store to reflect logged out state
     const { useSettingsStore } = await import('@/stores/settings.store');
@@ -408,41 +397,19 @@ export class GoogleDriveWalletProvider {
    * Returns the IExternalWalletContent with the specified role active
    *
    * If the requested role is not available, falls back to the first available role.
-   * Priority order: posting > active > owner > memo
    *
    * @param accountName - The Hive account name
    * @param role - The role to load (posting, active, owner, or memo)
    */
   public static async for (accountName: TAccountName, role: TRole): Promise<AEncryptionProvider> {
-    const wallet = await getWallet();
+    return await withUnlockedWallet(async wallet => {
+      const content = await loadAnyHiveKey(wallet, accountName, role);
 
-    try {
-      // Try to load the requested role
-      const content = await wallet.loadForHiveKey(accountName, role) as unknown as AEncryptionProvider;
-
-      // Extract and store the encryption key WIF if not already stored
-      if (!getStoredEncryptionKey()) {
-        const encryptionKeyWif = wallet.getEncryptionKeyWif();
-        setStoredEncryptionKey(encryptionKeyWif);
-      }
-
-      return content;
-    } catch {
-      // Fall back to loading any available key for this account (no role filter)
-      const content = await wallet.loadForHiveKey(accountName);
-      const keys = [...content.enumStoredHiveKeys(accountName)];
-
-      if (keys.length === 0)
-        throw new EmptyWalletError();
-
-      // Extract and store the encryption key WIF if not already stored
-      if (!getStoredEncryptionKey()) {
-        const encryptionKeyWif = wallet.getEncryptionKeyWif();
-        setStoredEncryptionKey(encryptionKeyWif);
-      }
+      if (!content)
+        throw await missingAccountError(wallet, accountName);
 
       return content as unknown as AEncryptionProvider;
-    }
+    });
   }
 
   /**
@@ -458,30 +425,17 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
-    // Validate the private key format before persisting to Google Drive
-    const { getWax } = await import('@/stores/wax.store');
-    const wax = await getWax();
-    try {
-      wax.calculatePublicKey(privateKey);
-    } catch {
-      throw new Error('Invalid private key format. Please provide a valid Hive WIF private key.');
-    }
+    await assertValidPrivateKey(privateKey);
 
-    const wallet = await getWallet();
-    const content = await wallet.createForHiveKey(role, accountName, privateKey);
+    return await withUnlockedWallet(async wallet => {
+      const content = await wallet.createForHiveKey(role, accountName, privateKey);
+      const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
 
-    // Extract and store the encryption key WIF if not already stored
-    if (!getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-    }
+      if (!keyInfo)
+        throw new Error('Failed to add key');
 
-    // Get public key from enumerated keys
-    const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
-    if (!keyInfo)
-      throw new Error('Failed to add key');
-
-    return { publicKey: keyInfo.publicKey };
+      return { publicKey: keyInfo.publicKey };
+    });
   }
 
   /**
@@ -489,43 +443,39 @@ export class GoogleDriveWalletProvider {
    * Can remove by role or by public key
    *
    * @param accountName - The Hive account name
-   * @param roleOrPublicKey - Either a role (posting, active, owner, memo) or a public key string
+   * @param publicKey - Public key of the key to remove (verified against the role when both are given)
+   * @param role - Role whose key should be removed
    * @throws Error if not authenticated or key not found
    */
   public static async removeKey (accountName: TAccountName, publicKey?: TPublicKey, role?: TRole): Promise<void> {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
-    const wallet = await getWallet();
+    await withUnlockedWallet(async wallet => {
+      if (role !== undefined) {
+        const content = await wallet.loadForHiveKey(accountName, role);
+        const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
 
-    if (role !== undefined) {
-      const content = await wallet.loadForHiveKey(accountName, role);
-      const keyInfo = [...content.enumStoredHiveKeys(accountName, role)][0];
+        if (!keyInfo)
+          throw new Error(`No key found for ${accountName}@${role}`);
 
-      if (!keyInfo)
-        throw new Error(`No key found for ${accountName}@${role}`);
+        if (publicKey !== undefined && keyInfo.publicKey !== publicKey)
+          throw new Error(`Public key mismatch for ${accountName}@${role}`);
 
-      if (publicKey !== undefined && keyInfo.publicKey !== publicKey)
-        throw new Error(`Public key mismatch for ${accountName}@${role}`);
-
-      await content.removeKey(keyInfo);
-      return;
-    }
-
-    if (publicKey !== undefined) {
-      // Remove by public key - try loading with any available role
-      const rolesToTry: TRole[] = ['posting', 'active', 'owner', 'memo'];
-
-      for (const role of rolesToTry) {
-        try {
-          const content = await wallet.loadForHiveKey(accountName, role);
-          await content.removeKey(publicKey);
-          return;
-        } catch {}
+        await content.removeKey(keyInfo);
+        return;
       }
 
-      throw new Error(`Could not load wallet for account ${accountName} to remove key`);
-    }
+      if (publicKey !== undefined) {
+        // Any stored role of the account can be used to remove a key by its public key
+        const content = await loadAnyHiveKey(wallet, accountName);
+
+        if (!content)
+          throw new Error(`Could not load wallet for account ${accountName} to remove key`);
+
+        await content.removeKey(publicKey);
+      }
+    });
   }
 
   /**
@@ -536,15 +486,7 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       return [];
 
-    const wallet = await getWallet();
-
-    // Extract and store the encryption key WIF if not already stored
-    if (!getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-    }
-
-    return await wallet.enumStoredAccounts();
+    return await withUnlockedWallet(wallet => wallet.enumStoredAccounts());
   }
 
   /**
@@ -553,11 +495,7 @@ export class GoogleDriveWalletProvider {
    * @returns Array of configured roles
    */
   public static async getStoredRolesForAccount (accountName: TAccountName): Promise<TRole[]> {
-    if (!await GoogleDriveWalletProvider.isAuthenticated())
-      return [];
-
-    const wallet = await getWallet();
-    return await wallet.enumStoredRolesForAccount(accountName);
+    return await GoogleDriveWalletProvider.getAllConfiguredRoles(accountName);
   }
 
   /**
@@ -571,29 +509,17 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
-    // Validate the private key format before persisting to Google Drive
-    const { getWax } = await import('@/stores/wax.store');
-    const wax = await getWax();
-    try {
-      wax.calculatePublicKey(privateKey);
-    } catch {
-      throw new Error('Invalid private key format. Please provide a valid Hive WIF private key.');
-    }
+    await assertValidPrivateKey(privateKey);
 
-    const wallet = await getWallet();
-    const content = await wallet.createForCustomKey(alias, privateKey, description);
+    return await withUnlockedWallet(async wallet => {
+      const content = await wallet.createForCustomKey(alias, privateKey, description);
+      const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
 
-    // Extract and store the encryption key WIF if not already stored
-    if (!getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-    }
+      if (!keyInfo)
+        throw new Error('Failed to add custom key');
 
-    const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
-    if (!keyInfo)
-      throw new Error('Failed to add custom key');
-
-    return { publicKey: keyInfo.publicKey };
+      return { publicKey: keyInfo.publicKey };
+    });
   }
 
   /**
@@ -604,8 +530,7 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       return [];
 
-    const wallet = await getWallet();
-    return await wallet.enumStoredCustomKeys();
+    return await withUnlockedWallet(wallet => wallet.enumStoredCustomKeys());
   }
 
   /**
@@ -616,14 +541,15 @@ export class GoogleDriveWalletProvider {
     if (!await GoogleDriveWalletProvider.isAuthenticated())
       throw new Error('Not authenticated with Google');
 
-    const wallet = await getWallet();
-    const content = await wallet.loadForCustomKey(alias);
-    const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
+    await withUnlockedWallet(async wallet => {
+      const content = await wallet.loadForCustomKey(alias);
+      const keyInfo = [...content.enumStoredCustomKeys()].find(k => k.customAlias === alias);
 
-    if (!keyInfo)
-      throw new Error(`Custom key '${alias}' not found`);
+      if (!keyInfo)
+        throw new Error(`Custom key '${alias}' not found`);
 
-    await content.removeKey(keyInfo);
+      await content.removeKey(keyInfo);
+    });
   }
 
   /**
@@ -632,16 +558,7 @@ export class GoogleDriveWalletProvider {
    * @returns Encryption provider for signing
    */
   public static async loadCustomKey (alias: string): Promise<AEncryptionProvider> {
-    const wallet = await getWallet();
-    const content = await wallet.loadForCustomKey(alias);
-
-    // Extract and store the encryption key WIF if not already stored
-    if (!getStoredEncryptionKey()) {
-      const encryptionKeyWif = wallet.getEncryptionKeyWif();
-      setStoredEncryptionKey(encryptionKeyWif);
-    }
-
-    return content as unknown as AEncryptionProvider;
+    return await withUnlockedWallet(async wallet => await wallet.loadForCustomKey(alias) as unknown as AEncryptionProvider);
   }
 
   /**

@@ -96,7 +96,7 @@ export const useAccountCreationFlow = (token: Ref<string>) => {
   const authorityData = ref<AccountAuthorityData | undefined>();
 
   /** Asks for the password encrypting a brand new Google Drive wallet file */
-  const recoveryPasswordSetupDialog = usePromptDialog<string>('User cancelled recovery password setup');
+  const recoveryPasswordSetupDialog = usePromptDialog<string>(() => new PromptDialogCancelledError('User cancelled recovery password setup'));
 
   const normalizedAccountName = computed(() => normalizeAccountName(accountName.value));
   const canSubmit = computed(() => stage.value === 'ready' && isAccountNameValid.value && normalizedAccountName.value.length > 0 && !pendingMethod.value);

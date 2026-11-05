@@ -202,7 +202,14 @@ export const settings = {
   connectGoogleCard: testid('google-connect-card'),
   connectGoogleButton: testid('google-connect-btn'),
   privateKeyInput: '#privateKey',
-  saveButton: testid('settings-save-btn')
+  saveButton: testid('settings-save-btn'),
+  walletFileMissing: testid('wallet-file-missing'),
+  createWalletButton: testid('create-wallet-btn'),
+  loadKeysAlert: testid('load-keys-alert'),
+  loadKeysButton: testid('load-keys-btn'),
+  deleteWalletButton: testid('delete-wallet-btn'),
+  deleteWalletDialog: testid('delete-wallet-dialog'),
+  deleteWalletConfirmButton: testid('delete-wallet-confirm-btn')
 };
 
 // ===========================================
@@ -237,6 +244,7 @@ export const common = {
   // Recovery password dialog
   recoveryPasswordDialog: testid('recovery-password-dialog'),
   recoveryPasswordInput: testid('recovery-password-input'),
+  recoveryPasswordNotice: testid('recovery-password-notice'),
   recoveryPasswordToggle: testid('recovery-password-toggle'),
   recoveryCancelBtn: testid('recovery-cancel-btn'),
   recoverySubmitBtn: testid('recovery-submit-btn'),

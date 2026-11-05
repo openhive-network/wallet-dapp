@@ -21,6 +21,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useGoogleDriveWallet } from '@/composables/useGoogleDriveWallet';
+import { PasswordEntryCancelledError } from '@/composables/usePromptDialog';
 import { useSettingsStore, UsedWallet } from '@/stores/settings.store';
 import { useUserStore } from '@/stores/user.store';
 import { useWalletStore } from '@/stores/wallet.store';
@@ -87,10 +88,26 @@ const loadAccountKeys = async (accountName: string) => {
 };
 
 /**
+ * Decrypt the wallet and list its accounts; prompts for the recovery password when no matching key is cached.
+ * Returns undefined when the user gives up on the password prompt.
+ */
+const unlockStoredAccounts = async (): Promise<string[] | undefined> => {
+  try {
+    return await googleDrive.getStoredAccounts();
+  } catch (error) {
+    if (error instanceof PasswordEntryCancelledError)
+      return undefined;
+
+    throw error;
+  }
+};
+
+/**
  * Load wallet info: accounts, roles, keys
  */
 const loadWalletInfo = async () => {
   isLoadingWalletInfo.value = true;
+  isWalletEmpty.value = false;
   try {
     isGoogleDriveConnected.value = await googleDrive.checkAuth();
 
@@ -109,37 +126,18 @@ const loadWalletInfo = async () => {
 
     hasGoogleDriveWallet.value = true;
 
-    // Check if we have encryption key - if not, try to load wallet which will prompt for password
-    if (!googleDrive.hasEncryptionKey()) {
-      // Need to load any account to trigger password prompt
-      const savedAccount = settingsStore.settings.account;
-      if (savedAccount) {
-        try {
-          await googleDrive.loadWallet(savedAccount);
-        } catch {
-          // User cancelled or error - show wallet exists but keys not loaded
-          storedAccounts.value = [];
-          return;
-        }
-      } else {
-        // No saved account and no encryption key - prompt for account name
-        try {
-          const accountName = await googleDrive.requestAccountName();
-          settingsStore.setActiveGoogleDriveAccount(accountName);
-          await googleDrive.loadWallet(accountName);
-        } catch {
-          storedAccounts.value = [];
-          return;
-        }
-      }
+    const accounts = await unlockStoredAccounts();
+
+    // Keys stay locked (password unknown) - file-level actions like deleting the wallet remain available
+    if (!accounts) {
+      storedAccounts.value = [];
+      return;
     }
 
-    // Load stored accounts from wallet
-    const accounts = await googleDrive.getStoredAccounts();
     storedAccounts.value = accounts;
 
-    // Check if wallet is empty (decrypted successfully but has no accounts/keys)
-    isWalletEmpty.value = accounts.length === 0 && googleDrive.hasEncryptionKey();
+    // Decrypted successfully but has no accounts/keys
+    isWalletEmpty.value = accounts.length === 0;
 
     // Sync to settings store (replaces account list and handles active account fallback)
     const previousAccount = settingsStore.settings.account;
@@ -197,14 +195,10 @@ const needsPasswordToLoadKeys = computed(() => {
 const loadKeysManually = async () => {
   isLoadingKeys.value = true;
   try {
-    const savedAccount = settingsStore.settings.account;
-    if (savedAccount)
-      await googleDrive.loadWallet(savedAccount);
-
     await loadWalletInfo();
-    toast.success('Wallet keys loaded successfully');
-  } catch (error) {
-    toastError('Failed to load wallet keys', error);
+
+    if (storedAccounts.value.length > 0 || isWalletEmpty.value)
+      toast.success('Wallet keys loaded successfully');
   } finally {
     isLoadingKeys.value = false;
   }
@@ -259,7 +253,7 @@ const handleRemoveAccount = async (accountName: string) => {
     accountRoles.value = remainingRoles;
     const { [accountName]: _keys, ...remainingKeys } = accountPublicKeys.value;
     accountPublicKeys.value = remainingKeys;
-    isWalletEmpty.value = storedAccounts.value.length === 0 && googleDrive.hasEncryptionKey();
+    isWalletEmpty.value = storedAccounts.value.length === 0;
 
     // Switch tab to first remaining account or custom keys
     activeTab.value = storedAccounts.value[0] ?? 'custom-keys';
@@ -283,24 +277,27 @@ const handleRemoveAccount = async (accountName: string) => {
   }
 };
 
+/**
+ * Delete the wallet file from Google Drive and forget it locally.
+ * Works without unlocking the wallet, so a forgotten recovery password is not a dead end.
+ */
 const handleDeleteWallet = async () => {
   isSavingKey.value = true;
   try {
+    await $fetch('/api/google-drive/delete-wallet', { method: 'DELETE' });
+
     googleDrive.clearEncryptionKey();
     settingsStore.settings.account = undefined;
     settingsStore.settings.googleDriveAccounts = [];
     settingsStore.saveSettings();
+    walletStore.resetWallet();
+    userStore.resetSettings();
 
-    if (isGoogleDriveConnected.value) {
-      try {
-        await $fetch('/api/google-drive/delete-wallet', { method: 'DELETE' });
-      } catch {}
-    }
-
-    toast.success('Wallet data cleared successfully');
+    toast.success('Wallet deleted from Google Drive');
     showDeleteWalletDialog.value = false;
     hasGoogleDriveWallet.value = false;
     storedAccounts.value = [];
+    isWalletEmpty.value = false;
   } catch (error) {
     toastError('Failed to delete wallet', error);
   } finally {
@@ -373,7 +370,11 @@ watch(() => settingsStore.settings.account, (newAccount) => {
     </Alert>
 
     <!-- No wallet - show friendly prompt to create -->
-    <div v-else-if="!hasGoogleDriveWallet" class="flex flex-col items-center justify-center py-8 text-center">
+    <div
+      v-else-if="!hasGoogleDriveWallet"
+      class="flex flex-col items-center justify-center py-8 text-center"
+      data-testid="wallet-file-missing"
+    >
       <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
         <KeyRound class="w-8 h-8 text-primary" />
       </div>
@@ -383,7 +384,11 @@ watch(() => settingsStore.settings.account, (newAccount) => {
       <p class="text-sm text-muted-foreground max-w-sm mb-6">
         Create a new encrypted wallet on your Google Drive to securely store and manage your Hive private keys.
       </p>
-      <Button size="lg" @click="showCreateWalletDialog = true">
+      <Button
+        size="lg"
+        data-testid="create-wallet-btn"
+        @click="showCreateWalletDialog = true"
+      >
         <Plus class="w-4 h-4 mr-2" />
         Create Wallet
       </Button>
@@ -395,6 +400,7 @@ watch(() => settingsStore.settings.account, (newAccount) => {
       <Alert
         v-if="needsPasswordToLoadKeys"
         class="border-blue-200 bg-blue-50 dark:bg-blue-950/20"
+        data-testid="load-keys-alert"
       >
         <AlertTitle class="text-blue-900 dark:text-blue-100">
           Wallet Found on Google Drive
@@ -404,8 +410,12 @@ watch(() => settingsStore.settings.account, (newAccount) => {
             Your wallet file exists on Google Drive, but the keys are not loaded yet.
             Enter your recovery password to decrypt and load your keys.
           </p>
+          <p>
+            Forgot your recovery password? Delete the wallet below and create a new one.
+          </p>
           <Button
             size="sm"
+            data-testid="load-keys-btn"
             :disabled="isLoadingKeys"
             @click="loadKeysManually"
           >
@@ -512,6 +522,7 @@ watch(() => settingsStore.settings.account, (newAccount) => {
               variant="destructive"
               size="sm"
               class="shrink-0"
+              data-testid="delete-wallet-btn"
               @click="showDeleteWalletDialog = true"
             >
               <Trash2 class="w-4 h-4 mr-1" />
@@ -528,56 +539,55 @@ watch(() => settingsStore.settings.account, (newAccount) => {
       @update:open="(open: boolean) => !open && (showDeleteWalletDialog = false)"
     >
       <DialogContent class="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle class="flex items-center gap-2 text-destructive">
-            <Trash2 class="w-5 h-5" />
-            Delete Wallet?
-          </DialogTitle>
-          <DialogDescription>
-            This will clear your local wallet data{{ isGoogleDriveConnected ? ' and delete the encrypted file from Google Drive' : '' }}.
-          </DialogDescription>
-        </DialogHeader>
+        <div class="space-y-4" data-testid="delete-wallet-dialog">
+          <DialogHeader>
+            <DialogTitle class="flex items-center gap-2 text-destructive">
+              <Trash2 class="w-5 h-5" />
+              Delete Wallet?
+            </DialogTitle>
+            <DialogDescription>
+              This will delete the encrypted wallet file from Google Drive and clear your local wallet data.
+              No recovery password is needed.
+            </DialogDescription>
+          </DialogHeader>
 
-        <Alert
-          variant="destructive"
-          class="my-4"
-        >
-          <AlertDescription>
-            <strong>Warning:</strong> This action cannot be undone. Make sure you have backups of all your private keys before proceeding.
-          </AlertDescription>
-        </Alert>
+          <Alert variant="destructive">
+            <AlertDescription>
+              <strong>Warning:</strong> This action cannot be undone. Make sure you have backups of all your private keys before proceeding.
+            </AlertDescription>
+          </Alert>
 
-        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
-          <p>This will:</p>
-          <ul class="list-disc list-inside space-y-1 ml-2">
-            <li>Clear your locally stored recovery password</li>
-            <li>Remove all account information from settings</li>
-            <li v-if="isGoogleDriveConnected">
-              Delete the encrypted wallet file from Google Drive
-            </li>
-          </ul>
+          <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p>This will:</p>
+            <ul class="list-disc list-inside space-y-1 ml-2">
+              <li>Delete the encrypted wallet file from Google Drive</li>
+              <li>Clear your locally stored recovery password</li>
+              <li>Remove all account information from settings</li>
+            </ul>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              :disabled="isSavingKey"
+              @click="showDeleteWalletDialog = false"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              data-testid="delete-wallet-confirm-btn"
+              :disabled="isSavingKey"
+              @click="handleDeleteWallet"
+            >
+              <Loader2
+                v-if="isSavingKey"
+                class="w-4 h-4 animate-spin"
+              />
+              {{ isSavingKey ? 'Deleting...' : 'Delete Wallet' }}
+            </Button>
+          </DialogFooter>
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            :disabled="isSavingKey"
-            @click="showDeleteWalletDialog = false"
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            :disabled="isSavingKey"
-            @click="handleDeleteWallet"
-          >
-            <Loader2
-              v-if="isSavingKey"
-              class="w-4 h-4 animate-spin"
-            />
-            {{ isSavingKey ? 'Deleting...' : 'Delete Wallet' }}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
 

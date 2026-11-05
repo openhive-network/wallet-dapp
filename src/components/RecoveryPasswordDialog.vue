@@ -71,6 +71,16 @@ const handleKeydown = (event: KeyboardEvent) => {
         </DialogHeader>
 
         <div class="space-y-4 py-4">
+          <Alert
+            v-if="recoveryPasswordDialog.notice.value"
+            variant="destructive"
+            data-testid="recovery-password-notice"
+          >
+            <AlertDescription>
+              {{ recoveryPasswordDialog.notice.value }}
+            </AlertDescription>
+          </Alert>
+
           <div class="space-y-2">
             <Label for="recoveryPassword">Recovery Password</Label>
             <div class="relative">
@@ -112,6 +122,16 @@ const handleKeydown = (event: KeyboardEvent) => {
 
           <p class="text-xs text-gray-500 dark:text-gray-400">
             This password was set when you created your wallet. It is used to encrypt your private keys stored in Google Drive.
+            Forgot it? You can
+            <NuxtLink
+              to="/settings"
+              class="keychainify-checked underline hover:text-primary"
+              data-testid="recovery-forgot-link"
+              @click="handleCancel"
+            >
+              delete the wallet in Settings
+            </NuxtLink>
+            and create a new one.
           </p>
         </div>
 
