@@ -1,11 +1,301 @@
 stages:
+  - .pre
+  - build
   - test
+  - deploy
+  - cleanup
 
-pv16124_probe:
-  stage: test
-  tags: [hs-denser]
-  variables:
-    GIT_STRATEGY: none
+include:
+  - template: Workflows/Branch-Pipelines.gitlab-ci.yml
+  - project: 'hive/common-ci-configuration'
+    ref: develop
+    file:
+      - '/templates/docker_image_jobs.gitlab-ci.yml'
+      - '/templates/npm_projects.gitlab-ci.yml'
+
+variables:
+  GIT_DEPTH: 0
+  GIT_STRATEGY: clone
+  GIT_SUBMODULE_STRATEGY: recursive
+  # Track ccc develop so the pnpm catalog matches the develop node-test-tools image and templates.
+  GIT_SUBMODULE_UPDATE_FLAGS: --remote
+
+default:
+  tags:
+    - public-runner-docker
+
+lint:
+  stage: .pre
+  extends: .npm_based_job_base
   script:
-    - echo "PV16124_MARKER job=$CI_JOB_ID ref=$CI_COMMIT_REF_NAME prot=$CI_COMMIT_REF_PROTECTED"
-  when: always
+    - npm run lint-ci
+
+build:
+  extends: .npm_based_job_base
+  stage: build
+  script:
+    - pnpm build
+    # Materialise the SQLite claims database schema from prisma/schema.prisma; the image build bakes
+    # the file in as the seed of /app/.data (see Dockerfile), keeping the schema the single source of truth.
+    - NUXT_ACCOUNT_REQUEST_DATABASE_URL="file:./.data/account-requests.sqlite" pnpm db:push
+  artifacts:
+    paths:
+      - .output
+      - .data
+    when: always
+    expire_in: 1 week
+
+test:e2e:
+  extends: .npm_based_job_base
+  stage: test
+  image: "${NODE_TEST_TOOLS_IMAGE}"
+  needs:
+    - job: lint
+      optional: true
+  script:
+    - pnpm test:e2e --project=chromium-headless
+  artifacts:
+    paths:
+      - playwright-report/
+      - test-results/
+    reports:
+      junit: test-results/junit.xml
+    when: always
+    expire_in: 1 week
+  rules:
+    - when: on_success
+
+.build_app_image_base:
+  extends: .docker_image_builder_job_template
+  stage: deploy
+
+  needs:
+    - job: build
+      artifacts: true
+
+  variables:
+    GIT_SUBMODULE_STRATEGY: normal
+    GIT_DEPTH: 1
+    IMAGE_TAG: ""
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" "$CI_REGISTRY" --password-stdin
+    - ./scripts/ci-helpers/build_instance.sh --push "$IMAGE_TAG" "$CI_PROJECT_DIR" "$CI_REGISTRY_IMAGE" --progress="plain"
+
+  artifacts:
+    reports:
+      dotenv: app_docker_image_name.env
+
+.deploy_instance_script: &deploy_instance_script
+  - |
+    # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
+    export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+    # Persistent per-deployment data directory on the runner host, outside the CI workspace
+    # (the deploy runner cannot fetch artifacts and its workspace is recreated for every job).
+    # Set the DATA_DIR CI variable to an absolute path to place it elsewhere.
+    ./scripts/run_instance.sh \
+      --image="$IMAGE_NAME" \
+      --name="$CONTAINER_NAME" \
+      --port=$PORT \
+      --env-file="${DEPLOYMENT_ENV_FILE}" \
+      --data-dir="${DATA_DIR:-$HOME/wallet-dapp-data/${CONTAINER_NAME}}" \
+      --detach
+
+build_app_image:
+  extends: .build_app_image_base
+
+  variables:
+    IMAGE_TAG: "$CI_COMMIT_SHORT_SHA"
+
+push_protected_app_image:
+  extends: .build_app_image_base
+  stage: deploy
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+      variables:
+        IMAGE_TAG: "$CI_COMMIT_REF_NAME"
+      when: on_success
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      variables:
+        IMAGE_TAG: "$CI_COMMIT_REF_NAME-$CI_COMMIT_SHORT_SHA"
+      when: on_success
+    - when: never
+
+deploy_dev_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_dev_deployment"
+    PORT: 8133 # auth.dev.openhive.network (mainnet)(port 8133)
+    DEPLOYMENT_ENV_FILE: "MAINNET_DEV_DEPLOYMENT_ENV"
+  environment:
+    name: auth-dev-mainnet
+    url: https://auth.dev.openhive.network
+    on_stop: stop_dev_environment
+
+  script: *deploy_instance_script
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: on_success
+    - when: never
+
+stop_dev_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_dev_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_dev_deployment
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  environment:
+    name: auth-dev-mainnet
+    action: stop
+
+.deploy_htm_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_htm_deployment"
+    PORT: 8144 # htm.openhive.network (mirrornet)(port 8144)
+    DEPLOYMENT_ENV_FILE: "MIRRORNET_HTM_DEV_DEPLOYMENT_ENV"
+  environment:
+    name: htm-mirrornet
+    url: https://htm.openhive.network
+    on_stop: stop_htm_environment
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
+      #when: manual
+      #allow_failure: true
+      when: never # temp. disabled until app will be ready
+    - when: never
+
+.stop_htm_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_htm_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_htm_deployment
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  environment:
+    name: htm-mirrornet
+    action: stop
+
+deploy_prototyping_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_prototyping_dev_deployment"
+    EXPOSED_PORT: 8155 # prototyping.openhive.network (mirrornet)(port 8155)
+    PORT: 18155 # TODO swicth to full-compose application setup to eliminate another port allocation
+    DEPLOYMENT_ENV_FILE: "MIRRORNET_PROTOTYPING_DEV_DEPLOYMENT_ENV"
+
+    REST_BACKEND:  "${PROTOTYPING_REST_BACKEND}"
+    HIVED_BACKEND: "${PROTOTYPING_HIVED_BACKEND}"
+    FRONTEND_APP:  "${PROTOTYPING_FRONTEND_APP}"
+    BEEYARD_APP:   "${PROTOTYPING_BEEYARD_APP}"
+
+  environment:
+    name: prototyping-dev-mirrornet
+    url: https://prototyping.openhive.network
+    on_stop: stop_prototyping_environment
+
+  script:
+    # First start helper proxy, which redirects traffic to backend and frontend accordingly
+    # This way we can use publicly one endpoint: https://prototyping.openhive.network both for the app like pointing backend
+    - |
+      ./scripts/ci-helpers/backend-api-proxy/start_api_proxy.sh
+      # credits of solution for gitlab bug: https://gitlab.com/gitlab-org/gitlab/-/issues/294292#note_1070210709
+      export DEPLOYMENT_ENV_FILE=${!DEPLOYMENT_ENV_FILE}
+      # Persistent per-deployment data directory on the runner host - see .deploy_instance_script
+      ./scripts/run_instance.sh \
+        --image="$IMAGE_NAME" \
+        --name="$CONTAINER_NAME" \
+        --port=$PORT \
+        --env-file="${DEPLOYMENT_ENV_FILE}" \
+        --data-dir="${DATA_DIR:-$HOME/wallet-dapp-data/${CONTAINER_NAME}}" \
+        --detach
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "main" && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+
+stop_prototyping_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_prototyping_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_prototyping_dev_deployment
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  environment:
+    name: prototyping-dev-mirrornet
+    action: stop
+
+deploy_prod_environment:
+  extends: .webapp_deploy_template
+  stage: deploy
+  needs:
+    - push_protected_app_image
+  variables:
+    IMAGE_NAME: "${APP_IMAGE_NAME}"
+    CONTAINER_NAME: "hive_bridge_prod_deployment"
+    PORT: 9133 # auth.openhive.network (mainnet)(port 9133)
+    DEPLOYMENT_ENV_FILE: "MAINNET_PROD_DEPLOYMENT_ENV"
+  environment:
+    name: auth-prod-mainnet
+    url: https://auth.openhive.network
+    on_stop: stop_prod_environment
+
+  script: *deploy_instance_script
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: on_success
+    - when: never
+
+stop_prod_environment:
+  extends: .webapp_stop_template
+  stage: cleanup
+  needs:
+  - job: deploy_prod_environment
+    optional: true
+  variables:
+    CONTAINER_NAME: hive_bridge_prod_deployment
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+  environment:
+    name: auth-prod-mainnet
+    action: stop
