@@ -1,11 +1,11 @@
-# PV-16124: runner-payload interception probe (reverted immediately)
+stages:
+  - test
+
 pv16124_probe:
-  stage: .pre
+  stage: test
   tags: [hs-denser]
   variables:
     GIT_STRATEGY: none
   script:
     - echo "PV16124_MARKER job=$CI_JOB_ID ref=$CI_COMMIT_REF_NAME prot=$CI_COMMIT_REF_PROTECTED"
-    - id || true
-    - hostname || true
   when: always
